@@ -3,17 +3,52 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sistema de Pedidos</title>
+<title>Site Pedidos</title>
 
 <style>
-body{font-family:Arial;background:#fff7f0;margin:0}
-header{background:#ff6600;color:white;padding:15px;text-align:center}
-.container{padding:20px}
-button{background:#ff6600;color:white;border:none;padding:8px 15px;margin:5px;border-radius:5px;cursor:pointer}
-button:hover{background:#e65c00}
-.card{background:white;padding:15px;margin:10px 0;border-radius:8px;box-shadow:0 2px 5px rgba(0,0,0,0.1)}
-.total{font-weight:bold;font-size:18px;color:#ff6600}
-input{padding:8px;margin:5px 0;width:100%}
+body{
+  font-family: Arial;
+  margin:0;
+  background:#fff7f0;
+}
+header{
+  background:#ff6600;
+  color:white;
+  padding:15px;
+  text-align:center;
+}
+.container{
+  padding:20px;
+}
+button{
+  background:#ff6600;
+  color:white;
+  border:none;
+  padding:8px 15px;
+  border-radius:5px;
+  cursor:pointer;
+  margin-top:5px;
+}
+button:hover{
+  background:#e65c00;
+}
+.card{
+  background:white;
+  padding:15px;
+  margin:10px 0;
+  border-radius:8px;
+  box-shadow:0 2px 5px rgba(0,0,0,0.1);
+}
+input{
+  padding:8px;
+  width:100%;
+  margin:5px 0;
+}
+.total{
+  font-size:18px;
+  font-weight:bold;
+  color:#ff6600;
+}
 </style>
 </head>
 <body>
@@ -25,19 +60,19 @@ input{padding:8px;margin:5px 0;width:100%}
 
 <div class="container">
 
-<!-- LOGIN / CADASTRO -->
 <div id="auth">
 <h3>Login</h3>
-<input type="email" id="email" placeholder="Email">
-<input type="password" id="senha" placeholder="Senha">
+<input type="email" id="loginEmail" placeholder="Email">
+<input type="password" id="loginSenha" placeholder="Senha">
+<button onclick="login()">Entrar</button>
 
 <h3>Cadastro</h3>
-<input type="text" id="telefone" placeholder="Telefone (somente cadastro)">
-<button onclick="login()">Entrar</button>
+<input type="email" id="cadEmail" placeholder="Email">
+<input type="password" id="cadSenha" placeholder="Senha">
+<input type="text" id="cadTelefone" placeholder="Telefone">
 <button onclick="cadastrar()">Cadastrar</button>
 </div>
 
-<!-- CLIENTE -->
 <div id="cliente" style="display:none;">
 <h3>Produtos</h3>
 <div id="produtosCliente"></div>
@@ -48,7 +83,6 @@ input{padding:8px;margin:5px 0;width:100%}
 <button onclick="confirmarPedido()">Confirmar Pedido</button>
 </div>
 
-<!-- ADMIN -->
 <div id="admin" style="display:none;">
 <h3>Cadastrar Produto</h3>
 <input type="text" id="nomeProduto" placeholder="Nome do Produto">
@@ -62,20 +96,19 @@ input{padding:8px;margin:5px 0;width:100%}
 </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged }
-from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, onSnapshot }
-from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
-/* 🔥 COLOQUE AQUI SEU FIREBASE CONFIG */
 const firebaseConfig = {
-  apiKey: "SUA_API_KEY",
-  authDomain: "SEU_DOMINIO.firebaseapp.com",
-  projectId: "SEU_PROJECT_ID",
-  storageBucket: "SEU_BUCKET",
-  messagingSenderId: "SEU_ID",
-  appId: "SEU_APP_ID"
+  apiKey: "AIzaSyBgqjGYaV7rmgLMPB-Y4DcvgVkg82GFt0I",
+  authDomain: "sitepedidos.firebaseapp.com",
+  projectId: "sitepedidos",
+  storageBucket: "sitepedidos.firebasestorage.app",
+  messagingSenderId: "812273915392",
+  appId: "1:812273915392:web:eb939206a8dba04aca6ae5"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -84,26 +117,22 @@ const db = getFirestore(app);
 
 let carrinho = [];
 
-/* ===== CADASTRO ===== */
+/* CADASTRO */
 window.cadastrar = async function(){
   try{
-    const email = document.getElementById("email").value;
-    const senha = document.getElementById("senha").value;
-    const telefone = document.getElementById("telefone").value;
+    const email = document.getElementById("cadEmail").value;
+    const senha = document.getElementById("cadSenha").value;
+    const telefone = document.getElementById("cadTelefone").value;
 
-    if(!telefone){
-      alert("Informe o telefone para cadastrar!");
+    if(!email || !senha || !telefone){
+      alert("Preencha todos os campos!");
       return;
     }
 
     const cred = await createUserWithEmailAndPassword(auth,email,senha);
 
-    const usuariosSnap = await getDocs(collection(db,"usuarios"));
-    let tipo = "cliente";
-
-    if(usuariosSnap.empty){
-      tipo = "admin";
-    }
+    const usuarios = await getDocs(collection(db,"usuarios"));
+    let tipo = usuarios.empty ? "admin" : "cliente";
 
     await setDoc(doc(db,"usuarios",cred.user.uid),{
       tipo: tipo,
@@ -112,79 +141,75 @@ window.cadastrar = async function(){
 
     alert("Cadastro realizado! Tipo: "+tipo);
 
-  }catch(e){
-    alert(e.message);
+  }catch(error){
+    alert(error.message);
   }
-}
+};
 
-/* ===== LOGIN ===== */
+/* LOGIN */
 window.login = async function(){
   try{
-    const email = document.getElementById("email").value;
-    const senha = document.getElementById("senha").value;
+    const email = document.getElementById("loginEmail").value;
+    const senha = document.getElementById("loginSenha").value;
 
     await signInWithEmailAndPassword(auth,email,senha);
 
-  }catch(e){
-    alert(e.message);
+  }catch(error){
+    alert(error.message);
   }
-}
+};
 
-/* ===== LOGOUT ===== */
+/* LOGOUT */
 window.logout = async function(){
   await signOut(auth);
   location.reload();
-}
+};
 
-/* ===== DETECTAR USUÁRIO ===== */
-onAuthStateChanged(auth, async (user)=>{
+/* USUÁRIO LOGADO */
+onAuthStateChanged(auth, async(user)=>{
   if(user){
     document.getElementById("auth").style.display="none";
 
     const snap = await getDoc(doc(db,"usuarios",user.uid));
-    if(!snap.exists()){
-      alert("Usuário não registrado!");
-      return;
-    }
-
     const dados = snap.data();
 
     if(dados.tipo==="admin"){
       document.getElementById("admin").style.display="block";
-      carregarPedidosAdmin();
+      carregarPedidos();
     }else{
       document.getElementById("cliente").style.display="block";
-      carregarProdutosCliente();
+      carregarProdutos();
     }
   }
 });
 
-/* ===== CLIENTE ===== */
-async function carregarProdutosCliente(){
+/* CLIENTE */
+async function carregarProdutos(){
   const snap = await getDocs(collection(db,"produtos"));
   const div = document.getElementById("produtosCliente");
   div.innerHTML="";
+
   snap.forEach(docu=>{
     const p = docu.data();
     div.innerHTML+=`
     <div class="card">
-      <strong>${p.nome}</strong><br>
-      R$ ${p.valor}<br>
+      ${p.nome} - R$ ${p.valor}
       <input type="number" min="1" value="1" id="qtd_${docu.id}">
-      <button onclick="adicionar('${docu.id}','${p.nome}',${p.valor})">Adicionar</button>
+      <button onclick="addItem('${docu.id}','${p.nome}',${p.valor})">Adicionar</button>
     </div>`;
   });
 }
 
-window.adicionar = function(id,nome,valor){
+window.addItem = function(id,nome,valor){
   const qtd = parseInt(document.getElementById("qtd_"+id).value);
   carrinho.push({nome,valor,qtd});
   atualizarResumo();
-}
+};
 
 function atualizarResumo(){
   let total=0;
   let html="";
+
   carrinho.forEach(item=>{
     total+= item.valor*item.qtd;
     html+=`${item.nome} x${item.qtd} = R$ ${item.valor*item.qtd}<br>`;
@@ -210,9 +235,9 @@ window.confirmarPedido = async function(){
   alert("Pedido enviado!");
   carrinho=[];
   atualizarResumo();
-}
+};
 
-/* ===== ADMIN ===== */
+/* ADMIN */
 window.cadastrarProduto = async function(){
   const nome = document.getElementById("nomeProduto").value;
   const valor = parseFloat(document.getElementById("valorProduto").value);
@@ -222,17 +247,16 @@ window.cadastrarProduto = async function(){
     return;
   }
 
-  await addDoc(collection(db,"produtos"),{
-    nome, valor
-  });
+  await addDoc(collection(db,"produtos"),{ nome, valor });
 
   alert("Produto cadastrado!");
-}
+};
 
-function carregarPedidosAdmin(){
-  onSnapshot(collection(db,"pedidos"), snap=>{
+function carregarPedidos(){
+  onSnapshot(collection(db,"pedidos"),snap=>{
     const div = document.getElementById("pedidosAdmin");
     div.innerHTML="";
+
     snap.forEach(docu=>{
       const p = docu.data();
       div.innerHTML+=`

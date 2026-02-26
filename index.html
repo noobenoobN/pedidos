@@ -2,8 +2,8 @@
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<title>Sistema de Pedidos</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Pedidos</title>
 
 <style>
 body{font-family:Arial;background:#fff7f0;margin:0}
@@ -13,7 +13,7 @@ button{background:#ff6600;color:white;border:none;padding:8px 15px;margin:5px;bo
 button:hover{background:#e65c00}
 .card{background:white;padding:15px;margin:10px 0;border-radius:8px;box-shadow:0 2px 5px rgba(0,0,0,0.1)}
 .total{font-weight:bold;font-size:18px;color:#ff6600}
-input{padding:6px;margin:5px;width:100%}
+input{padding:8px;margin:5px 0;width:100%}
 </style>
 </head>
 <body>
@@ -25,17 +25,15 @@ input{padding:6px;margin:5px;width:100%}
 
 <div class="container">
 
-<!-- LOGIN -->
 <div id="auth">
-<h3>Login</h3>
+<h3>Login / Cadastro</h3>
 <input type="email" id="email" placeholder="Email">
 <input type="password" id="senha" placeholder="Senha">
-<input type="text" id="telefone" placeholder="Telefone (somente cadastro)">
+<input type="text" id="telefone" placeholder="Telefone (cadastro)">
 <button onclick="login()">Entrar</button>
 <button onclick="cadastrar()">Cadastrar</button>
 </div>
 
-<!-- CLIENTE -->
 <div id="cliente" style="display:none;">
 <h3>Produtos</h3>
 <div id="produtosCliente"></div>
@@ -46,15 +44,14 @@ input{padding:6px;margin:5px;width:100%}
 <button onclick="confirmarPedido()">Confirmar Pedido</button>
 </div>
 
-<!-- ADMIN -->
 <div id="admin" style="display:none;">
 <h3>Cadastrar Produto</h3>
-<input type="text" id="nomeProduto" placeholder="Nome">
+<input type="text" id="nomeProduto" placeholder="Nome do Produto">
 <input type="number" id="valorProduto" placeholder="Valor">
-<button onclick="cadastrarProduto()">Cadastrar</button>
+<button onclick="cadastrarProduto()">Cadastrar Produto</button>
 
-<h3>Produtos</h3>
-<div id="produtosAdmin"></div>
+<h3>Pedidos</h3>
+<div id="pedidosAdmin"></div>
 </div>
 
 </div>
@@ -63,13 +60,16 @@ input{padding:6px;margin:5px;width:100%}
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged }
 from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs }
+import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, onSnapshot }
 from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "SUA_API_KEY",
-  authDomain: "SEU_DOMINIO",
+  authDomain: "SEU_DOMINIO.firebaseapp.com",
   projectId: "SEU_PROJECT_ID",
+  storageBucket: "SEU_BUCKET",
+  messagingSenderId: "SEU_ID",
+  appId: "SEU_APP_ID"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -78,120 +78,140 @@ const db = getFirestore(app);
 
 let carrinho = [];
 
-/* AUTH */
-
+/* ===== CADASTRO ===== */
 window.cadastrar = async function(){
+  try{
     const email = email.value;
     const senha = senha.value;
     const telefone = telefone.value;
 
-    if(!telefone) return alert("Informe telefone!");
+    const cred = await createUserWithEmailAndPassword(auth,email,senha);
 
-    const userCred = await createUserWithEmailAndPassword(auth,email,senha);
+    // Verifica se já existe admin
+    const snap = await getDocs(collection(db,"usuarios"));
+    let tipo = "cliente";
 
-    await setDoc(doc(db,"usuarios",userCred.user.uid),{
-        tipo:"cliente",
-        telefone:telefone
+    if(snap.empty){
+      tipo = "admin"; // primeiro usuário vira admin
+    }
+
+    await setDoc(doc(db,"usuarios",cred.user.uid),{
+      tipo: tipo,
+      telefone: telefone
     });
 
-    alert("Cadastro realizado!");
+    alert("Cadastro realizado! Tipo: "+tipo);
+  }catch(e){
+    alert(e.message);
+  }
 }
 
+/* ===== LOGIN ===== */
 window.login = async function(){
-    const email = document.getElementById("email").value;
-    const senha = document.getElementById("senha").value;
-
-    await signInWithEmailAndPassword(auth,email,senha);
+  try{
+    await signInWithEmailAndPassword(auth,email.value,senha.value);
+  }catch(e){
+    alert(e.message);
+  }
 }
 
+/* ===== LOGOUT ===== */
 window.logout = async function(){
-    await signOut(auth);
-    location.reload();
+  await signOut(auth);
+  location.reload();
 }
 
+/* ===== VERIFICAR USUÁRIO ===== */
 onAuthStateChanged(auth, async (user)=>{
-    if(user){
-        document.getElementById("auth").style.display="none";
+  if(user){
+    document.getElementById("auth").style.display="none";
 
-        const docSnap = await getDoc(doc(db,"usuarios",user.uid));
-        const dados = docSnap.data();
+    const snap = await getDoc(doc(db,"usuarios",user.uid));
+    if(!snap.exists()) return alert("Usuário não registrado!");
 
-        if(dados.tipo==="admin"){
-            document.getElementById("admin").style.display="block";
-            carregarProdutosAdmin();
-        }else{
-            document.getElementById("cliente").style.display="block";
-            carregarProdutosCliente();
-        }
+    const dados = snap.data();
+
+    if(dados.tipo==="admin"){
+      document.getElementById("admin").style.display="block";
+      carregarPedidosAdmin();
+    }else{
+      document.getElementById("cliente").style.display="block";
+      carregarProdutosCliente();
     }
+  }
 });
 
-/* CLIENTE */
-
+/* ===== CLIENTE ===== */
 async function carregarProdutosCliente(){
-    const querySnapshot = await getDocs(collection(db,"produtos"));
-    const div = document.getElementById("produtosCliente");
-    div.innerHTML="";
-
-    querySnapshot.forEach(doc=>{
-        const p = doc.data();
-        div.innerHTML+=`
-        <div class="card">
-            <h4>${p.nome}</h4>
-            <p>R$ ${p.valor}</p>
-            <input type="number" min="1" value="1" id="qtd_${doc.id}">
-            <button onclick="adicionar('${doc.id}','${p.nome}',${p.valor})">Adicionar</button>
-        </div>`;
-    });
+  const snap = await getDocs(collection(db,"produtos"));
+  const div = document.getElementById("produtosCliente");
+  div.innerHTML="";
+  snap.forEach(docu=>{
+    const p = docu.data();
+    div.innerHTML+=`
+    <div class="card">
+      ${p.nome} - R$ ${p.valor}
+      <input type="number" min="1" value="1" id="qtd_${docu.id}">
+      <button onclick="add('${docu.id}','${p.nome}',${p.valor})">Adicionar</button>
+    </div>`;
+  });
 }
 
-window.adicionar = function(id,nome,valor){
-    const qtd = parseInt(document.getElementById("qtd_"+id).value);
-    carrinho.push({nome,valor,qtd});
-    atualizarResumo();
+window.add = function(id,nome,valor){
+  const qtd = parseInt(document.getElementById("qtd_"+id).value);
+  carrinho.push({nome,valor,qtd});
+  atualizar();
 }
 
-function atualizarResumo(){
-    let total=0, html="";
-    carrinho.forEach(i=>{
-        html+=`${i.nome} x${i.qtd} = R$ ${i.valor*i.qtd}<br>`;
-        total+= i.valor*i.qtd;
-    });
-    resumo.innerHTML=html;
-    document.getElementById("total").innerText=total;
+function atualizar(){
+  let total=0, html="";
+  carrinho.forEach(i=>{
+    total+= i.valor*i.qtd;
+    html+=`${i.nome} x${i.qtd} = R$ ${i.valor*i.qtd}<br>`;
+  });
+  resumo.innerHTML=html;
+  total.innerText=total;
 }
 
 window.confirmarPedido = async function(){
-    await addDoc(collection(db,"pedidos"),{
-        itens:carrinho,
-        total:document.getElementById("total").innerText,
-        status:"Aguardando"
-    });
-    alert("Pedido enviado!");
+  if(carrinho.length===0) return alert("Carrinho vazio!");
+
+  await addDoc(collection(db,"pedidos"),{
+    itens:carrinho,
+    total:document.getElementById("total").innerText,
+    status:"Aguardando",
+    data:new Date()
+  });
+
+  alert("Pedido enviado!");
+  carrinho=[];
+  atualizar();
 }
 
-/* ADMIN */
-
+/* ===== ADMIN ===== */
 window.cadastrarProduto = async function(){
-    await addDoc(collection(db,"produtos"),{
-        nome:nomeProduto.value,
-        valor:parseFloat(valorProduto.value)
-    });
-    alert("Produto cadastrado!");
-    carregarProdutosAdmin();
+  const nome = nomeProduto.value;
+  const valor = parseFloat(valorProduto.value);
+
+  await addDoc(collection(db,"produtos"),{
+    nome, valor
+  });
+
+  alert("Produto cadastrado!");
 }
 
-async function carregarProdutosAdmin(){
-    const querySnapshot = await getDocs(collection(db,"produtos"));
-    const div = document.getElementById("produtosAdmin");
-    div.innerHTML="";
-    querySnapshot.forEach(doc=>{
-        const p = doc.data();
-        div.innerHTML+=`
-        <div class="card">
-            ${p.nome} - R$ ${p.valor}
-        </div>`;
+function carregarPedidosAdmin(){
+  onSnapshot(collection(db,"pedidos"), snap=>{
+    pedidosAdmin.innerHTML="";
+    snap.forEach(docu=>{
+      const p = docu.data();
+      pedidosAdmin.innerHTML+=`
+      <div class="card">
+        Total: R$ ${p.total}<br>
+        Status: ${p.status}
+      </div>`;
     });
+  });
 }
 </script>
 

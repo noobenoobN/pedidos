@@ -2,78 +2,43 @@
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sistema de Pedidos</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body{
-    font-family: Arial, sans-serif;
-    background:#fff7f0;
-    margin:0;
-}
-
-header{
-    background:#ff6600;
-    color:white;
-    padding:15px;
-    text-align:center;
-}
-
-.container{
-    padding:20px;
-}
-
-button{
-    background:#ff6600;
-    color:white;
-    border:none;
-    padding:8px 15px;
-    cursor:pointer;
-    border-radius:5px;
-}
-
-button:hover{
-    background:#e65c00;
-}
-
-input{
-    padding:6px;
-    margin:5px 0;
-}
-
-.card{
-    background:white;
-    padding:15px;
-    margin:10px 0;
-    border-radius:8px;
-    box-shadow:0 2px 5px rgba(0,0,0,0.1);
-}
-
-.total{
-    font-size:18px;
-    font-weight:bold;
-    color:#ff6600;
-}
+body{font-family:Arial;background:#fff7f0;margin:0}
+header{background:#ff6600;color:white;padding:15px;text-align:center}
+.container{padding:20px}
+button{background:#ff6600;color:white;border:none;padding:8px 15px;margin:5px;border-radius:5px;cursor:pointer}
+button:hover{background:#e65c00}
+.card{background:white;padding:15px;margin:10px 0;border-radius:8px;box-shadow:0 2px 5px rgba(0,0,0,0.1)}
+.total{font-weight:bold;font-size:18px;color:#ff6600}
+input{padding:6px;margin:5px;width:100%}
 </style>
 </head>
 <body>
 
 <header>
 <h2>🍔 Sistema de Pedidos</h2>
+<button onclick="logout()">Sair</button>
 </header>
 
 <div class="container">
 
-<div id="login">
-<h3>Login Cliente</h3>
-<input type="email" id="email" placeholder="Email"><br>
-<input type="text" id="telefone" placeholder="Telefone"><br>
+<!-- LOGIN -->
+<div id="auth">
+<h3>Login</h3>
+<input type="email" id="email" placeholder="Email">
+<input type="password" id="senha" placeholder="Senha">
+<input type="text" id="telefone" placeholder="Telefone (somente cadastro)">
 <button onclick="login()">Entrar</button>
+<button onclick="cadastrar()">Cadastrar</button>
 </div>
 
+<!-- CLIENTE -->
 <div id="cliente" style="display:none;">
 <h3>Produtos</h3>
-<div id="produtos"></div>
+<div id="produtosCliente"></div>
 
 <h3>Resumo</h3>
 <div id="resumo"></div>
@@ -81,11 +46,25 @@ input{
 <button onclick="confirmarPedido()">Confirmar Pedido</button>
 </div>
 
+<!-- ADMIN -->
+<div id="admin" style="display:none;">
+<h3>Cadastrar Produto</h3>
+<input type="text" id="nomeProduto" placeholder="Nome">
+<input type="number" id="valorProduto" placeholder="Valor">
+<button onclick="cadastrarProduto()">Cadastrar</button>
+
+<h3>Produtos</h3>
+<div id="produtosAdmin"></div>
+</div>
+
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged }
+from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs }
+from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "SUA_API_KEY",
@@ -94,75 +73,125 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
 const db = getFirestore(app);
 
 let carrinho = [];
 
-window.login = function(){
-    document.getElementById("login").style.display="none";
-    document.getElementById("cliente").style.display="block";
-    carregarProdutos();
+/* AUTH */
+
+window.cadastrar = async function(){
+    const email = email.value;
+    const senha = senha.value;
+    const telefone = telefone.value;
+
+    if(!telefone) return alert("Informe telefone!");
+
+    const userCred = await createUserWithEmailAndPassword(auth,email,senha);
+
+    await setDoc(doc(db,"usuarios",userCred.user.uid),{
+        tipo:"cliente",
+        telefone:telefone
+    });
+
+    alert("Cadastro realizado!");
 }
 
-async function carregarProdutos(){
-    const querySnapshot = await getDocs(collection(db, "produtos"));
-    const div = document.getElementById("produtos");
+window.login = async function(){
+    const email = document.getElementById("email").value;
+    const senha = document.getElementById("senha").value;
+
+    await signInWithEmailAndPassword(auth,email,senha);
+}
+
+window.logout = async function(){
+    await signOut(auth);
+    location.reload();
+}
+
+onAuthStateChanged(auth, async (user)=>{
+    if(user){
+        document.getElementById("auth").style.display="none";
+
+        const docSnap = await getDoc(doc(db,"usuarios",user.uid));
+        const dados = docSnap.data();
+
+        if(dados.tipo==="admin"){
+            document.getElementById("admin").style.display="block";
+            carregarProdutosAdmin();
+        }else{
+            document.getElementById("cliente").style.display="block";
+            carregarProdutosCliente();
+        }
+    }
+});
+
+/* CLIENTE */
+
+async function carregarProdutosCliente(){
+    const querySnapshot = await getDocs(collection(db,"produtos"));
+    const div = document.getElementById("produtosCliente");
     div.innerHTML="";
 
-    querySnapshot.forEach(doc => {
+    querySnapshot.forEach(doc=>{
         const p = doc.data();
-
-        div.innerHTML += `
+        div.innerHTML+=`
         <div class="card">
             <h4>${p.nome}</h4>
             <p>R$ ${p.valor}</p>
             <input type="number" min="1" value="1" id="qtd_${doc.id}">
             <button onclick="adicionar('${doc.id}','${p.nome}',${p.valor})">Adicionar</button>
-        </div>
-        `;
+        </div>`;
     });
 }
 
 window.adicionar = function(id,nome,valor){
     const qtd = parseInt(document.getElementById("qtd_"+id).value);
-
-    carrinho.push({
-        nome,
-        valor,
-        qtd
-    });
-
+    carrinho.push({nome,valor,qtd});
     atualizarResumo();
 }
 
 function atualizarResumo(){
-    let resumo="";
-    let total=0;
-
-    carrinho.forEach(item=>{
-        resumo+= `${item.nome} x${item.qtd} - R$ ${item.valor*item.qtd}<br>`;
-        total+= item.valor*item.qtd;
+    let total=0, html="";
+    carrinho.forEach(i=>{
+        html+=`${i.nome} x${i.qtd} = R$ ${i.valor*i.qtd}<br>`;
+        total+= i.valor*i.qtd;
     });
-
-    document.getElementById("resumo").innerHTML=resumo;
+    resumo.innerHTML=html;
     document.getElementById("total").innerText=total;
 }
 
 window.confirmarPedido = async function(){
-    if(carrinho.length==0){
-        alert("Adicione produtos!");
-        return;
-    }
-
     await addDoc(collection(db,"pedidos"),{
         itens:carrinho,
         total:document.getElementById("total").innerText,
         status:"Aguardando"
     });
+    alert("Pedido enviado!");
+}
 
-    alert("Pedido confirmado! 🎉");
-    carrinho=[];
-    atualizarResumo();
+/* ADMIN */
+
+window.cadastrarProduto = async function(){
+    await addDoc(collection(db,"produtos"),{
+        nome:nomeProduto.value,
+        valor:parseFloat(valorProduto.value)
+    });
+    alert("Produto cadastrado!");
+    carregarProdutosAdmin();
+}
+
+async function carregarProdutosAdmin(){
+    const querySnapshot = await getDocs(collection(db,"produtos"));
+    const div = document.getElementById("produtosAdmin");
+    div.innerHTML="";
+    querySnapshot.forEach(doc=>{
+        const p = doc.data();
+        div.innerHTML+=`
+        <div class="card">
+            ${p.nome} - R$ ${p.valor}
+        </div>`;
+    });
 }
 </script>
 

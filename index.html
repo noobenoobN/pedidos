@@ -25,15 +25,19 @@ input{padding:8px;margin:5px 0;width:100%}
 
 <div class="container">
 
+<!-- LOGIN / CADASTRO -->
 <div id="auth">
-<h3>Login / Cadastro</h3>
+<h3>Login</h3>
 <input type="email" id="email" placeholder="Email">
 <input type="password" id="senha" placeholder="Senha">
-<input type="text" id="telefone" placeholder="Telefone (cadastro)">
+
+<h3>Cadastro</h3>
+<input type="text" id="telefone" placeholder="Telefone (somente cadastro)">
 <button onclick="login()">Entrar</button>
 <button onclick="cadastrar()">Cadastrar</button>
 </div>
 
+<!-- CLIENTE -->
 <div id="cliente" style="display:none;">
 <h3>Produtos</h3>
 <div id="produtosCliente"></div>
@@ -44,6 +48,7 @@ input{padding:8px;margin:5px 0;width:100%}
 <button onclick="confirmarPedido()">Confirmar Pedido</button>
 </div>
 
+<!-- ADMIN -->
 <div id="admin" style="display:none;">
 <h3>Cadastrar Produto</h3>
 <input type="text" id="nomeProduto" placeholder="Nome do Produto">
@@ -63,6 +68,7 @@ from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, onSnapshot }
 from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
+/* 🔥 COLOQUE AQUI SEU FIREBASE CONFIG */
 const firebaseConfig = {
   apiKey: "SUA_API_KEY",
   authDomain: "SEU_DOMINIO.firebaseapp.com",
@@ -81,18 +87,22 @@ let carrinho = [];
 /* ===== CADASTRO ===== */
 window.cadastrar = async function(){
   try{
-    const email = email.value;
-    const senha = senha.value;
-    const telefone = telefone.value;
+    const email = document.getElementById("email").value;
+    const senha = document.getElementById("senha").value;
+    const telefone = document.getElementById("telefone").value;
+
+    if(!telefone){
+      alert("Informe o telefone para cadastrar!");
+      return;
+    }
 
     const cred = await createUserWithEmailAndPassword(auth,email,senha);
 
-    // Verifica se já existe admin
-    const snap = await getDocs(collection(db,"usuarios"));
+    const usuariosSnap = await getDocs(collection(db,"usuarios"));
     let tipo = "cliente";
 
-    if(snap.empty){
-      tipo = "admin"; // primeiro usuário vira admin
+    if(usuariosSnap.empty){
+      tipo = "admin";
     }
 
     await setDoc(doc(db,"usuarios",cred.user.uid),{
@@ -101,6 +111,7 @@ window.cadastrar = async function(){
     });
 
     alert("Cadastro realizado! Tipo: "+tipo);
+
   }catch(e){
     alert(e.message);
   }
@@ -109,7 +120,11 @@ window.cadastrar = async function(){
 /* ===== LOGIN ===== */
 window.login = async function(){
   try{
-    await signInWithEmailAndPassword(auth,email.value,senha.value);
+    const email = document.getElementById("email").value;
+    const senha = document.getElementById("senha").value;
+
+    await signInWithEmailAndPassword(auth,email,senha);
+
   }catch(e){
     alert(e.message);
   }
@@ -121,13 +136,16 @@ window.logout = async function(){
   location.reload();
 }
 
-/* ===== VERIFICAR USUÁRIO ===== */
+/* ===== DETECTAR USUÁRIO ===== */
 onAuthStateChanged(auth, async (user)=>{
   if(user){
     document.getElementById("auth").style.display="none";
 
     const snap = await getDoc(doc(db,"usuarios",user.uid));
-    if(!snap.exists()) return alert("Usuário não registrado!");
+    if(!snap.exists()){
+      alert("Usuário não registrado!");
+      return;
+    }
 
     const dados = snap.data();
 
@@ -150,31 +168,37 @@ async function carregarProdutosCliente(){
     const p = docu.data();
     div.innerHTML+=`
     <div class="card">
-      ${p.nome} - R$ ${p.valor}
+      <strong>${p.nome}</strong><br>
+      R$ ${p.valor}<br>
       <input type="number" min="1" value="1" id="qtd_${docu.id}">
-      <button onclick="add('${docu.id}','${p.nome}',${p.valor})">Adicionar</button>
+      <button onclick="adicionar('${docu.id}','${p.nome}',${p.valor})">Adicionar</button>
     </div>`;
   });
 }
 
-window.add = function(id,nome,valor){
+window.adicionar = function(id,nome,valor){
   const qtd = parseInt(document.getElementById("qtd_"+id).value);
   carrinho.push({nome,valor,qtd});
-  atualizar();
+  atualizarResumo();
 }
 
-function atualizar(){
-  let total=0, html="";
-  carrinho.forEach(i=>{
-    total+= i.valor*i.qtd;
-    html+=`${i.nome} x${i.qtd} = R$ ${i.valor*i.qtd}<br>`;
+function atualizarResumo(){
+  let total=0;
+  let html="";
+  carrinho.forEach(item=>{
+    total+= item.valor*item.qtd;
+    html+=`${item.nome} x${item.qtd} = R$ ${item.valor*item.qtd}<br>`;
   });
-  resumo.innerHTML=html;
-  total.innerText=total;
+
+  document.getElementById("resumo").innerHTML=html;
+  document.getElementById("total").innerText=total;
 }
 
 window.confirmarPedido = async function(){
-  if(carrinho.length===0) return alert("Carrinho vazio!");
+  if(carrinho.length===0){
+    alert("Carrinho vazio!");
+    return;
+  }
 
   await addDoc(collection(db,"pedidos"),{
     itens:carrinho,
@@ -185,13 +209,18 @@ window.confirmarPedido = async function(){
 
   alert("Pedido enviado!");
   carrinho=[];
-  atualizar();
+  atualizarResumo();
 }
 
 /* ===== ADMIN ===== */
 window.cadastrarProduto = async function(){
-  const nome = nomeProduto.value;
-  const valor = parseFloat(valorProduto.value);
+  const nome = document.getElementById("nomeProduto").value;
+  const valor = parseFloat(document.getElementById("valorProduto").value);
+
+  if(!nome || !valor){
+    alert("Preencha nome e valor!");
+    return;
+  }
 
   await addDoc(collection(db,"produtos"),{
     nome, valor
@@ -202,10 +231,11 @@ window.cadastrarProduto = async function(){
 
 function carregarPedidosAdmin(){
   onSnapshot(collection(db,"pedidos"), snap=>{
-    pedidosAdmin.innerHTML="";
+    const div = document.getElementById("pedidosAdmin");
+    div.innerHTML="";
     snap.forEach(docu=>{
       const p = docu.data();
-      pedidosAdmin.innerHTML+=`
+      div.innerHTML+=`
       <div class="card">
         Total: R$ ${p.total}<br>
         Status: ${p.status}

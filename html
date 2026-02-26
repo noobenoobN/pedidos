@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Sistema de Pedidos</title>
+
+<style>
+body { font-family: Arial; background:#f4f4f4; padding:20px; }
+.box { background:white; padding:20px; border-radius:10px; margin-bottom:20px; }
+input, button { padding:8px; margin:5px 0; width:100%; }
+button { background:#007bff; color:white; border:none; cursor:pointer; }
+button:hover { opacity:0.9; }
+.produto { display:flex; justify-content:space-between; margin:5px 0; }
+.admin-produto { border:1px solid #ddd; padding:10px; margin:5px 0; border-radius:6px; }
+</style>
+</head>
+<body>
+
+<div id="loginBox" class="box">
+<h2>Login / Cadastro</h2>
+<input type="email" id="email" placeholder="Email">
+<input type="password" id="senha" placeholder="Senha (mínimo 6 caracteres)">
+<input type="text" id="telefone" placeholder="Telefone (cliente obrigatório)">
+<button onclick="login()">Entrar</button>
+<button onclick="registrar()">Registrar</button>
+</div>
+
+<div id="sistema" style="display:none;">
+<button onclick="logout()">Sair</button>
+
+<!-- ADMIN -->
+<div id="adminArea" class="box" style="display:none;">
+
+<h3>Cadastrar Produto</h3>
+<input type="text" id="nomeProduto" placeholder="Nome do produto">
+<input type="number" id="valorProduto" placeholder="Valor">
+<button onclick="addProduto()">Adicionar Produto</button>
+
+<h3>Gerenciar Produtos</h3>
+<div id="listaProdutosAdmin"></div>
+
+<h3>Pedidos</h3>
+<div id="listaPedidos"></div>
+
+</div>
+
+<!-- CLIENTE -->
+<div id="clienteArea" class="box" style="display:none;">
+<h3>Produtos</h3>
+<div id="listaProdutos"></div>
+
+<label>
+<input type="checkbox" id="entregaCheck"> Entrega?
+</label>
+<input type="text" id="endereco" placeholder="Endereço">
+
+<button onclick="finalizarPedido()">Finalizar Pedido</button>
+</div>
+
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBgqjGYaV7rmgLMPB-Y4DcvgVkg82GFt0I",
+  authDomain: "sitepedidos.firebaseapp.com",
+  projectId: "sitepedidos",
+  storageBucket: "sitepedidos.firebasestorage.app",
+  messagingSenderId: "812273915392",
+  appId: "1:812273915392:web:eb939206a8dba04aca6ae5"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// 🔐 SEU UID ADMIN
+const ADMIN_UID = "1Gihp1EOfMgqszN8ug6JGd9HecC2";
+
+let carrinho = [];
+
+/* ================= LOGIN AUTOMÁTICO ================= */
+
+onAuthStateChanged(auth, (user) => {
+  if(user){
+    iniciarSistema(user);
+  }
+});
+
+/* ================= REGISTRAR ================= */
+
+window.registrar = async function(){
+  if(!email.value || !senha.value){
+    alert("Preencha email e senha");
+    return;
+  }
+
+  try{
+    await createUserWithEmailAndPassword(auth, email.value, senha.value);
+    alert("Cadastro realizado!");
+  }catch(error){
+    if(error.code === "auth/email-already-in-use"){
+      alert("Email já cadastrado!");
+    }else if(error.code === "auth/weak-password"){
+      alert("Senha precisa ter no mínimo 6 caracteres");
+    }else{
+      alert("Erro: " + error.message);
+    }
+  }
+}
+
+/* ================= LOGIN ================= */
+
+window.login = async function(){
+  try{
+    await signInWithEmailAndPassword(auth, email.value, senha.value);
+  }catch(error){
+    alert("Erro no login: " + error.message);
+  }
+}
+
+/* ================= LOGOUT ================= */
+
+window.logout = async function(){
+  await signOut(auth);
+  location.reload();
+}
+
+/* ================= INICIAR SISTEMA ================= */
+
+function iniciarSistema(user){
+  loginBox.style.display="none";
+  sistema.style.display="block";
+
+  if(user.uid === ADMIN_UID){
+    adminArea.style.display="block";
+    carregarPedidos();
+    carregarProdutosAdmin();
+  }else{
+    clienteArea.style.display="block";
+    carregarProdutos();
+  }
+}
+
+/* ================= PRODUTOS CLIENTE ================= */
+
+function carregarProdutos(){
+  onSnapshot(collection(db,"produtos"), snap=>{
+    listaProdutos.innerHTML="";
+    snap.forEach(docu=>{
+      let p = docu.data();
+
+      if(p.ativo !== false){
+        listaProdutos.innerHTML+=`
+          <div class="produto">
+            ${p.nome} - R$ ${p.valor}
+            <button onclick='adicionarCarrinho("${p.nome}",${p.valor})'>+</button>
+          </div>`;
+      }
+    });
+  });
+}
+
+/* ================= PRODUTOS ADMIN ================= */
+
+function carregarProdutosAdmin(){
+  onSnapshot(collection(db,"produtos"), snap=>{
+    listaProdutosAdmin.innerHTML="";
+    snap.forEach(docu=>{
+      let p = docu.data();
+
+      listaProdutosAdmin.innerHTML+=`
+        <div class="admin-produto">
+          ${p.nome} - R$ ${p.valor}<br>
+          Status: ${p.ativo === false ? "Oculto" : "Ativo"}<br>
+
+          <button onclick='toggleProduto("${docu.id}", ${p.ativo === false})'>
+            ${p.ativo === false ? "Mostrar" : "Ocultar"}
+          </button>
+
+          <button onclick='removerProduto("${docu.id}")'>
+            Remover
+          </button>
+        </div>
+      `;
+    });
+  });
+}
+
+window.toggleProduto = async function(id,novoStatus){
+  await updateDoc(doc(db,"produtos",id),{
+    ativo: novoStatus
+  });
+}
+
+window.removerProduto = async function(id){
+  if(confirm("Deseja remover este produto?")){
+    await deleteDoc(doc(db,"produtos",id));
+  }
+}
+
+/* ================= ADICIONAR PRODUTO ================= */
+
+window.addProduto = async function(){
+  if(!nomeProduto.value || !valorProduto.value){
+    alert("Preencha nome e valor");
+    return;
+  }
+
+  await addDoc(collection(db,"produtos"),{
+    nome:nomeProduto.value,
+    valor:valorProduto.value,
+    ativo:true
+  });
+
+  nomeProduto.value="";
+  valorProduto.value="";
+  alert("Produto cadastrado!");
+}
+
+/* ================= PEDIDOS ================= */
+
+function carregarPedidos(){
+  onSnapshot(collection(db,"pedidos"), snap=>{
+    listaPedidos.innerHTML="";
+    snap.forEach(docu=>{
+      let p = docu.data();
+      listaPedidos.innerHTML+=`
+      <div class="box">
+        Cliente: ${p.email}<br>
+        Telefone: ${p.telefone}<br>
+        Status: ${p.status}<br>
+        <button onclick='marcarPronto("${docu.id}")'>Pedido Pronto</button>
+        <button onclick='excluirPedido("${docu.id}")'>Dar Baixa</button>
+      </div>`;
+    });
+  });
+}
+
+window.marcarPronto = async function(id){
+  await updateDoc(doc(db,"pedidos",id),{status:"Pedido Pronto"});
+}
+
+window.excluirPedido = async function(id){
+  await deleteDoc(doc(db,"pedidos",id));
+}
+
+/* ================= CARRINHO ================= */
+
+window.adicionarCarrinho = function(nome,valor){
+  carrinho.push({nome,valor});
+  alert("Adicionado!");
+}
+
+/* ================= FINALIZAR PEDIDO ================= */
+
+window.finalizarPedido = async function(){
+
+  if(!telefone.value){
+    alert("Telefone obrigatório!");
+    return;
+  }
+
+  if(carrinho.length === 0){
+    alert("Carrinho vazio!");
+    return;
+  }
+
+  await addDoc(collection(db,"pedidos"),{
+    email: auth.currentUser.email,
+    telefone: telefone.value,
+    itens: carrinho,
+    endereco: entregaCheck.checked ? endereco.value : "Retirada",
+    status:"Em preparo"
+  });
+
+  alert("Pedido enviado!");
+  carrinho=[];
+}
+
+</script>
+</body>
+</html>

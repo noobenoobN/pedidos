@@ -2,42 +2,266 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>PEDI - Sistema</title>
+<title>PEDI Sistema</title>
 <style>
 body{font-family:Arial;background:#111;color:#fff;text-align:center}
-input,button{padding:10px;margin:5px;border-radius:5px;border:none}
+input,button,select{padding:8px;margin:5px;border-radius:6px;border:none}
 button{background:#00c853;color:#fff;cursor:pointer}
 .card{background:#222;padding:15px;margin:10px;border-radius:10px}
-img{width:120px;border-radius:10px}
+img{width:100px;border-radius:8px}
 </style>
 </head>
 <body>
 
-<h1>Sistema PEDI</h1>
+<h1>SISTEMA PEDI</h1>
 
-<div id="login">
+<div id="authBox">
 <h2>Registrar</h2>
-<input id="email" placeholder="Email"><br>
-<input id="senha" type="password" placeholder="Senha"><br>
+<input id="regEmail" placeholder="Email">
+<input id="regSenha" type="password" placeholder="Senha">
+<input id="regTelefone" placeholder="Telefone com DDD">
 <button onclick="registrar()">Registrar</button>
 
 <h2>Login</h2>
-<input id="loginEmail" placeholder="Email"><br>
-<input id="loginSenha" type="password" placeholder="Senha"><br>
-<button onclick="login()">Entrar</button>
+<input id="loginEmail" placeholder="Email">
+<input id="loginSenha" type="password" placeholder="Senha">
+<button onclick="loginEmail()">Entrar Email</button>
 </div>
 
-<div id="admin" style="display:none">
-<h2>Painel Admin</h2>
+<div id="adminBox" style="display:none">
+<h2>PAINEL ADMIN</h2>
 
-<input id="nomeProduto" placeholder="Nome produto">
-<input id="valorProduto" placeholder="Valor">
-<input id="localProduto" placeholder="Local produto">
-<input type="file" id="imagemProduto">
-<button onclick="addProduto()">Adicionar Produto</button>
+<h3>Adicionar Produto</h3>
+<input id="nomeProd" placeholder="Nome">
+<input id="valorProd" placeholder="Valor">
+<input id="localProd" placeholder="Local">
+<input type="file" id="imgProd">
+<button onclick="addProduto()">Adicionar</button>
 
 <h3>Produtos</h3>
-<div id="listaAdmin"></div>
+<div id="adminProdutos"></div>
 
 <h3>Pedidos</h3>
-<div
+<div id="adminPedidos"></div>
+</div>
+
+<div id="clienteBox" style="display:none">
+<h2>PRODUTOS</h2>
+<div id="listaProdutos"></div>
+
+<h3>Entrega?</h3>
+<select id="tipoEntrega">
+<option value="retirada">Retirada</option>
+<option value="entrega">Entrega</option>
+</select>
+
+<div id="enderecoBox" style="display:none">
+<input id="cep" placeholder="CEP">
+<button onclick="buscarCEP()">Buscar CEP</button><br>
+<input id="rua" placeholder="Rua"><br>
+<input id="numero" placeholder="Número"><br>
+<input id="referencia" placeholder="Referência">
+</div>
+
+<button onclick="fazerPedido()">Fazer Pedido</button>
+
+<h3>Meus Pedidos</h3>
+<div id="meusPedidos"></div>
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPhoneNumber, RecaptchaVerifier, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-storage.js";
+
+const firebaseConfig = {
+  apiKey: "SUA_API_KEY",
+  authDomain: "sitepedidos.firebaseapp.com",
+  projectId: "sitepedidos",
+  storageBucket: "sitepedidos.firebasestorage.app",
+  messagingSenderId: "812273915392",
+  appId: "1:812273915392:web:eb939206a8dba04aca6ae5"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth();
+const db = getFirestore();
+const storage = getStorage();
+
+let carrinho = [];
+
+// 🔥 REGISTRAR
+window.registrar = async () => {
+  const email = regEmail.value;
+  const senha = regSenha.value;
+  const telefone = regTelefone.value;
+
+  const user = await createUserWithEmailAndPassword(auth,email,senha);
+
+  const usersSnap = await getDocs(collection(db,"users"));
+  const role = usersSnap.empty ? "admin" : "cliente";
+
+  const ddd = telefone.substring(0,2);
+
+  await addDoc(collection(db,"users"),{
+    uid:user.user.uid,
+    email,
+    telefone,
+    ddd,
+    role
+  });
+
+  alert("Registrado como "+role+" Região DDD: "+ddd);
+};
+
+// 🔐 LOGIN EMAIL
+window.loginEmail = async ()=>{
+  await signInWithEmailAndPassword(auth,loginEmail.value,loginSenha.value);
+};
+
+// 🔎 MONITOR LOGIN
+onAuthStateChanged(auth, async user=>{
+  if(user){
+    const q = query(collection(db,"users"),where("uid","==",user.uid));
+    const snap = await getDocs(q);
+    snap.forEach(docu=>{
+      if(docu.data().role==="admin"){
+        authBox.style.display="none";
+        adminBox.style.display="block";
+        carregarAdmin();
+      }else{
+        authBox.style.display="none";
+        clienteBox.style.display="block";
+        carregarProdutos();
+        carregarPedidosCliente();
+      }
+    });
+  }
+});
+
+// 👑 ADMIN
+window.addProduto = async ()=>{
+  const file = imgProd.files[0];
+  const storageRef = ref(storage,"produtos/"+file.name);
+  await uploadBytes(storageRef,file);
+  const url = await getDownloadURL(storageRef);
+
+  await addDoc(collection(db,"produtos"),{
+    nome:nomeProd.value,
+    valor:valorProd.value,
+    local:localProd.value,
+    imagem:url,
+    oculto:false
+  });
+};
+
+async function carregarAdmin(){
+  onSnapshot(collection(db,"produtos"), snap=>{
+    adminProdutos.innerHTML="";
+    snap.forEach(docu=>{
+      const p = docu.data();
+      adminProdutos.innerHTML+=`
+      <div class="card">
+      <img src="${p.imagem}">
+      <p>${p.nome} - R$${p.valor}</p>
+      <button onclick="ocultar('${docu.id}')">Ocultar</button>
+      <button onclick="remover('${docu.id}')">Remover</button>
+      </div>`;
+    });
+  });
+
+  onSnapshot(collection(db,"pedidos"), snap=>{
+    adminPedidos.innerHTML="";
+    snap.forEach(docu=>{
+      const p = docu.data();
+      adminPedidos.innerHTML+=`
+      <div class="card">
+      <p>Status: ${p.status}</p>
+      <button onclick="atualizar('${docu.id}','A Caminho')">A Caminho</button>
+      <button onclick="atualizar('${docu.id}','Concluído')">Concluído</button>
+      </div>`;
+    });
+  });
+}
+
+window.ocultar = async id=>{
+  await updateDoc(doc(db,"produtos",id),{oculto:true});
+};
+
+window.remover = async id=>{
+  await deleteDoc(doc(db,"produtos",id));
+};
+
+window.atualizar = async (id,status)=>{
+  await updateDoc(doc(db,"pedidos",id),{status});
+};
+
+// 🛒 CLIENTE
+async function carregarProdutos(){
+  onSnapshot(collection(db,"produtos"), snap=>{
+    listaProdutos.innerHTML="";
+    snap.forEach(docu=>{
+      const p = docu.data();
+      if(!p.oculto){
+        listaProdutos.innerHTML+=`
+        <div class="card">
+        <img src="${p.imagem}">
+        <p>${p.nome} - R$${p.valor}</p>
+        <button onclick="addCarrinho('${p.nome}')">Adicionar</button>
+        </div>`;
+      }
+    });
+  });
+}
+
+window.addCarrinho = nome=>{
+  carrinho.push(nome);
+  alert("Adicionado");
+};
+
+tipoEntrega.onchange = ()=>{
+  enderecoBox.style.display = tipoEntrega.value==="entrega" ? "block":"none";
+};
+
+window.buscarCEP = async ()=>{
+  const res = await fetch(`https://viacep.com.br/ws/${cep.value}/json/`);
+  const data = await res.json();
+  rua.value = data.logradouro;
+};
+
+window.fazerPedido = async ()=>{
+  let endereco = "Retirada";
+  if(tipoEntrega.value==="entrega"){
+    endereco = rua.value+" Nº "+numero.value+" Ref: "+referencia.value;
+  }
+
+  await addDoc(collection(db,"pedidos"),{
+    uid:auth.currentUser.uid,
+    produtos:carrinho,
+    endereco,
+    status:"Recebido",
+    data:new Date()
+  });
+
+  carrinho=[];
+  alert("Pedido realizado!");
+};
+
+async function carregarPedidosCliente(){
+  const q = query(collection(db,"pedidos"),where("uid","==",auth.currentUser.uid));
+  onSnapshot(q, snap=>{
+    meusPedidos.innerHTML="";
+    snap.forEach(docu=>{
+      meusPedidos.innerHTML+=`
+      <div class="card">
+      Status: ${docu.data().status}
+      </div>`;
+    });
+  });
+}
+
+</script>
+</body>
+</html>

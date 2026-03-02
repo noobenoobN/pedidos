@@ -2,19 +2,22 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>PEDI Sistema</title>
+<title>PEDI - Sistema</title>
+
 <style>
-body{font-family:Arial;background:#111;color:#fff;text-align:center}
+body{font-family:Arial;background:#111;color:#fff;text-align:center;margin:0;padding:20px}
 input,button,select{padding:8px;margin:5px;border-radius:6px;border:none}
 button{background:#00c853;color:#fff;cursor:pointer}
 .card{background:#222;padding:15px;margin:10px;border-radius:10px}
 img{width:100px;border-radius:8px}
+h1{color:#00e676}
 </style>
 </head>
 <body>
 
 <h1>SISTEMA PEDI</h1>
 
+<!-- LOGIN -->
 <div id="authBox">
 <h2>Registrar</h2>
 <input id="regEmail" placeholder="Email">
@@ -24,10 +27,11 @@ img{width:100px;border-radius:8px}
 
 <h2>Login</h2>
 <input id="loginEmail" placeholder="Email">
-<input id="loginSenha" type="password" placeholder="Senha">
-<button onclick="loginEmail()">Entrar Email</button>
+<input id="loginSenha" type="password">
+<button onclick="login()">Entrar</button>
 </div>
 
+<!-- ADMIN -->
 <div id="adminBox" style="display:none">
 <h2>PAINEL ADMIN</h2>
 
@@ -35,7 +39,7 @@ img{width:100px;border-radius:8px}
 <input id="nomeProd" placeholder="Nome">
 <input id="valorProd" placeholder="Valor">
 <input id="localProd" placeholder="Local">
-<input type="file" id="imgProd">
+<input id="imgProd" placeholder="Link da imagem">
 <button onclick="addProduto()">Adicionar</button>
 
 <h3>Produtos</h3>
@@ -43,8 +47,11 @@ img{width:100px;border-radius:8px}
 
 <h3>Pedidos</h3>
 <div id="adminPedidos"></div>
+
+<button onclick="logout()">Sair</button>
 </div>
 
+<!-- CLIENTE -->
 <div id="clienteBox" style="display:none">
 <h2>PRODUTOS</h2>
 <div id="listaProdutos"></div>
@@ -67,17 +74,18 @@ img{width:100px;border-radius:8px}
 
 <h3>Meus Pedidos</h3>
 <div id="meusPedidos"></div>
+
+<button onclick="logout()">Sair</button>
 </div>
 
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPhoneNumber, RecaptchaVerifier, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-storage.js";
 
 const firebaseConfig = {
-  apiKey: "SUA_API_KEY",
+  apiKey: "AIzaSyBgqjGYaV7rmgLMPB-Y4DcvgVkg82GFt0I",
   authDomain: "sitepedidos.firebaseapp.com",
   projectId: "sitepedidos",
   storageBucket: "sitepedidos.firebasestorage.app",
@@ -86,82 +94,80 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const auth = getAuth();
-const db = getFirestore();
-const storage = getStorage();
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-let carrinho = [];
+let carrinho=[];
 
-// 🔥 REGISTRAR
-window.registrar = async () => {
+/* REGISTRAR */
+window.registrar = async ()=>{
   const email = regEmail.value;
   const senha = regSenha.value;
   const telefone = regTelefone.value;
 
   const user = await createUserWithEmailAndPassword(auth,email,senha);
+  const snap = await getDocs(collection(db,"users"));
 
-  const usersSnap = await getDocs(collection(db,"users"));
-  const role = usersSnap.empty ? "admin" : "cliente";
-
-  const ddd = telefone.substring(0,2);
+  const role = snap.size===0 ? "admin":"cliente";
 
   await addDoc(collection(db,"users"),{
     uid:user.user.uid,
     email,
     telefone,
-    ddd,
+    ddd:telefone.substring(0,2),
     role
   });
 
-  alert("Registrado como "+role+" Região DDD: "+ddd);
+  alert("Conta criada como "+role);
 };
 
-// 🔐 LOGIN EMAIL
-window.loginEmail = async ()=>{
+/* LOGIN */
+window.login = async ()=>{
   await signInWithEmailAndPassword(auth,loginEmail.value,loginSenha.value);
 };
 
-// 🔎 MONITOR LOGIN
+/* LOGOUT */
+window.logout = async ()=>{
+  await signOut(auth);
+  location.reload();
+};
+
+/* MONITOR LOGIN */
 onAuthStateChanged(auth, async user=>{
-  if(user){
-    const q = query(collection(db,"users"),where("uid","==",user.uid));
-    const snap = await getDocs(q);
-    snap.forEach(docu=>{
-      if(docu.data().role==="admin"){
-        authBox.style.display="none";
-        adminBox.style.display="block";
-        carregarAdmin();
-      }else{
-        authBox.style.display="none";
-        clienteBox.style.display="block";
-        carregarProdutos();
-        carregarPedidosCliente();
-      }
-    });
-  }
+  if(!user) return;
+
+  const q = query(collection(db,"users"),where("uid","==",user.uid));
+  const snap = await getDocs(q);
+
+  snap.forEach(docu=>{
+    authBox.style.display="none";
+    if(docu.data().role==="admin"){
+      adminBox.style.display="block";
+      carregarAdmin();
+    }else{
+      clienteBox.style.display="block";
+      carregarProdutos();
+      carregarPedidosCliente();
+    }
+  });
 });
 
-// 👑 ADMIN
+/* ADMIN */
 window.addProduto = async ()=>{
-  const file = imgProd.files[0];
-  const storageRef = ref(storage,"produtos/"+file.name);
-  await uploadBytes(storageRef,file);
-  const url = await getDownloadURL(storageRef);
-
   await addDoc(collection(db,"produtos"),{
     nome:nomeProd.value,
     valor:valorProd.value,
     local:localProd.value,
-    imagem:url,
+    imagem:imgProd.value,
     oculto:false
   });
 };
 
-async function carregarAdmin(){
+function carregarAdmin(){
   onSnapshot(collection(db,"produtos"), snap=>{
     adminProdutos.innerHTML="";
     snap.forEach(docu=>{
-      const p = docu.data();
+      const p=docu.data();
       adminProdutos.innerHTML+=`
       <div class="card">
       <img src="${p.imagem}">
@@ -175,7 +181,7 @@ async function carregarAdmin(){
   onSnapshot(collection(db,"pedidos"), snap=>{
     adminPedidos.innerHTML="";
     snap.forEach(docu=>{
-      const p = docu.data();
+      const p=docu.data();
       adminPedidos.innerHTML+=`
       <div class="card">
       <p>Status: ${p.status}</p>
@@ -186,24 +192,24 @@ async function carregarAdmin(){
   });
 }
 
-window.ocultar = async id=>{
+window.ocultar=async id=>{
   await updateDoc(doc(db,"produtos",id),{oculto:true});
 };
 
-window.remover = async id=>{
+window.remover=async id=>{
   await deleteDoc(doc(db,"produtos",id));
 };
 
-window.atualizar = async (id,status)=>{
+window.atualizar=async (id,status)=>{
   await updateDoc(doc(db,"pedidos",id),{status});
 };
 
-// 🛒 CLIENTE
-async function carregarProdutos(){
+/* CLIENTE */
+function carregarProdutos(){
   onSnapshot(collection(db,"produtos"), snap=>{
     listaProdutos.innerHTML="";
     snap.forEach(docu=>{
-      const p = docu.data();
+      const p=docu.data();
       if(!p.oculto){
         listaProdutos.innerHTML+=`
         <div class="card">
@@ -216,25 +222,25 @@ async function carregarProdutos(){
   });
 }
 
-window.addCarrinho = nome=>{
+window.addCarrinho=nome=>{
   carrinho.push(nome);
   alert("Adicionado");
 };
 
-tipoEntrega.onchange = ()=>{
-  enderecoBox.style.display = tipoEntrega.value==="entrega" ? "block":"none";
+tipoEntrega.onchange=()=>{
+  enderecoBox.style.display = tipoEntrega.value==="entrega"?"block":"none";
 };
 
-window.buscarCEP = async ()=>{
+window.buscarCEP=async ()=>{
   const res = await fetch(`https://viacep.com.br/ws/${cep.value}/json/`);
   const data = await res.json();
-  rua.value = data.logradouro;
+  rua.value=data.logradouro;
 };
 
-window.fazerPedido = async ()=>{
-  let endereco = "Retirada";
+window.fazerPedido=async ()=>{
+  let endereco="Retirada";
   if(tipoEntrega.value==="entrega"){
-    endereco = rua.value+" Nº "+numero.value+" Ref: "+referencia.value;
+    endereco=rua.value+" Nº "+numero.value+" Ref: "+referencia.value;
   }
 
   await addDoc(collection(db,"pedidos"),{
@@ -249,8 +255,8 @@ window.fazerPedido = async ()=>{
   alert("Pedido realizado!");
 };
 
-async function carregarPedidosCliente(){
-  const q = query(collection(db,"pedidos"),where("uid","==",auth.currentUser.uid));
+function carregarPedidosCliente(){
+  const q=query(collection(db,"pedidos"),where("uid","==",auth.currentUser.uid));
   onSnapshot(q, snap=>{
     meusPedidos.innerHTML="";
     snap.forEach(docu=>{

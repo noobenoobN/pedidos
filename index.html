@@ -3,283 +3,116 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sistema de Pedidos</title>
-
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"></script>
+<title>Sistema Pedidos</title>
 
 <style>
 body{font-family:Arial;background:#111;color:#fff;padding:20px}
-input,button,select{padding:8px;margin:5px;width:100%}
-.card{background:#222;padding:10px;margin:10px 0;border-radius:8px}
-.admin{background:#2c1b00}
+input,button{padding:8px;margin:5px;width:100%}
+.card{background:#222;padding:10px;margin:10px 0;border-radius:6px}
 .hidden{display:none}
 </style>
+
 </head>
 <body>
 
 <h2>Sistema de Pedidos</h2>
 
 <div id="loginArea">
-<h3>Login / Cadastro</h3>
-<input type="email" id="email" placeholder="Email">
-<input type="password" id="senha" placeholder="Senha">
+<input id="email" placeholder="Email">
+<input id="senha" type="password" placeholder="Senha">
 <button onclick="registrar()">Cadastrar</button>
 <button onclick="login()">Entrar</button>
-
-<h4>Login Telefone</h4>
-<input type="text" id="telefone" placeholder="+55DDDNUMERO">
-<div id="recaptcha"></div>
-<button onclick="loginTelefone()">Entrar com Telefone</button>
-<input type="text" id="codigoSms" placeholder="Código SMS">
-<button onclick="confirmarSms()">Confirmar SMS</button>
 </div>
 
 <div id="painel" class="hidden"></div>
 
-<script>
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut }
+from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, collection, getDocs, addDoc, onSnapshot, updateDoc }
+from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+
 const firebaseConfig = {
-  apiKey: "SUA_API_AQUI",
-  authDomain: "SEU_AUTH_DOMAIN",
-  projectId: "SEU_PROJECT_ID",
-  storageBucket: "SEU_BUCKET",
-  messagingSenderId: "SEU_MSG_ID",
-  appId: "SEU_APP_ID"
+  apiKey: "AIzaSyBgqjGYaV7rmgLMPB-Y4DcvgVkg82GFt0I",
+  authDomain: "sitepedidos.firebaseapp.com",
+  projectId: "sitepedidos",
+  storageBucket: "sitepedidos.firebasestorage.app",
+  messagingSenderId: "812273915392",
+  appId: "1:812273915392:web:9fc70d67ac717a11ca6ae5"
 };
 
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-let confirmationResultGlobal = null;
-let userData = null;
+let roleGlobal = null;
 
-/* ===================== REGISTRO ===================== */
+/* ================= CADASTRO ================= */
 
-async function registrar(){
-let email = email.value;
-let senha = senha.value;
+window.registrar = async function(){
+  try{
+    const email = document.getElementById("email").value;
+    const senha = document.getElementById("senha").value;
 
-let cred = await auth.createUserWithEmailAndPassword(email,senha);
-let uid = cred.user.uid;
+    const cred = await createUserWithEmailAndPassword(auth,email,senha);
 
-let users = await db.collection("users").get();
+    const usersSnap = await getDocs(collection(db,"users"));
+    const role = usersSnap.empty ? "admin" : "cliente";
 
-let role = users.empty ? "admin" : "cliente";
+    await setDoc(doc(db,"users",cred.user.uid),{
+      email,
+      role
+    });
 
-await db.collection("users").doc(uid).set({
-email,
-role
+    alert("Conta criada como: " + role);
+
+  }catch(e){
+    alert(e.message);
+  }
+}
+
+/* ================= LOGIN ================= */
+
+window.login = async function(){
+  try{
+    const email = document.getElementById("email").value;
+    const senha = document.getElementById("senha").value;
+    await signInWithEmailAndPassword(auth,email,senha);
+  }catch(e){
+    alert(e.message);
+  }
+}
+
+/* ================= AUTH ================= */
+
+onAuthStateChanged(auth, async (user)=>{
+  if(!user){
+    document.getElementById("loginArea").classList.remove("hidden");
+    document.getElementById("painel").classList.add("hidden");
+    return;
+  }
+
+  document.getElementById("loginArea").classList.add("hidden");
+  document.getElementById("painel").classList.remove("hidden");
+
+  const snap = await getDoc(doc(db,"users",user.uid));
+  roleGlobal = snap.data().role;
+
+  if(roleGlobal==="admin"){
+    renderAdmin();
+  }else{
+    renderCliente();
+  }
 });
 
-alert("Conta criada como: "+role);
-}
-
-/* ===================== LOGIN ===================== */
-
-async function login(){
-let email = email.value;
-let senha = senha.value;
-await auth.signInWithEmailAndPassword(email,senha);
-}
-
-/* ===================== TELEFONE ===================== */
-
-window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha');
-
-async function loginTelefone(){
-let telefone = document.getElementById("telefone").value;
-confirmationResultGlobal = await auth.signInWithPhoneNumber(telefone,recaptchaVerifier);
-alert("SMS enviado");
-}
-
-async function confirmarSms(){
-let codigo = codigoSms.value;
-await confirmationResultGlobal.confirm(codigo);
-}
-
-/* ===================== AUTH ===================== */
-
-auth.onAuthStateChanged(async user=>{
-if(!user){
-loginArea.classList.remove("hidden");
-painel.classList.add("hidden");
-return;
-}
-
-loginArea.classList.add("hidden");
-painel.classList.remove("hidden");
-
-let doc = await db.collection("users").doc(user.uid).get();
-
-if(!doc.exists){
-await db.collection("users").doc(user.uid).set({role:"cliente"});
-userData = {role:"cliente"};
-}else{
-userData = doc.data();
-}
-
-if(userData.role==="admin"){
-renderAdmin();
-}else{
-renderCliente();
-}
-});
-
-/* ===================== ADMIN ===================== */
+/* ================= ADMIN ================= */
 
 function renderAdmin(){
-painel.innerHTML=`
+document.getElementById("painel").innerHTML=`
 <h3>Painel ADMIN</h3>
 
-<h4>Adicionar Produto</h4>
-<input id="nomeProd" placeholder="Nome">
+<input id="nomeProd" placeholder="Nome produto">
 <input id="valorProd" placeholder="Valor">
-<input id="imgProd" placeholder="URL Imagem">
-<input id="regiaoProd" placeholder="DDD Região">
-<button onclick="addProduto()">Adicionar</button>
-
-<h4>Produtos</h4>
-<div id="listaProdutos"></div>
-
-<h4>Pedidos</h4>
-<div id="listaPedidos"></div>
-`;
-
-carregarProdutosAdmin();
-carregarPedidosAdmin();
-}
-
-async function addProduto(){
-await db.collection("products").add({
-nome:nomeProd.value,
-valor:valorProd.value,
-imagem:imgProd.value,
-regiao:regiaoProd.value,
-ativo:true
-});
-alert("Produto adicionado");
-}
-
-function carregarProdutosAdmin(){
-db.collection("products").onSnapshot(snap=>{
-listaProdutos.innerHTML="";
-snap.forEach(doc=>{
-let p = doc.data();
-listaProdutos.innerHTML+=`
-<div class="card admin">
-${p.nome} - R$${p.valor}
-<button onclick="ocultar('${doc.id}')">Ocultar</button>
-<button onclick="remover('${doc.id}')">Remover</button>
-</div>`;
-});
-});
-}
-
-function ocultar(id){
-db.collection("products").doc(id).update({ativo:false});
-}
-
-function remover(id){
-db.collection("products").doc(id).delete();
-}
-
-function carregarPedidosAdmin(){
-db.collection("orders").onSnapshot(snap=>{
-listaPedidos.innerHTML="";
-snap.forEach(doc=>{
-let o = doc.data();
-listaPedidos.innerHTML+=`
-<div class="card">
-Pedido: ${o.status}
-<button onclick="statusPedido('${doc.id}','confirmado')">Confirmar</button>
-<button onclick="statusPedido('${doc.id}','a caminho')">A Caminho</button>
-<button onclick="statusPedido('${doc.id}','concluido')">Concluir</button>
-</div>`;
-});
-});
-}
-
-function statusPedido(id,status){
-db.collection("orders").doc(id).update({status});
-}
-
-/* ===================== CLIENTE ===================== */
-
-function renderCliente(){
-painel.innerHTML=`
-<h3>Painel Cliente</h3>
-<div id="produtosCliente"></div>
-
-<h4>Entrega</h4>
-<input id="cep" placeholder="CEP">
-<button onclick="buscarCep()">Buscar CEP</button>
-<input id="rua" placeholder="Rua">
-<input id="numero" placeholder="Número">
-<input id="ref" placeholder="Referência">
-
-<button onclick="fazerPedido()">Fazer Pedido</button>
-
-<h4>Meus Pedidos</h4>
-<div id="meusPedidos"></div>
-`;
-
-carregarProdutosCliente();
-carregarPedidosCliente();
-}
-
-function carregarProdutosCliente(){
-db.collection("products").where("ativo","==",true)
-.onSnapshot(snap=>{
-produtosCliente.innerHTML="";
-snap.forEach(doc=>{
-let p = doc.data();
-produtosCliente.innerHTML+=`
-<div class="card">
-<img src="${p.imagem}" width="100%">
-${p.nome} - R$${p.valor}
-</div>`;
-});
-});
-}
-
-async function buscarCep(){
-let cep = document.getElementById("cep").value;
-let res = await fetch("https://viacep.com.br/ws/"+cep+"/json/");
-let data = await res.json();
-rua.value = data.logradouro;
-}
-
-async function fazerPedido(){
-await db.collection("orders").add({
-user:auth.currentUser.uid,
-status:"pendente",
-endereco:{
-rua:rua.value,
-numero:numero.value,
-ref:ref.value
-},
-data:new Date()
-});
-alert("Pedido enviado");
-}
-
-function carregarPedidosCliente(){
-db.collection("orders")
-.where("user","==",auth.currentUser.uid)
-.onSnapshot(snap=>{
-meusPedidos.innerHTML="";
-snap.forEach(doc=>{
-let o = doc.data();
-meusPedidos.innerHTML+=`
-<div class="card">
-Status: ${o.status}
-</div>`;
-});
-});
-}
-</script>
-
-</body>
-</html>
+<button onclick="addProduto()">Adicionar Produto</button>

@@ -3,50 +3,48 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Site Pedidos - Conta Cliente</title>
-
+<title>Sistema com Admin</title>
 <script src="https://cdn.tailwindcss.com"></script>
-
 </head>
 <body class="bg-gray-900 text-white min-h-screen flex items-center justify-center">
 
 <div class="bg-gray-800 p-8 rounded-xl w-96 shadow-xl">
 
-<h1 class="text-2xl font-bold text-center mb-6">Área do Cliente</h1>
+<h1 class="text-2xl font-bold text-center mb-6">Sistema</h1>
 
 <div id="areaLogin">
 
 <input type="email" id="email" placeholder="Email"
-class="w-full p-2 mb-3 rounded bg-gray-700 outline-none">
+class="w-full p-2 mb-3 rounded bg-gray-700">
 
 <input type="password" id="senha" placeholder="Senha"
-class="w-full p-2 mb-3 rounded bg-gray-700 outline-none">
+class="w-full p-2 mb-3 rounded bg-gray-700">
 
 <button onclick="cadastrar()" 
-class="w-full bg-green-600 hover:bg-green-700 p-2 rounded mb-2">
+class="w-full bg-green-600 p-2 rounded mb-2">
 Cadastrar
 </button>
 
 <button onclick="login()" 
-class="w-full bg-blue-600 hover:bg-blue-700 p-2 rounded mb-2">
+class="w-full bg-blue-600 p-2 rounded mb-2">
 Entrar
 </button>
 
 </div>
 
-<div id="areaCliente" class="hidden text-center">
-
-<p class="mb-4">Logado como:</p>
-<p id="usuarioEmail" class="font-bold text-yellow-400 mb-4"></p>
-
-<button onclick="logout()" 
-class="w-full bg-red-600 hover:bg-red-700 p-2 rounded">
-Sair
-</button>
-
+<div id="areaAdmin" class="hidden text-center">
+<h2 class="text-xl mb-4 text-green-400">PAINEL ADMIN</h2>
+<p id="adminEmail" class="mb-4"></p>
+<button onclick="logout()" class="bg-red-600 p-2 rounded w-full">Sair</button>
 </div>
 
-<p id="mensagem" class="mt-4 text-center text-sm text-yellow-400"></p>
+<div id="areaCliente" class="hidden text-center">
+<h2 class="text-xl mb-4 text-blue-400">ÁREA CLIENTE</h2>
+<p id="clienteEmail" class="mb-4"></p>
+<button onclick="logout()" class="bg-red-600 p-2 rounded w-full">Sair</button>
+</div>
+
+<p id="msg" class="mt-4 text-yellow-400 text-sm text-center"></p>
 
 </div>
 
@@ -55,6 +53,8 @@ Sair
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged }
 from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+import { getFirestore, collection, getDocs, doc, setDoc, getDoc }
+from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBgqjGYaV7rmgLMPB-Y4DcvgVkg82GFt0I",
@@ -62,60 +62,50 @@ const firebaseConfig = {
   projectId: "sitepedidos",
   storageBucket: "sitepedidos.firebasestorage.app",
   messagingSenderId: "812273915392",
-  appId: "1:812273915392:web:eb939206a8dba04aca6ae5",
-  measurementId: "G-58RS0MLT87"
+  appId: "1:812273915392:web:eb939206a8dba04aca6ae5"
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+const db = getFirestore(app);
 
 const areaLogin = document.getElementById("areaLogin");
+const areaAdmin = document.getElementById("areaAdmin");
 const areaCliente = document.getElementById("areaCliente");
-const usuarioEmail = document.getElementById("usuarioEmail");
-const mensagem = document.getElementById("mensagem");
+const msg = document.getElementById("msg");
 
-window.cadastrar = function() {
-  const email = document.getElementById("email").value;
-  const senha = document.getElementById("senha").value;
+window.cadastrar = async function() {
+  try{
+    const cred = await createUserWithEmailAndPassword(auth,email.value,senha.value);
 
-  createUserWithEmailAndPassword(auth, email, senha)
-    .then(() => {
-      mensagem.innerText = "Conta criada com sucesso!";
-    })
-    .catch(error => {
-      mensagem.innerText = error.message;
+    const usersSnapshot = await getDocs(collection(db,"users"));
+    const role = usersSnapshot.size === 0 ? "admin" : "cliente";
+
+    await setDoc(doc(db,"users",cred.user.uid),{
+      email: email.value,
+      role: role
     });
+
+    msg.innerText = "Conta criada como " + role;
+
+  }catch(e){
+    msg.innerText = e.message;
+  }
 }
 
-window.login = function() {
-  const email = document.getElementById("email").value;
-  const senha = document.getElementById("senha").value;
-
-  signInWithEmailAndPassword(auth, email, senha)
-    .then(() => {
-      mensagem.innerText = "Login realizado!";
-    })
-    .catch(error => {
-      mensagem.innerText = error.message;
-    });
+window.login = async function(){
+  try{
+    await signInWithEmailAndPassword(auth,email.value,senha.value);
+  }catch(e){
+    msg.innerText = e.message;
+  }
 }
 
-window.logout = function() {
+window.logout = function(){
   signOut(auth);
 }
 
-onAuthStateChanged(auth, (user) => {
-  if (user) {
-    areaLogin.classList.add("hidden");
-    areaCliente.classList.remove("hidden");
-    usuarioEmail.innerText = user.email;
-  } else {
+onAuthStateChanged(auth, async (user)=>{
+  if(!user){
     areaLogin.classList.remove("hidden");
-    areaCliente.classList.add("hidden");
-  }
-});
-
-</script>
-
-</body>
-</html>
+    areaAdmin.class

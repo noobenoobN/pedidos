@@ -6,12 +6,53 @@
 <title>Sistema Pedidos</title>
 
 <style>
-body{font-family:Arial;background:#111;color:#fff;padding:20px}
-input,button{padding:8px;margin:5px;width:100%}
-.card{background:#222;padding:10px;margin:10px 0;border-radius:6px}
-.hidden{display:none}
-</style>
+body{
+font-family:Arial;
+background:#fff7ed;
+color:#7c2d12;
+padding:20px;
+}
 
+h2,h3{color:#ea580c}
+
+input,button,select{
+padding:10px;
+margin:5px 0;
+width:100%;
+border-radius:6px;
+border:1px solid #fb923c;
+}
+
+button{
+background:#ea580c;
+color:white;
+border:none;
+cursor:pointer;
+}
+
+button:hover{
+background:#c2410c;
+}
+
+.card{
+background:white;
+padding:12px;
+margin:10px 0;
+border-radius:8px;
+box-shadow:0 2px 5px rgba(0,0,0,0.1);
+}
+
+.hidden{display:none}
+
+.chatBox{
+height:150px;
+overflow:auto;
+background:#fff;
+padding:5px;
+margin:5px 0;
+border:1px solid #fb923c;
+}
+</style>
 </head>
 <body>
 
@@ -47,140 +88,100 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-let roleGlobal = null;
+let roleGlobal=null;
 
 /* ================= CADASTRO ================= */
 
 window.registrar = async function(){
-  try{
-    const email = document.getElementById("email").value;
-    const senha = document.getElementById("senha").value;
-
-    const cred = await createUserWithEmailAndPassword(auth,email,senha);
-
-    const usersSnap = await getDocs(collection(db,"users"));
-    const role = usersSnap.empty ? "admin" : "cliente";
-
-    await setDoc(doc(db,"users",cred.user.uid),{
-      email,
-      role
-    });
-
-    alert("Conta criada como: " + role);
-
-  }catch(e){
-    alert(e.message);
-  }
+const email = email.value;
+const senha = senha.value;
+const cred = await createUserWithEmailAndPassword(auth,email,senha);
+const usersSnap = await getDocs(collection(db,"users"));
+const role = usersSnap.empty ? "admin" : "cliente";
+await setDoc(doc(db,"users",cred.user.uid),{email,role});
+alert("Conta criada como "+role);
 }
 
 /* ================= LOGIN ================= */
 
 window.login = async function(){
-  try{
-    const email = document.getElementById("email").value;
-    const senha = document.getElementById("senha").value;
-    await signInWithEmailAndPassword(auth,email,senha);
-  }catch(e){
-    alert(e.message);
-  }
+await signInWithEmailAndPassword(auth,email.value,senha.value);
 }
 
 /* ================= AUTH ================= */
 
-onAuthStateChanged(auth, async (user)=>{
-  if(!user){
-    document.getElementById("loginArea").classList.remove("hidden");
-    document.getElementById("painel").classList.add("hidden");
-    return;
-  }
+onAuthStateChanged(auth, async user=>{
+if(!user){
+loginArea.classList.remove("hidden");
+painel.classList.add("hidden");
+return;
+}
+loginArea.classList.add("hidden");
+painel.classList.remove("hidden");
 
-  document.getElementById("loginArea").classList.add("hidden");
-  document.getElementById("painel").classList.remove("hidden");
+const snap = await getDoc(doc(db,"users",user.uid));
+roleGlobal = snap.data().role;
 
-  const snap = await getDoc(doc(db,"users",user.uid));
-  roleGlobal = snap.data().role;
-
-  if(roleGlobal==="admin"){
-    renderAdmin();
-  }else{
-    renderCliente();
-  }
+if(roleGlobal==="admin"){
+renderAdmin();
+}else{
+renderCliente();
+}
 });
 
 /* ================= ADMIN ================= */
 
 function renderAdmin(){
-document.getElementById("painel").innerHTML=`
-<h3>Painel ADMIN</h3>
-
-<input id="nomeProd" placeholder="Nome produto">
-<input id="valorProd" placeholder="Valor">
-<button onclick="addProduto()">Adicionar Produto</button>
-
-<h4>Produtos</h4>
-<div id="listaProdutos"></div>
-
+painel.innerHTML=`
+<h3>ADMIN</h3>
 <h4>Pedidos</h4>
 <div id="listaPedidos"></div>
-
 <button onclick="logout()">Sair</button>
 `;
 
-carregarProdutosAdmin();
-carregarPedidosAdmin();
-}
-
-window.addProduto = async function(){
-await addDoc(collection(db,"products"),{
-nome:nomeProd.value,
-valor:valorProd.value
-});
-alert("Produto adicionado");
-}
-
-function carregarProdutosAdmin(){
-onSnapshot(collection(db,"products"),snap=>{
-listaProdutos.innerHTML="";
-snap.forEach(docu=>{
-let p = docu.data();
-listaProdutos.innerHTML+=`
-<div class="card">
-${p.nome} - R$${p.valor}
-</div>`;
-});
-});
-}
-
-function carregarPedidosAdmin(){
 onSnapshot(collection(db,"orders"),snap=>{
 listaPedidos.innerHTML="";
 snap.forEach(docu=>{
-let o = docu.data();
+let o=docu.data();
+if(o.oculto) return;
+
 listaPedidos.innerHTML+=`
 <div class="card">
-Pedido - Status: ${o.status}
-<button onclick="mudarStatus('${docu.id}','confirmado')">Confirmar</button>
-<button onclick="mudarStatus('${docu.id}','concluido')">Concluir</button>
+Pedido: ${o.status}
+<button onclick="ocultarPedido('${docu.id}')">Ocultar</button>
+<button onclick="confirmarPedido('${docu.id}')">Confirmar</button>
+<button onclick="abrirChat('${docu.id}')">Chat</button>
 </div>`;
 });
 });
 }
 
-window.mudarStatus = async function(id,status){
-await updateDoc(doc(db,"orders",id),{status});
+window.ocultarPedido = async function(id){
+await updateDoc(doc(db,"orders",id),{oculto:true});
 }
 
-window.logout = function(){
-signOut(auth);
+window.confirmarPedido = async function(id){
+await updateDoc(doc(db,"orders",id),{status:"confirmado"});
 }
 
 /* ================= CLIENTE ================= */
 
 function renderCliente(){
-document.getElementById("painel").innerHTML=`
-<h3>Painel Cliente</h3>
+painel.innerHTML=`
+<h3>CLIENTE</h3>
 
-<div id="produtosCliente"></div>
+<label>Entrega?</label>
+<select id="entrega">
+<option value="nao">Retirada</option>
+<option value="sim">Entrega</option>
+</select>
+
+<input id="cep" placeholder="CEP">
+<button onclick="buscarCep()">Buscar CEP</button>
+<input id="rua" placeholder="Rua">
+<input id="numero" placeholder="Número">
+
+<button onclick="fazerPedido()">Finalizar Pedido</button>
 
 <h4>Meus Pedidos</h4>
 <div id="meusPedidos"></div>
@@ -188,45 +189,78 @@ document.getElementById("painel").innerHTML=`
 <button onclick="logout()">Sair</button>
 `;
 
-carregarProdutosCliente();
-carregarPedidosCliente();
-}
-
-function carregarProdutosCliente(){
-onSnapshot(collection(db,"products"),snap=>{
-produtosCliente.innerHTML="";
-snap.forEach(docu=>{
-let p = docu.data();
-produtosCliente.innerHTML+=`
-<div class="card">
-${p.nome} - R$${p.valor}
-<button onclick="fazerPedido()">Comprar</button>
-</div>`;
-});
-});
-}
-
-window.fazerPedido = async function(){
-await addDoc(collection(db,"orders"),{
-user:auth.currentUser.uid,
-status:"pendente"
-});
-alert("Pedido enviado");
-}
-
-function carregarPedidosCliente(){
 onSnapshot(collection(db,"orders"),snap=>{
 meusPedidos.innerHTML="";
 snap.forEach(docu=>{
-let o = docu.data();
-if(o.user===auth.currentUser.uid){
+let o=docu.data();
+if(o.user===auth.currentUser.uid && !o.oculto){
 meusPedidos.innerHTML+=`
 <div class="card">
 Status: ${o.status}
+Total: R$ ${o.total}
+<button onclick="abrirChat('${docu.id}')">Chat</button>
 </div>`;
 }
 });
 });
+}
+
+window.buscarCep = async function(){
+if(entrega.value==="sim"){
+let res=await fetch("https://viacep.com.br/ws/"+cep.value+"/json/");
+let data=await res.json();
+rua.value=data.logradouro;
+}
+}
+
+window.fazerPedido = async function(){
+
+let taxa = entrega.value==="sim" ? 10 : 0;
+let total = 50 + taxa; // exemplo valor fixo produto
+
+await addDoc(collection(db,"orders"),{
+user:auth.currentUser.uid,
+status:"pendente",
+taxa,
+total,
+oculto:false,
+criadoEm:Date.now()
+});
+
+alert("Pedido criado. Total: R$"+total);
+}
+
+/* ================= CHAT ================= */
+
+window.abrirChat = function(id){
+let box=document.createElement("div");
+box.innerHTML=`
+<div class="chatBox" id="chatArea"></div>
+<input id="msgChat">
+<button onclick="enviarMsg('${id}')">Enviar</button>
+`;
+painel.appendChild(box);
+
+onSnapshot(collection(db,"orders",id,"chat"),snap=>{
+chatArea.innerHTML="";
+snap.forEach(docu=>{
+let m=docu.data();
+chatArea.innerHTML+=`<p><b>${m.user}</b>: ${m.texto}</p>`;
+});
+});
+}
+
+window.enviarMsg = async function(id){
+await addDoc(collection(db,"orders",id,"chat"),{
+user:roleGlobal,
+texto:msgChat.value,
+data:Date.now()
+});
+msgChat.value="";
+}
+
+window.logout=function(){
+signOut(auth);
 }
 
 </script>

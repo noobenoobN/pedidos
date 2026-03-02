@@ -17,6 +17,8 @@
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
     width: 320px;
+    max-height: 90vh;
+    overflow-y: auto;
   }
   input, select, button {
     width: 100%;
@@ -129,6 +131,7 @@
     updateDoc, deleteDoc, query, where, orderBy, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
+  // Sua config Firebase aqui (troque para a sua)
   const firebaseConfig = {
     apiKey: "AIzaSyBgqjGYaV7rmgLMPB-Y4DcvgVkg82GFt0I",
     authDomain: "sitepedidos.firebaseapp.com",
@@ -148,7 +151,25 @@
 
   let usuarioAtual = null;
   let roleAtual = null;
-  let chatPedidoId = null; // Para identificar o pedido atual para chat
+  let chatPedidoId = null;
+
+  // Função para mostrar painel correto
+  function mostrarPainel() {
+    loginDiv.style.display = "none";
+    if (roleAtual === "admin") {
+      adminDiv.style.display = "block";
+      clienteDiv.style.display = "none";
+      iniciarAdmin();
+    } else if (roleAtual === "cliente") {
+      clienteDiv.style.display = "block";
+      adminDiv.style.display = "none";
+      iniciarCliente();
+    } else {
+      alert("Role do usuário não encontrada.");
+      auth.signOut();
+      location.reload();
+    }
+  }
 
   // Registrar usuário
   document.getElementById("btnRegistrar").onclick = async () => {
@@ -211,24 +232,6 @@
       roleAtual = docUser.data().role;
     } else {
       roleAtual = null;
-    }
-  }
-
-  // Mostrar painel conforme role
-  function mostrarPainel() {
-    loginDiv.style.display = "none";
-    if (roleAtual === "admin") {
-      adminDiv.style.display = "block";
-      clienteDiv.style.display = "none";
-      iniciarAdmin();
-    } else if (roleAtual === "cliente") {
-      clienteDiv.style.display = "block";
-      adminDiv.style.display = "none";
-      iniciarCliente();
-    } else {
-      alert("Role do usuário não encontrada.");
-      auth.signOut();
-      location.reload();
     }
   }
 
@@ -305,7 +308,7 @@
   });
 
   // Listar pedidos para admin
-  onSnapshot(collection(db, "pedidos", orderBy("criadoEm", "desc")), (snapshot) => {
+  onSnapshot(query(collection(db, "pedidos"), orderBy("criadoEm", "desc")), (snapshot) => {
     const listaPedidos = document.getElementById("listaPedidos");
     listaPedidos.innerHTML = "<p><b>Pedidos recentes:</b></p>";
 
@@ -317,24 +320,40 @@
         <b>Pedido ID:</b> ${docSnap.id}<br>
         <b>Status:</b> ${pedido.status}<br>
         <b>Cliente:</b> ${pedido.cliente}<br>
-        <button onclick="confirmarPedido('${docSnap.id}')">Confirmar a caminho</button>
-        <button onclick="finalizarPedido('${docSnap.id}')">Concluir</button>
-        <button onclick="mostrarChatPedido('${docSnap.id}')">Chat</button>
+        <button class="confirmar" data-id="${docSnap.id}">Confirmar a caminho</button>
+        <button class="finalizar" data-id="${docSnap.id}">Concluir</button>
+        <button class="abrir-chat" data-id="${docSnap.id}">Chat</button>
       `;
       listaPedidos.appendChild(div);
     });
+
+    // Adiciona eventos aos botões
+    document.querySelectorAll(".confirmar").forEach(btn => {
+      btn.onclick = () => {
+        confirmarPedido(btn.getAttribute("data-id"));
+      };
+    });
+    document.querySelectorAll(".finalizar").forEach(btn => {
+      btn.onclick = () => {
+        finalizarPedido(btn.getAttribute("data-id"));
+      };
+    });
+    document.querySelectorAll(".abrir-chat").forEach(btn => {
+      btn.onclick = () => {
+        mostrarChatPedido(btn.getAttribute("data-id"));
+      };
+    });
   });
 
-  // Funções para status pedido
-  window.confirmarPedido = async (pedidoId) => {
+  async function confirmarPedido(pedidoId) {
     await updateDoc(doc(db, "pedidos", pedidoId), { status: "a caminho" });
-  };
-  window.finalizarPedido = async (pedidoId) => {
-    await updateDoc(doc(db, "pedidos", pedidoId), { status: "concluído" });
-  };
+  }
 
-  // Mostrar chat para pedido (admin)
-  async function mostrarChatPedido(pedidoId) {
+  async function finalizarPedido(pedidoId) {
+    await updateDoc(doc(db, "pedidos", pedidoId), { status: "concluído" });
+  }
+
+  function mostrarChatPedido(pedidoId) {
     chatPedidoId = pedidoId;
     alert("Chat aberto para pedido: " + pedidoId);
     carregarChat();
@@ -430,7 +449,6 @@
     }
   };
 
-  // Limpa formulário de pedido
   function limparFormularioPedido() {
     document.getElementById("cep").value = "";
     document.getElementById("rua").value = "";
@@ -456,38 +474,20 @@
         <b>ID:</b> ${docSnap.id}<br>
         <b>Status:</b> ${p.status}<br>
         <b>Entrega:</b> ${p.entrega === "sim" ? "Sim" : "Não"}<br>
-        <button onclick="mostrarChatCliente('${docSnap.id}', ${p.chatLiberado})" ${p.chatLiberado ? "" : "disabled"}>
+        <button class="abrir-chat-cliente" data-id="${docSnap.id}" ${p.chatLiberado ? "" : "disabled"}>
           ${p.chatLiberado ? "Abrir Chat" : "Chat disponível após 5 minutos"}
         </button>
       `;
       divPedidos.appendChild(div);
     });
+
+    document.querySelectorAll(".abrir-chat-cliente").forEach(btn => {
+      btn.onclick = () => {
+        const pid = btn.getAttribute("data-id");
+        carregarChatCliente(pid);
+      };
+    });
   }
 
-  // Mostrar chat para cliente
-  window.mostrarChatCliente = (pedidoId, chatLiberado) => {
-    if (!chatLiberado) {
-      alert("Chat liberado somente após 5 minutos do pedido.");
-      return;
-    }
-    chatPedidoId = pedidoId;
-    carregarChat();
-  };
-
-  // --- CHAT ---
-
-  const chatDiv = document.getElementById("chat");
-  const inputChat = document.getElementById("mensagemChat");
-  const btnEnviarChat = document.getElementById("btnEnviarChat");
-
-  btnEnviarChat.onclick = async () => {
-    const texto = inputChat.value.trim();
-    if (!texto) return;
-    if (!chatPedidoId) {
-      alert("Abra um pedido para conversar no chat.");
-      return;
-    }
-    try {
-      await addDoc(collection(db, "chats", chatPedidoId, "mensagens"), {
-        texto,
-        autor: usuarioAtual.uid
+  // Carregar chat para cliente
+  function carregarChatCliente(pedidoId)

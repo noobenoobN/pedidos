@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>PEDI - Sistema</title>
+<title>Sistema Pedidos</title>
 
 <style>
 body{font-family:Arial;background:#111;color:#fff;text-align:center;margin:0;padding:20px}
@@ -15,7 +15,7 @@ h1{color:#00e676}
 </head>
 <body>
 
-<h1>SISTEMA PEDI</h1>
+<h1>SISTEMA PEDIDOS</h1>
 
 <!-- LOGIN -->
 <div id="authBox">
@@ -38,8 +38,7 @@ h1{color:#00e676}
 <h3>Adicionar Produto</h3>
 <input id="nomeProd" placeholder="Nome">
 <input id="valorProd" placeholder="Valor">
-<input id="localProd" placeholder="Local">
-<input id="imgProd" placeholder="Link da imagem">
+<input id="imgProd" placeholder="Link imagem">
 <button onclick="addProduto()">Adicionar</button>
 
 <h3>Produtos</h3>
@@ -56,21 +55,18 @@ h1{color:#00e676}
 <h2>PRODUTOS</h2>
 <div id="listaProdutos"></div>
 
-<h3>Entrega?</h3>
+<h3>Entrega</h3>
 <select id="tipoEntrega">
 <option value="retirada">Retirada</option>
 <option value="entrega">Entrega</option>
 </select>
 
 <div id="enderecoBox" style="display:none">
-<input id="cep" placeholder="CEP">
-<button onclick="buscarCEP()">Buscar CEP</button><br>
-<input id="rua" placeholder="Rua"><br>
-<input id="numero" placeholder="Número"><br>
-<input id="referencia" placeholder="Referência">
+<input id="rua" placeholder="Rua">
+<input id="numero" placeholder="Número">
 </div>
 
-<button onclick="fazerPedido()">Fazer Pedido</button>
+<button onclick="fazerPedido()">Finalizar Pedido</button>
 
 <h3>Meus Pedidos</h3>
 <div id="meusPedidos"></div>
@@ -82,10 +78,10 @@ h1{color:#00e676}
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBgqjGYaV7rmgLMPB-Y4DcvgVkg82GFt0I",
+  apiKey: "SUA_API_KEY",
   authDomain: "sitepedidos.firebaseapp.com",
   projectId: "sitepedidos",
   storageBucket: "sitepedidos.firebasestorage.app",
@@ -101,29 +97,31 @@ let carrinho=[];
 
 /* REGISTRAR */
 window.registrar = async ()=>{
-  const email = regEmail.value;
-  const senha = regSenha.value;
-  const telefone = regTelefone.value;
+  try{
+    const cred = await createUserWithEmailAndPassword(auth,regEmail.value,regSenha.value);
 
-  const user = await createUserWithEmailAndPassword(auth,email,senha);
-  const snap = await getDocs(collection(db,"users"));
+    const usersSnap = await getDocs(collection(db,"users"));
+    const role = usersSnap.size===0 ? "admin":"cliente";
 
-  const role = snap.size===0 ? "admin":"cliente";
+    await setDoc(doc(db,"users",cred.user.uid),{
+      email:regEmail.value,
+      telefone:regTelefone.value,
+      role
+    });
 
-  await addDoc(collection(db,"users"),{
-    uid:user.user.uid,
-    email,
-    telefone,
-    ddd:telefone.substring(0,2),
-    role
-  });
-
-  alert("Conta criada como "+role);
+    alert("Conta criada como "+role);
+  }catch(e){
+    alert(e.message);
+  }
 };
 
 /* LOGIN */
 window.login = async ()=>{
-  await signInWithEmailAndPassword(auth,loginEmail.value,loginSenha.value);
+  try{
+    await signInWithEmailAndPassword(auth,loginEmail.value,loginSenha.value);
+  }catch(e){
+    alert(e.message);
+  }
 };
 
 /* LOGOUT */
@@ -134,22 +132,29 @@ window.logout = async ()=>{
 
 /* MONITOR LOGIN */
 onAuthStateChanged(auth, async user=>{
-  if(!user) return;
+  if(!user){
+    authBox.style.display="block";
+    adminBox.style.display="none";
+    clienteBox.style.display="none";
+    return;
+  }
 
-  const q = query(collection(db,"users"),where("uid","==",user.uid));
-  const snap = await getDocs(q);
+  const snap = await getDoc(doc(db,"users",user.uid));
+  if(!snap.exists()){
+    alert("Erro ao carregar usuário");
+    return;
+  }
 
-  snap.forEach(docu=>{
-    authBox.style.display="none";
-    if(docu.data().role==="admin"){
-      adminBox.style.display="block";
-      carregarAdmin();
-    }else{
-      clienteBox.style.display="block";
-      carregarProdutos();
-      carregarPedidosCliente();
-    }
-  });
+  authBox.style.display="none";
+
+  if(snap.data().role==="admin"){
+    adminBox.style.display="block";
+    carregarAdmin();
+  }else{
+    clienteBox.style.display="block";
+    carregarProdutos();
+    carregarPedidosCliente();
+  }
 });
 
 /* ADMIN */
@@ -157,7 +162,6 @@ window.addProduto = async ()=>{
   await addDoc(collection(db,"produtos"),{
     nome:nomeProd.value,
     valor:valorProd.value,
-    local:localProd.value,
     imagem:imgProd.value,
     oculto:false
   });
@@ -172,7 +176,6 @@ function carregarAdmin(){
       <div class="card">
       <img src="${p.imagem}">
       <p>${p.nome} - R$${p.valor}</p>
-      <button onclick="ocultar('${docu.id}')">Ocultar</button>
       <button onclick="remover('${docu.id}')">Remover</button>
       </div>`;
     });
@@ -184,6 +187,7 @@ function carregarAdmin(){
       const p=docu.data();
       adminPedidos.innerHTML+=`
       <div class="card">
+      <p>Cliente: ${p.uid}</p>
       <p>Status: ${p.status}</p>
       <button onclick="atualizar('${docu.id}','A Caminho')">A Caminho</button>
       <button onclick="atualizar('${docu.id}','Concluído')">Concluído</button>
@@ -191,10 +195,6 @@ function carregarAdmin(){
     });
   });
 }
-
-window.ocultar=async id=>{
-  await updateDoc(doc(db,"produtos",id),{oculto:true});
-};
 
 window.remover=async id=>{
   await deleteDoc(doc(db,"produtos",id));
@@ -224,23 +224,22 @@ function carregarProdutos(){
 
 window.addCarrinho=nome=>{
   carrinho.push(nome);
-  alert("Adicionado");
+  alert("Adicionado ao carrinho");
 };
 
 tipoEntrega.onchange=()=>{
   enderecoBox.style.display = tipoEntrega.value==="entrega"?"block":"none";
 };
 
-window.buscarCEP=async ()=>{
-  const res = await fetch(`https://viacep.com.br/ws/${cep.value}/json/`);
-  const data = await res.json();
-  rua.value=data.logradouro;
-};
-
 window.fazerPedido=async ()=>{
+  if(carrinho.length===0){
+    alert("Carrinho vazio");
+    return;
+  }
+
   let endereco="Retirada";
   if(tipoEntrega.value==="entrega"){
-    endereco=rua.value+" Nº "+numero.value+" Ref: "+referencia.value;
+    endereco=rua.value+" Nº "+numero.value;
   }
 
   await addDoc(collection(db,"pedidos"),{
@@ -262,7 +261,7 @@ function carregarPedidosCliente(){
     snap.forEach(docu=>{
       meusPedidos.innerHTML+=`
       <div class="card">
-      Status: ${docu.data().status}
+      <p>Status: ${docu.data().status}</p>
       </div>`;
     });
   });

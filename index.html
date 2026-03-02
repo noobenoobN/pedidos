@@ -1,27 +1,78 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sistema de Pedidos</title>
-
-<script src="https://cdn.tailwindcss.com"></script>
-
-<style>
-body { background:#fff7ed; }
-</style>
+  <meta charset="UTF-8">
+  <title>Sistema de Pedidos</title>
 </head>
-<body class="min-h-screen flex items-center justify-center">
+<body style="font-family: Arial; text-align:center; padding-top:50px; background:#e8ded3;">
 
-<div class="w-full max-w-md p-6 bg-white rounded-2xl shadow-xl">
+  <div style="background:white; padding:20px; border-radius:10px; width:300px; margin:auto;">
+    <h2>Sistema de Pedidos</h2>
 
-<!-- LOGIN -->
-<div id="loginDiv">
-<h2 class="text-2xl font-bold text-center text-orange-500 mb-4">
-Sistema de Pedidos
-</h2>
+    <input type="text" id="nome" placeholder="Nome" style="width:90%; padding:8px;"><br><br>
+    <input type="text" id="pedido" placeholder="Pedido" style="width:90%; padding:8px;"><br><br>
 
-<input id="email" type="email" placeholder="Email"
-class="w-full p-3 border rounded mb-3">
+    <button onclick="salvarPedido()" style="padding:10px; background:orange; border:none; color:white; width:100%;">
+      Salvar Pedido
+    </button>
 
-<input id
+    <div id="lista" style="margin-top:20px;"></div>
+  </div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, getDocs } 
+    from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBgqjGYaV7rmgLMPB-Y4DcvgVkg82GFt0I",
+    authDomain: "sitepedidos.firebaseapp.com",
+    projectId: "sitepedidos",
+    storageBucket: "sitepedidos.firebasestorage.app",
+    messagingSenderId: "812273915392",
+    appId: "1:812273915392:web:9fc70d67ac717a11ca6ae5"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  async function salvarPedido() {
+    const nome = document.getElementById("nome").value;
+    const pedido = document.getElementById("pedido").value;
+
+    if (nome === "" || pedido === "") {
+      alert("Preencha tudo!");
+      return;
+    }
+
+    await addDoc(collection(db, "pedidos"), {
+      nome: nome,
+      pedido: pedido
+    });
+
+    alert("Pedido salvo!");
+
+    document.getElementById("nome").value = "";
+    document.getElementById("pedido").value = "";
+
+    carregarPedidos();
+  }
+
+  async function carregarPedidos() {
+    const querySnapshot = await getDocs(collection(db, "pedidos"));
+    const lista = document.getElementById("lista");
+    lista.innerHTML = "";
+
+    querySnapshot.forEach((doc) => {
+      const dados = doc.data();
+      lista.innerHTML += `<p><b>${dados.nome}</b>: ${dados.pedido}</p>`;
+    });
+  }
+
+  carregarPedidos();
+
+  window.salvarPedido = salvarPedido;
+</script>
+
+</body>
+</html>

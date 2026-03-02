@@ -116,3 +116,120 @@ document.getElementById("painel").innerHTML=`
 <input id="nomeProd" placeholder="Nome produto">
 <input id="valorProd" placeholder="Valor">
 <button onclick="addProduto()">Adicionar Produto</button>
+
+<h4>Produtos</h4>
+<div id="listaProdutos"></div>
+
+<h4>Pedidos</h4>
+<div id="listaPedidos"></div>
+
+<button onclick="logout()">Sair</button>
+`;
+
+carregarProdutosAdmin();
+carregarPedidosAdmin();
+}
+
+window.addProduto = async function(){
+await addDoc(collection(db,"products"),{
+nome:nomeProd.value,
+valor:valorProd.value
+});
+alert("Produto adicionado");
+}
+
+function carregarProdutosAdmin(){
+onSnapshot(collection(db,"products"),snap=>{
+listaProdutos.innerHTML="";
+snap.forEach(docu=>{
+let p = docu.data();
+listaProdutos.innerHTML+=`
+<div class="card">
+${p.nome} - R$${p.valor}
+</div>`;
+});
+});
+}
+
+function carregarPedidosAdmin(){
+onSnapshot(collection(db,"orders"),snap=>{
+listaPedidos.innerHTML="";
+snap.forEach(docu=>{
+let o = docu.data();
+listaPedidos.innerHTML+=`
+<div class="card">
+Pedido - Status: ${o.status}
+<button onclick="mudarStatus('${docu.id}','confirmado')">Confirmar</button>
+<button onclick="mudarStatus('${docu.id}','concluido')">Concluir</button>
+</div>`;
+});
+});
+}
+
+window.mudarStatus = async function(id,status){
+await updateDoc(doc(db,"orders",id),{status});
+}
+
+window.logout = function(){
+signOut(auth);
+}
+
+/* ================= CLIENTE ================= */
+
+function renderCliente(){
+document.getElementById("painel").innerHTML=`
+<h3>Painel Cliente</h3>
+
+<div id="produtosCliente"></div>
+
+<h4>Meus Pedidos</h4>
+<div id="meusPedidos"></div>
+
+<button onclick="logout()">Sair</button>
+`;
+
+carregarProdutosCliente();
+carregarPedidosCliente();
+}
+
+function carregarProdutosCliente(){
+onSnapshot(collection(db,"products"),snap=>{
+produtosCliente.innerHTML="";
+snap.forEach(docu=>{
+let p = docu.data();
+produtosCliente.innerHTML+=`
+<div class="card">
+${p.nome} - R$${p.valor}
+<button onclick="fazerPedido()">Comprar</button>
+</div>`;
+});
+});
+}
+
+window.fazerPedido = async function(){
+await addDoc(collection(db,"orders"),{
+user:auth.currentUser.uid,
+status:"pendente"
+});
+alert("Pedido enviado");
+}
+
+function carregarPedidosCliente(){
+onSnapshot(collection(db,"orders"),snap=>{
+meusPedidos.innerHTML="";
+snap.forEach(docu=>{
+let o = docu.data();
+if(o.user===auth.currentUser.uid){
+meusPedidos.innerHTML+=`
+<div class="card">
+Status: ${o.status}
+</div>`;
+}
+});
+});
+}
+
+</script>
+
+</body>
+</html>

@@ -7,8 +7,8 @@
 
 <style>
 body{
+  font-family: Arial;
   background:#ddd3c7;
-  font-family:Arial;
   padding:20px;
 }
 .container{
@@ -36,6 +36,11 @@ button:hover{
 #areaPedidos{
   display:none;
 }
+.pedido{
+  background:white;
+  padding:10px;
+  margin:5px 0;
+}
 </style>
 </head>
 <body>
@@ -55,14 +60,15 @@ button:hover{
 <p id="msg"></p>
 </div>
 
-<!-- AREA APÓS LOGIN -->
+<!-- ÁREA LOGADO -->
 <div id="areaPedidos">
 <h2>Bem-vindo!</h2>
 <p id="usuarioEmail"></p>
 
-<input type="text" id="produtoPedido" placeholder="Digite o produto">
+<input type="text" id="produtoInput" placeholder="Digite o produto">
 <button onclick="fazerPedido()">Fazer Pedido</button>
 
+<h3>Meus Pedidos:</h3>
 <div id="listaPedidos"></div>
 
 <button onclick="sair()">Sair</button>
@@ -73,15 +79,16 @@ button:hover{
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
+// 🔥 COLE SUA CONFIG DO FIREBASE AQUI
 const firebaseConfig = {
-  apiKey: "SUA_KEY",
-  authDomain: "sitepedidos.firebaseapp.com",
-  projectId: "sitepedidos",
-  storageBucket: "sitepedidos.firebasestorage.app",
-  messagingSenderId: "812273915392",
-  appId: "1:812273915392:web:9fc70d67ac717a11ca6ae5"
+  apiKey: "SUA_API_KEY",
+  authDomain: "SEU_AUTH_DOMAIN",
+  projectId: "SEU_PROJECT_ID",
+  storageBucket: "SEU_STORAGE_BUCKET",
+  messagingSenderId: "SEU_ID",
+  appId: "SEU_APP_ID"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -90,70 +97,83 @@ const db = getFirestore(app);
 
 let usuarioAtual = null;
 
+// REGISTRAR
 window.registrar = function(){
-  const email = emailInput.value;
-  const senha = senhaInput.value;
+  const email = document.getElementById("email").value;
+  const senha = document.getElementById("senha").value;
 
   createUserWithEmailAndPassword(auth, email, senha)
+  .then(()=> msg.innerText = "Cadastro realizado!")
   .catch(error => msg.innerText = error.message);
 }
 
+// LOGIN
 window.login = function(){
-  const email = emailInput.value;
-  const senha = senhaInput.value;
+  const email = document.getElementById("email").value;
+  const senha = document.getElementById("senha").value;
 
   signInWithEmailAndPassword(auth, email, senha)
   .catch(error => msg.innerText = error.message);
 }
 
+// SAIR
 window.sair = function(){
   signOut(auth);
 }
 
+// FAZER PEDIDO
 window.fazerPedido = async function(){
-  const produto = produtoPedido.value;
+  const produto = document.getElementById("produtoInput").value;
 
   if(!produto) return;
 
-  await addDoc(collection(db, "pedidos"), {
+  await addDoc(collection(db,"pedidos"),{
     produto: produto,
-    usuario: usuarioAtual.email
+    usuario: usuarioAtual.email,
+    data: new Date()
   });
 
-  produtoPedido.value = "";
+  produtoInput.value="";
 }
 
-// 🔥 AQUI ESTÁ O SEGREDO
-onAuthStateChanged(auth, (user)=>{
+// TROCA DE TELA AUTOMÁTICA
+onAuthStateChanged(auth,(user)=>{
   if(user){
     usuarioAtual = user;
 
-    areaLogin.style.display = "none";
-    areaPedidos.style.display = "block";
-    usuarioEmail.innerText = "Logado como: " + user.email;
+    areaLogin.style.display="none";
+    areaPedidos.style.display="block";
+    usuarioEmail.innerText="Logado como: "+user.email;
 
     carregarPedidos();
   }else{
-    areaLogin.style.display = "block";
-    areaPedidos.style.display = "none";
+    areaLogin.style.display="block";
+    areaPedidos.style.display="none";
   }
 });
 
+// CARREGAR PEDIDOS DO USUÁRIO
 function carregarPedidos(){
-  onSnapshot(collection(db, "pedidos"), (snapshot)=>{
-    listaPedidos.innerHTML = "";
+  const q = query(
+    collection(db,"pedidos"),
+    where("usuario","==",usuarioAtual.email)
+  );
+
+  onSnapshot(q,(snapshot)=>{
+    listaPedidos.innerHTML="";
 
     snapshot.forEach(doc=>{
       const pedido = doc.data();
 
-      if(pedido.usuario === usuarioAtual.email){
-        listaPedidos.innerHTML += `
-          <p>Pedido: ${pedido.produto}</p>
-        `;
-      }
+      listaPedidos.innerHTML += `
+        <div class="pedido">
+          ${pedido.produto}
+        </div>
+      `;
     });
   });
 }
+
 </script>
 
 </body>

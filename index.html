@@ -5,29 +5,97 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sistema de Pedidos</title>
 
-<script src="https://cdn.tailwindcss.com"></script>
-
 <style>
-body { background:#fff7ed; }
-.btn { background:#f97316; color:white; padding:8px 12px; border-radius:6px; }
-.card { background:white; padding:15px; border-radius:10px; box-shadow:0 3px 8px rgba(0,0,0,0.1); margin-bottom:10px; }
+body{
+  background:#ddd3c7;
+  font-family:Arial;
+  padding:20px;
+}
+.container{
+  max-width:400px;
+  margin:auto;
+}
+input{
+  width:100%;
+  padding:10px;
+  margin:5px 0;
+}
+button{
+  width:100%;
+  padding:12px;
+  margin:5px 0;
+  background:#ff6a00;
+  color:white;
+  border:none;
+  font-weight:bold;
+  cursor:pointer;
+}
+button:hover{
+  opacity:0.9;
+}
 </style>
 </head>
-<body class="p-6">
+<body>
 
-<h1 class="text-3xl font-bold text-orange-600 mb-6">Sistema de Pedidos</h1>
+<div class="container">
+<h2>Sistema de Pedidos</h2>
 
-<!-- LOGIN -->
-<div id="loginArea">
-  <input id="email" type="email" placeholder="Email" class="border p-2 mb-2 w-full">
-  <input id="senha" type="password" placeholder="Senha" class="border p-2 mb-2 w-full">
-  <button onclick="registrar()" class="btn w-full mb-2">Registrar</button>
-  <button onclick="login()" class="btn w-full">Entrar</button>
+<input type="email" id="email" placeholder="Digite seu email">
+<input type="password" id="senha" placeholder="Digite sua senha">
+
+<button onclick="registrar()">Registrar</button>
+<button onclick="login()">Entrar</button>
+
+<p id="msg"></p>
 </div>
 
-<!-- PAINEL -->
-<div id="sistema" style="display:none;">
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
 
-  <button onclick="logout()" class="btn mb-4">Sair</button>
+// 🔥 SUA CONFIG (já está correta)
+const firebaseConfig = {
+  apiKey: "AIzaSyBgqjGYaV7rmgLMPB-Y4DcvgVkg82GFt0I",
+  authDomain: "sitepedidos.firebaseapp.com",
+  projectId: "sitepedidos",
+  storageBucket: "sitepedidos.firebasestorage.app",
+  messagingSenderId: "812273915392",
+  appId: "1:812273915392:web:9fc70d67ac717a11ca6ae5",
+  measurementId: "G-4HLF6VSY2Z"
+};
 
-  <!-- ADMIN -->
+// Inicializa Firebase
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+// ✅ REGISTRAR
+window.registrar = function(){
+  const email = document.getElementById("email").value;
+  const senha = document.getElementById("senha").value;
+
+  createUserWithEmailAndPassword(auth, email, senha)
+  .then((userCredential)=>{
+      document.getElementById("msg").innerText = "Cadastro realizado com sucesso!";
+  })
+  .catch((error)=>{
+      document.getElementById("msg").innerText = error.message;
+  });
+}
+
+// ✅ LOGIN
+window.login = function(){
+  const email = document.getElementById("email").value;
+  const senha = document.getElementById("senha").value;
+
+  signInWithEmailAndPassword(auth, email, senha)
+  .then((userCredential)=>{
+      document.getElementById("msg").innerText = "Login realizado com sucesso!";
+  })
+  .catch((error)=>{
+      document.getElementById("msg").innerText = error.message;
+  });
+}
+</script>
+
+</body>
+</html>

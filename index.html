@@ -1,83 +1,200 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>Sistema de Pedidos</title>
-
-<style>
-body{
-  background:#e8ded3;
-  font-family:Arial;
-  text-align:center;
-  padding-top:60px;
-}
-
-.card{
-  background:white;
-  padding:20px;
-  width:300px;
-  margin:auto;
-  border-radius:10px;
-  box-shadow:0 5px 15px rgba(0,0,0,0.2);
-}
-
-input{
-  width:90%;
-  padding:8px;
-  margin:5px;
-}
-
-button{
-  width:100%;
-  padding:10px;
-  margin-top:5px;
-  border:none;
-  cursor:pointer;
-}
-
-.login{ background:#2196F3; color:white; }
-.salvar{ background:orange; color:white; }
-.sair{ background:red; color:white; }
-
-#usuario{
-  margin-bottom:10px;
-  font-weight:bold;
-}
-</style>
+  <title>Sistema Pedidos</title>
+  <meta charset="UTF-8">
 </head>
-
 <body>
 
-<div class="card">
+<h2>LOGIN / CADASTRO</h2>
 
-<div id="loginDiv">
-<h3>Login</h3>
-<input type="email" id="email" placeholder="Email">
-<input type="password" id="senha" placeholder="Senha">
-<button class="login" onclick="login()">Entrar</button>
-<button class="login" onclick="registrar()">Registrar</button>
-</div>
+<input type="email" id="email" placeholder="Email"><br><br>
+<input type="password" id="senha" placeholder="Senha"><br><br>
+<input type="text" id="telefone" placeholder="Telefone com DDD"><br><br>
 
-<div id="sistemaDiv" style="display:none;">
-<div id="usuario"></div>
-<button class="sair" onclick="logout()">Sair</button>
+<button onclick="registrar()">Registrar</button>
+<button onclick="login()">Entrar</button>
 
 <hr>
 
-<h3>Novo Pedido</h3>
-<input type="text" id="nome" placeholder="Nome">
-<input type="text" id="pedido" placeholder="Pedido">
-<button class="salvar" onclick="salvarPedido()">Salvar Pedido</button>
+<div id="painelAdmin" style="display:none">
+  <h2>PAINEL ADMIN</h2>
 
-<div id="lista"></div>
+  <h3>Adicionar Produto</h3>
+  <input type="text" id="nomeProduto" placeholder="Nome">
+  <input type="number" id="valorProduto" placeholder="Valor">
+  <button onclick="addProduto()">Adicionar</button>
+
+  <h3>Produtos</h3>
+  <div id="listaProdutos"></div>
+
+  <h3>Pedidos</h3>
+  <div id="listaPedidos"></div>
 </div>
 
+<div id="painelCliente" style="display:none">
+  <h2>CLIENTE</h2>
+
+  <h3>Produtos</h3>
+  <div id="produtos"></div>
+
+  <h3>Entrega?</h3>
+  <select id="entrega">
+    <option value="sim">Sim</option>
+    <option value="nao">Não</option>
+  </select>
+
+  <br><br>
+  <input type="text" id="cep" placeholder="CEP">
+  <button onclick="buscarCEP()">Buscar CEP</button><br><br>
+  <input type="text" id="rua" placeholder="Rua" readonly>
+  <input type="text" id="numero" placeholder="Número">
+  <input type="text" id="referencia" placeholder="Referência">
+
+  <br><br>
+  <button onclick="fazerPedido()">Fazer Pedido</button>
+
+  <h3>Meus Pedidos</h3>
+  <div id="meusPedidos"></div>
 </div>
 
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs } 
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } 
+from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+
+import { getFirestore, collection, getDocs, doc, setDoc, getDoc, addDoc, updateDoc, deleteDoc, onSnapshot, query, where } 
 from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
-import { getAuth, signIn
+const firebaseConfig = {
+  apiKey: "AIzaSyBgqjGYaV7rmgLMPB-Y4DcvgVkg82GFt0I",
+  authDomain: "sitepedidos.firebaseapp.com",
+  projectId: "sitepedidos",
+  storageBucket: "sitepedidos.firebasestorage.app",
+  messagingSenderId: "812273915392",
+  appId: "1:812273915392:web:9fc70d67ac717a11ca6ae5"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+/* ========= REGISTRAR ========= */
+window.registrar = async function(){
+  const emailV = document.getElementById("email").value;
+  const senhaV = document.getElementById("senha").value;
+  const telefoneV = document.getElementById("telefone").value;
+
+  const cred = await createUserWithEmailAndPassword(auth,emailV,senhaV);
+  const uid = cred.user.uid;
+
+  const usuarios = await getDocs(collection(db,"usuarios"));
+  const primeiro = usuarios.empty;
+
+  await setDoc(doc(db,"usuarios",uid),{
+    email: emailV,
+    telefone: telefoneV,
+    ddd: telefoneV.substring(0,2),
+    role: primeiro ? "admin" : "cliente",
+    criadoEm: new Date()
+  });
+
+  alert(primeiro ? "Você é ADMIN!" : "Cadastro realizado!");
+}
+
+/* ========= LOGIN ========= */
+window.login = async function(){
+  const emailV = document.getElementById("email").value;
+  const senhaV = document.getElementById("senha").value;
+
+  const cred = await signInWithEmailAndPassword(auth,emailV,senhaV);
+  const uid = cred.user.uid;
+
+  const userDoc = await getDoc(doc(db,"usuarios",uid));
+  const role = userDoc.data().role;
+
+  if(role === "admin"){
+    document.getElementById("painelAdmin").style.display="block";
+  } else {
+    document.getElementById("painelCliente").style.display="block";
+  }
+}
+
+/* ========= PRODUTOS ========= */
+window.addProduto = async function(){
+  const nome = document.getElementById("nomeProduto").value;
+  const valor = document.getElementById("valorProduto").value;
+
+  await addDoc(collection(db,"produtos"),{
+    nome,
+    valor,
+    oculto:false
+  });
+}
+
+onSnapshot(collection(db,"produtos"), snapshot=>{
+  document.getElementById("listaProdutos").innerHTML="";
+  document.getElementById("produtos").innerHTML="";
+
+  snapshot.forEach(docSnap=>{
+    const p = docSnap.data();
+
+    document.getElementById("listaProdutos").innerHTML+=`
+      <div>
+      ${p.nome} - R$ ${p.valor}
+      <button onclick="ocultar('${docSnap.id}',${!p.oculto})">
+      ${p.oculto ? "Mostrar":"Ocultar"}
+      </button>
+      <button onclick="remover('${docSnap.id}')">Remover</button>
+      </div>
+    `;
+
+    if(!p.oculto){
+      document.getElementById("produtos").innerHTML+=`
+        <div>${p.nome} - R$ ${p.valor}</div>
+      `;
+    }
+  });
+});
+
+window.ocultar = async function(id,status){
+  await updateDoc(doc(db,"produtos",id),{oculto:status});
+}
+
+window.remover = async function(id){
+  await deleteDoc(doc(db,"produtos",id));
+}
+
+/* ========= CEP ========= */
+window.buscarCEP = async function(){
+  const cepV = document.getElementById("cep").value;
+  const res = await fetch(`https://viacep.com.br/ws/${cepV}/json/`);
+  const data = await res.json();
+  document.getElementById("rua").value = data.logradouro;
+}
+
+/* ========= PEDIDO ========= */
+window.fazerPedido = async function(){
+  const user = auth.currentUser;
+
+  const pedidoRef = await addDoc(collection(db,"pedidos"),{
+    cliente:user.uid,
+    status:"aguardando",
+    criadoEm:new Date(),
+    chatLiberado:false
+  });
+
+  setTimeout(async()=>{
+    await updateDoc(doc(db,"pedidos",pedidoRef.id),{
+      chatLiberado:true
+    });
+  },300000);
+
+  alert("Pedido feito!");
+}
+
+</script>
+
+</body>
+</html>

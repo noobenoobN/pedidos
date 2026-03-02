@@ -3,267 +3,31 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sistema Pedidos</title>
+<title>Sistema de Pedidos</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
 
 <style>
-body{
-font-family:Arial;
-background:#fff7ed;
-color:#7c2d12;
-padding:20px;
-}
-
-h2,h3{color:#ea580c}
-
-input,button,select{
-padding:10px;
-margin:5px 0;
-width:100%;
-border-radius:6px;
-border:1px solid #fb923c;
-}
-
-button{
-background:#ea580c;
-color:white;
-border:none;
-cursor:pointer;
-}
-
-button:hover{
-background:#c2410c;
-}
-
-.card{
-background:white;
-padding:12px;
-margin:10px 0;
-border-radius:8px;
-box-shadow:0 2px 5px rgba(0,0,0,0.1);
-}
-
-.hidden{display:none}
-
-.chatBox{
-height:150px;
-overflow:auto;
-background:#fff;
-padding:5px;
-margin:5px 0;
-border:1px solid #fb923c;
-}
+body { background:#fff7ed; }
+.btn { background:#f97316; color:white; padding:8px 12px; border-radius:6px; }
+.card { background:white; padding:15px; border-radius:10px; box-shadow:0 3px 8px rgba(0,0,0,0.1); margin-bottom:10px; }
 </style>
 </head>
-<body>
+<body class="p-6">
 
-<h2>Sistema de Pedidos</h2>
+<h1 class="text-3xl font-bold text-orange-600 mb-6">Sistema de Pedidos</h1>
 
+<!-- LOGIN -->
 <div id="loginArea">
-<input id="email" placeholder="Email">
-<input id="senha" type="password" placeholder="Senha">
-<button onclick="registrar()">Cadastrar</button>
-<button onclick="login()">Entrar</button>
+  <input id="email" type="email" placeholder="Email" class="border p-2 mb-2 w-full">
+  <input id="senha" type="password" placeholder="Senha" class="border p-2 mb-2 w-full">
+  <button onclick="registrar()" class="btn w-full mb-2">Registrar</button>
+  <button onclick="login()" class="btn w-full">Entrar</button>
 </div>
 
-<div id="painel" class="hidden"></div>
+<!-- PAINEL -->
+<div id="sistema" style="display:none;">
 
-<script type="module">
+  <button onclick="logout()" class="btn mb-4">Sair</button>
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut }
-from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, collection, getDocs, addDoc, onSnapshot, updateDoc }
-from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyBgqjGYaV7rmgLMPB-Y4DcvgVkg82GFt0I",
-  authDomain: "sitepedidos.firebaseapp.com",
-  projectId: "sitepedidos",
-  storageBucket: "sitepedidos.firebasestorage.app",
-  messagingSenderId: "812273915392",
-  appId: "1:812273915392:web:9fc70d67ac717a11ca6ae5"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-let roleGlobal=null;
-
-/* ================= CADASTRO ================= */
-
-window.registrar = async function(){
-const email = email.value;
-const senha = senha.value;
-const cred = await createUserWithEmailAndPassword(auth,email,senha);
-const usersSnap = await getDocs(collection(db,"users"));
-const role = usersSnap.empty ? "admin" : "cliente";
-await setDoc(doc(db,"users",cred.user.uid),{email,role});
-alert("Conta criada como "+role);
-}
-
-/* ================= LOGIN ================= */
-
-window.login = async function(){
-await signInWithEmailAndPassword(auth,email.value,senha.value);
-}
-
-/* ================= AUTH ================= */
-
-onAuthStateChanged(auth, async user=>{
-if(!user){
-loginArea.classList.remove("hidden");
-painel.classList.add("hidden");
-return;
-}
-loginArea.classList.add("hidden");
-painel.classList.remove("hidden");
-
-const snap = await getDoc(doc(db,"users",user.uid));
-roleGlobal = snap.data().role;
-
-if(roleGlobal==="admin"){
-renderAdmin();
-}else{
-renderCliente();
-}
-});
-
-/* ================= ADMIN ================= */
-
-function renderAdmin(){
-painel.innerHTML=`
-<h3>ADMIN</h3>
-<h4>Pedidos</h4>
-<div id="listaPedidos"></div>
-<button onclick="logout()">Sair</button>
-`;
-
-onSnapshot(collection(db,"orders"),snap=>{
-listaPedidos.innerHTML="";
-snap.forEach(docu=>{
-let o=docu.data();
-if(o.oculto) return;
-
-listaPedidos.innerHTML+=`
-<div class="card">
-Pedido: ${o.status}
-<button onclick="ocultarPedido('${docu.id}')">Ocultar</button>
-<button onclick="confirmarPedido('${docu.id}')">Confirmar</button>
-<button onclick="abrirChat('${docu.id}')">Chat</button>
-</div>`;
-});
-});
-}
-
-window.ocultarPedido = async function(id){
-await updateDoc(doc(db,"orders",id),{oculto:true});
-}
-
-window.confirmarPedido = async function(id){
-await updateDoc(doc(db,"orders",id),{status:"confirmado"});
-}
-
-/* ================= CLIENTE ================= */
-
-function renderCliente(){
-painel.innerHTML=`
-<h3>CLIENTE</h3>
-
-<label>Entrega?</label>
-<select id="entrega">
-<option value="nao">Retirada</option>
-<option value="sim">Entrega</option>
-</select>
-
-<input id="cep" placeholder="CEP">
-<button onclick="buscarCep()">Buscar CEP</button>
-<input id="rua" placeholder="Rua">
-<input id="numero" placeholder="Número">
-
-<button onclick="fazerPedido()">Finalizar Pedido</button>
-
-<h4>Meus Pedidos</h4>
-<div id="meusPedidos"></div>
-
-<button onclick="logout()">Sair</button>
-`;
-
-onSnapshot(collection(db,"orders"),snap=>{
-meusPedidos.innerHTML="";
-snap.forEach(docu=>{
-let o=docu.data();
-if(o.user===auth.currentUser.uid && !o.oculto){
-meusPedidos.innerHTML+=`
-<div class="card">
-Status: ${o.status}
-Total: R$ ${o.total}
-<button onclick="abrirChat('${docu.id}')">Chat</button>
-</div>`;
-}
-});
-});
-}
-
-window.buscarCep = async function(){
-if(entrega.value==="sim"){
-let res=await fetch("https://viacep.com.br/ws/"+cep.value+"/json/");
-let data=await res.json();
-rua.value=data.logradouro;
-}
-}
-
-window.fazerPedido = async function(){
-
-let taxa = entrega.value==="sim" ? 10 : 0;
-let total = 50 + taxa; // exemplo valor fixo produto
-
-await addDoc(collection(db,"orders"),{
-user:auth.currentUser.uid,
-status:"pendente",
-taxa,
-total,
-oculto:false,
-criadoEm:Date.now()
-});
-
-alert("Pedido criado. Total: R$"+total);
-}
-
-/* ================= CHAT ================= */
-
-window.abrirChat = function(id){
-let box=document.createElement("div");
-box.innerHTML=`
-<div class="chatBox" id="chatArea"></div>
-<input id="msgChat">
-<button onclick="enviarMsg('${id}')">Enviar</button>
-`;
-painel.appendChild(box);
-
-onSnapshot(collection(db,"orders",id,"chat"),snap=>{
-chatArea.innerHTML="";
-snap.forEach(docu=>{
-let m=docu.data();
-chatArea.innerHTML+=`<p><b>${m.user}</b>: ${m.texto}</p>`;
-});
-});
-}
-
-window.enviarMsg = async function(id){
-await addDoc(collection(db,"orders",id,"chat"),{
-user:roleGlobal,
-texto:msgChat.value,
-data:Date.now()
-});
-msgChat.value="";
-}
-
-window.logout=function(){
-signOut(auth);
-}
-
-</script>
-
-</body>
-</html>
+  <!-- ADMIN -->

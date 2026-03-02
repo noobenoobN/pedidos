@@ -33,11 +33,17 @@ button{
 button:hover{
   opacity:0.9;
 }
+#areaPedidos{
+  display:none;
+}
 </style>
 </head>
 <body>
 
 <div class="container">
+
+<!-- LOGIN -->
+<div id="areaLogin">
 <h2>Sistema de Pedidos</h2>
 
 <input type="email" id="email" placeholder="Digite seu email">
@@ -49,50 +55,103 @@ button:hover{
 <p id="msg"></p>
 </div>
 
+<!-- AREA APÓS LOGIN -->
+<div id="areaPedidos">
+<h2>Bem-vindo!</h2>
+<p id="usuarioEmail"></p>
+
+<input type="text" id="produtoPedido" placeholder="Digite o produto">
+<button onclick="fazerPedido()">Fazer Pedido</button>
+
+<div id="listaPedidos"></div>
+
+<button onclick="sair()">Sair</button>
+</div>
+
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
-// 🔥 SUA CONFIG (já está correta)
 const firebaseConfig = {
-  apiKey: "AIzaSyBgqjGYaV7rmgLMPB-Y4DcvgVkg82GFt0I",
+  apiKey: "SUA_KEY",
   authDomain: "sitepedidos.firebaseapp.com",
   projectId: "sitepedidos",
   storageBucket: "sitepedidos.firebasestorage.app",
   messagingSenderId: "812273915392",
-  appId: "1:812273915392:web:9fc70d67ac717a11ca6ae5",
-  measurementId: "G-4HLF6VSY2Z"
+  appId: "1:812273915392:web:9fc70d67ac717a11ca6ae5"
 };
 
-// Inicializa Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+const db = getFirestore(app);
 
-// ✅ REGISTRAR
+let usuarioAtual = null;
+
 window.registrar = function(){
-  const email = document.getElementById("email").value;
-  const senha = document.getElementById("senha").value;
+  const email = emailInput.value;
+  const senha = senhaInput.value;
 
   createUserWithEmailAndPassword(auth, email, senha)
-  .then((userCredential)=>{
-      document.getElementById("msg").innerText = "Cadastro realizado com sucesso!";
-  })
-  .catch((error)=>{
-      document.getElementById("msg").innerText = error.message;
-  });
+  .catch(error => msg.innerText = error.message);
 }
 
-// ✅ LOGIN
 window.login = function(){
-  const email = document.getElementById("email").value;
-  const senha = document.getElementById("senha").value;
+  const email = emailInput.value;
+  const senha = senhaInput.value;
 
   signInWithEmailAndPassword(auth, email, senha)
-  .then((userCredential)=>{
-      document.getElementById("msg").innerText = "Login realizado com sucesso!";
-  })
-  .catch((error)=>{
-      document.getElementById("msg").innerText = error.message;
+  .catch(error => msg.innerText = error.message);
+}
+
+window.sair = function(){
+  signOut(auth);
+}
+
+window.fazerPedido = async function(){
+  const produto = produtoPedido.value;
+
+  if(!produto) return;
+
+  await addDoc(collection(db, "pedidos"), {
+    produto: produto,
+    usuario: usuarioAtual.email
+  });
+
+  produtoPedido.value = "";
+}
+
+// 🔥 AQUI ESTÁ O SEGREDO
+onAuthStateChanged(auth, (user)=>{
+  if(user){
+    usuarioAtual = user;
+
+    areaLogin.style.display = "none";
+    areaPedidos.style.display = "block";
+    usuarioEmail.innerText = "Logado como: " + user.email;
+
+    carregarPedidos();
+  }else{
+    areaLogin.style.display = "block";
+    areaPedidos.style.display = "none";
+  }
+});
+
+function carregarPedidos(){
+  onSnapshot(collection(db, "pedidos"), (snapshot)=>{
+    listaPedidos.innerHTML = "";
+
+    snapshot.forEach(doc=>{
+      const pedido = doc.data();
+
+      if(pedido.usuario === usuarioAtual.email){
+        listaPedidos.innerHTML += `
+          <p>Pedido: ${pedido.produto}</p>
+        `;
+      }
+    });
   });
 }
 </script>

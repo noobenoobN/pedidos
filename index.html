@@ -1,78 +1,83 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Sistema de Pedidos</title>
+<meta charset="UTF-8">
+<title>Sistema de Pedidos</title>
+
+<style>
+body{
+  background:#e8ded3;
+  font-family:Arial;
+  text-align:center;
+  padding-top:60px;
+}
+
+.card{
+  background:white;
+  padding:20px;
+  width:300px;
+  margin:auto;
+  border-radius:10px;
+  box-shadow:0 5px 15px rgba(0,0,0,0.2);
+}
+
+input{
+  width:90%;
+  padding:8px;
+  margin:5px;
+}
+
+button{
+  width:100%;
+  padding:10px;
+  margin-top:5px;
+  border:none;
+  cursor:pointer;
+}
+
+.login{ background:#2196F3; color:white; }
+.salvar{ background:orange; color:white; }
+.sair{ background:red; color:white; }
+
+#usuario{
+  margin-bottom:10px;
+  font-weight:bold;
+}
+</style>
 </head>
-<body style="font-family: Arial; text-align:center; padding-top:50px; background:#e8ded3;">
 
-  <div style="background:white; padding:20px; border-radius:10px; width:300px; margin:auto;">
-    <h2>Sistema de Pedidos</h2>
+<body>
 
-    <input type="text" id="nome" placeholder="Nome" style="width:90%; padding:8px;"><br><br>
-    <input type="text" id="pedido" placeholder="Pedido" style="width:90%; padding:8px;"><br><br>
+<div class="card">
 
-    <button onclick="salvarPedido()" style="padding:10px; background:orange; border:none; color:white; width:100%;">
-      Salvar Pedido
-    </button>
+<div id="loginDiv">
+<h3>Login</h3>
+<input type="email" id="email" placeholder="Email">
+<input type="password" id="senha" placeholder="Senha">
+<button class="login" onclick="login()">Entrar</button>
+<button class="login" onclick="registrar()">Registrar</button>
+</div>
 
-    <div id="lista" style="margin-top:20px;"></div>
-  </div>
+<div id="sistemaDiv" style="display:none;">
+<div id="usuario"></div>
+<button class="sair" onclick="logout()">Sair</button>
+
+<hr>
+
+<h3>Novo Pedido</h3>
+<input type="text" id="nome" placeholder="Nome">
+<input type="text" id="pedido" placeholder="Pedido">
+<button class="salvar" onclick="salvarPedido()">Salvar Pedido</button>
+
+<div id="lista"></div>
+</div>
+
+</div>
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-  import { getFirestore, collection, addDoc, getDocs } 
-    from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyBgqjGYaV7rmgLMPB-Y4DcvgVkg82GFt0I",
-    authDomain: "sitepedidos.firebaseapp.com",
-    projectId: "sitepedidos",
-    storageBucket: "sitepedidos.firebasestorage.app",
-    messagingSenderId: "812273915392",
-    appId: "1:812273915392:web:9fc70d67ac717a11ca6ae5"
-  };
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs } 
+from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-
-  async function salvarPedido() {
-    const nome = document.getElementById("nome").value;
-    const pedido = document.getElementById("pedido").value;
-
-    if (nome === "" || pedido === "") {
-      alert("Preencha tudo!");
-      return;
-    }
-
-    await addDoc(collection(db, "pedidos"), {
-      nome: nome,
-      pedido: pedido
-    });
-
-    alert("Pedido salvo!");
-
-    document.getElementById("nome").value = "";
-    document.getElementById("pedido").value = "";
-
-    carregarPedidos();
-  }
-
-  async function carregarPedidos() {
-    const querySnapshot = await getDocs(collection(db, "pedidos"));
-    const lista = document.getElementById("lista");
-    lista.innerHTML = "";
-
-    querySnapshot.forEach((doc) => {
-      const dados = doc.data();
-      lista.innerHTML += `<p><b>${dados.nome}</b>: ${dados.pedido}</p>`;
-    });
-  }
-
-  carregarPedidos();
-
-  window.salvarPedido = salvarPedido;
-</script>
-
-</body>
-</html>
+import { getAuth, signIn

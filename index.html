@@ -1,29 +1,87 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
-  <title>Sistema Pedidos</title>
-  <meta charset="UTF-8">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sistema de Pedidos</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #f5f1e9;
+    margin: 0; padding: 0;
+    display: flex; justify-content: center; align-items: center; height: 100vh;
+  }
+  #login, #painelAdmin, #painelCliente {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    width: 320px;
+  }
+  input, select, button {
+    width: 100%;
+    margin: 8px 0;
+    padding: 10px;
+    font-size: 1rem;
+  }
+  button {
+    cursor: pointer;
+    background: #2086f0;
+    border: none;
+    color: white;
+    font-weight: bold;
+    border-radius: 4px;
+  }
+  button:hover {
+    background: #0f5cc1;
+  }
+  h2 {
+    margin: 0 0 20px 0;
+    text-align: center;
+  }
+  .produto, .pedido {
+    border-bottom: 1px solid #ccc;
+    padding: 6px 0;
+  }
+  .produto button, .pedido button {
+    width: auto;
+    margin-left: 8px;
+    padding: 4px 8px;
+    font-size: 0.9rem;
+  }
+  #chat {
+    border: 1px solid #ddd;
+    height: 150px;
+    overflow-y: auto;
+    margin-bottom: 8px;
+    padding: 8px;
+    background: #fafafa;
+  }
+  #chat p {
+    margin: 4px 0;
+  }
+</style>
 </head>
 <body>
 
-<h2>LOGIN / CADASTRO</h2>
+<!-- LOGIN -->
+<div id="login">
+  <h2>Login / Cadastro</h2>
+  <input type="email" id="email" placeholder="Email" required />
+  <input type="password" id="senha" placeholder="Senha" required />
+  <input type="text" id="telefone" placeholder="Telefone com DDD (somente números)" />
+  <button id="btnRegistrar">Registrar</button>
+  <button id="btnEntrar">Entrar</button>
+</div>
 
-<input type="email" id="email" placeholder="Email"><br><br>
-<input type="password" id="senha" placeholder="Senha"><br><br>
-<input type="text" id="telefone" placeholder="Telefone com DDD"><br><br>
-
-<button onclick="registrar()">Registrar</button>
-<button onclick="login()">Entrar</button>
-
-<hr>
-
-<div id="painelAdmin" style="display:none">
-  <h2>PAINEL ADMIN</h2>
+<!-- PAINEL ADMIN -->
+<div id="painelAdmin" style="display:none;">
+  <h2>Painel Admin</h2>
 
   <h3>Adicionar Produto</h3>
-  <input type="text" id="nomeProduto" placeholder="Nome">
-  <input type="number" id="valorProduto" placeholder="Valor">
-  <button onclick="addProduto()">Adicionar</button>
+  <input type="text" id="nomeProduto" placeholder="Nome do Produto" />
+  <input type="number" id="valorProduto" placeholder="Valor (R$)" />
+  <button id="btnAddProduto">Adicionar Produto</button>
 
   <h3>Produtos</h3>
   <div id="listaProdutos"></div>
@@ -32,10 +90,11 @@
   <div id="listaPedidos"></div>
 </div>
 
-<div id="painelCliente" style="display:none">
-  <h2>CLIENTE</h2>
+<!-- PAINEL CLIENTE -->
+<div id="painelCliente" style="display:none;">
+  <h2>Painel Cliente</h2>
 
-  <h3>Produtos</h3>
+  <h3>Produtos Disponíveis</h3>
   <div id="produtos"></div>
 
   <h3>Entrega?</h3>
@@ -44,157 +103,391 @@
     <option value="nao">Não</option>
   </select>
 
-  <br><br>
-  <input type="text" id="cep" placeholder="CEP">
-  <button onclick="buscarCEP()">Buscar CEP</button><br><br>
-  <input type="text" id="rua" placeholder="Rua" readonly>
-  <input type="text" id="numero" placeholder="Número">
-  <input type="text" id="referencia" placeholder="Referência">
+  <input type="text" id="cep" placeholder="CEP (somente números)" />
+  <button id="btnBuscarCep">Buscar CEP</button>
 
-  <br><br>
-  <button onclick="fazerPedido()">Fazer Pedido</button>
+  <input type="text" id="rua" placeholder="Rua" readonly />
+  <input type="text" id="numero" placeholder="Número" />
+  <input type="text" id="referencia" placeholder="Referência (opcional)" />
+
+  <button id="btnFazerPedido">Fazer Pedido</button>
 
   <h3>Meus Pedidos</h3>
   <div id="meusPedidos"></div>
+
+  <h3>Chat com Admin</h3>
+  <div id="chat"></div>
+  <input type="text" id="mensagemChat" placeholder="Escreva uma mensagem..." />
+  <button id="btnEnviarChat">Enviar</button>
 </div>
 
 <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+  import {
+    getFirestore, collection, addDoc, getDocs, doc, setDoc, getDoc, onSnapshot,
+    updateDoc, deleteDoc, query, where, orderBy, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } 
-from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+  const firebaseConfig = {
+    apiKey: "AIzaSyBgqjGYaV7rmgLMPB-Y4DcvgVkg82GFt0I",
+    authDomain: "sitepedidos.firebaseapp.com",
+    projectId: "sitepedidos",
+    storageBucket: "sitepedidos.firebasestorage.app",
+    messagingSenderId: "812273915392",
+    appId: "1:812273915392:web:9fc70d67ac717a11ca6ae5"
+  };
 
-import { getFirestore, collection, getDocs, doc, setDoc, getDoc, addDoc, updateDoc, deleteDoc, onSnapshot, query, where } 
-from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
 
-const firebaseConfig = {
-  apiKey: "AIzaSyBgqjGYaV7rmgLMPB-Y4DcvgVkg82GFt0I",
-  authDomain: "sitepedidos.firebaseapp.com",
-  projectId: "sitepedidos",
-  storageBucket: "sitepedidos.firebasestorage.app",
-  messagingSenderId: "812273915392",
-  appId: "1:812273915392:web:9fc70d67ac717a11ca6ae5"
-};
+  const loginDiv = document.getElementById("login");
+  const adminDiv = document.getElementById("painelAdmin");
+  const clienteDiv = document.getElementById("painelCliente");
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+  let usuarioAtual = null;
+  let roleAtual = null;
+  let chatPedidoId = null; // Para identificar o pedido atual para chat
 
-/* ========= REGISTRAR ========= */
-window.registrar = async function(){
-  const emailV = document.getElementById("email").value;
-  const senhaV = document.getElementById("senha").value;
-  const telefoneV = document.getElementById("telefone").value;
+  // Registrar usuário
+  document.getElementById("btnRegistrar").onclick = async () => {
+    const email = document.getElementById("email").value.trim();
+    const senha = document.getElementById("senha").value.trim();
+    const telefone = document.getElementById("telefone").value.trim();
 
-  const cred = await createUserWithEmailAndPassword(auth,emailV,senhaV);
-  const uid = cred.user.uid;
+    if (!email || !senha || !telefone) {
+      alert("Preencha email, senha e telefone.");
+      return;
+    }
 
-  const usuarios = await getDocs(collection(db,"usuarios"));
-  const primeiro = usuarios.empty;
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email, senha);
+      const uid = cred.user.uid;
 
-  await setDoc(doc(db,"usuarios",uid),{
-    email: emailV,
-    telefone: telefoneV,
-    ddd: telefoneV.substring(0,2),
-    role: primeiro ? "admin" : "cliente",
-    criadoEm: new Date()
-  });
+      // Verifica se é o primeiro usuário para tornar admin
+      const usuariosSnapshot = await getDocs(collection(db, "usuarios"));
+      const primeiro = usuariosSnapshot.empty;
 
-  alert(primeiro ? "Você é ADMIN!" : "Cadastro realizado!");
-}
+      await setDoc(doc(db, "usuarios", uid), {
+        email,
+        telefone,
+        ddd: telefone.substring(0, 2),
+        role: primeiro ? "admin" : "cliente",
+        criadoEm: serverTimestamp()
+      });
 
-/* ========= LOGIN ========= */
-window.login = async function(){
-  const emailV = document.getElementById("email").value;
-  const senhaV = document.getElementById("senha").value;
+      alert(primeiro ? "Você foi registrado como ADMIN!" : "Cadastro realizado com sucesso!");
+      document.getElementById("telefone").value = "";
+    } catch (e) {
+      alert("Erro ao registrar: " + e.message);
+    }
+  };
 
-  const cred = await signInWithEmailAndPassword(auth,emailV,senhaV);
-  const uid = cred.user.uid;
+  // Login
+  document.getElementById("btnEntrar").onclick = async () => {
+    const email = document.getElementById("email").value.trim();
+    const senha = document.getElementById("senha").value.trim();
 
-  const userDoc = await getDoc(doc(db,"usuarios",uid));
-  const role = userDoc.data().role;
+    if (!email || !senha) {
+      alert("Preencha email e senha.");
+      return;
+    }
 
-  if(role === "admin"){
-    document.getElementById("painelAdmin").style.display="block";
-  } else {
-    document.getElementById("painelCliente").style.display="block";
+    try {
+      const cred = await signInWithEmailAndPassword(auth, email, senha);
+      usuarioAtual = cred.user;
+      await carregarRole(usuarioAtual.uid);
+      mostrarPainel();
+    } catch (e) {
+      alert("Erro ao entrar: " + e.message);
+    }
+  };
+
+  // Carregar role do usuário
+  async function carregarRole(uid) {
+    const docUser = await getDoc(doc(db, "usuarios", uid));
+    if (docUser.exists()) {
+      roleAtual = docUser.data().role;
+    } else {
+      roleAtual = null;
+    }
   }
-}
 
-/* ========= PRODUTOS ========= */
-window.addProduto = async function(){
-  const nome = document.getElementById("nomeProduto").value;
-  const valor = document.getElementById("valorProduto").value;
+  // Mostrar painel conforme role
+  function mostrarPainel() {
+    loginDiv.style.display = "none";
+    if (roleAtual === "admin") {
+      adminDiv.style.display = "block";
+      clienteDiv.style.display = "none";
+      iniciarAdmin();
+    } else if (roleAtual === "cliente") {
+      clienteDiv.style.display = "block";
+      adminDiv.style.display = "none";
+      iniciarCliente();
+    } else {
+      alert("Role do usuário não encontrada.");
+      auth.signOut();
+      location.reload();
+    }
+  }
 
-  await addDoc(collection(db,"produtos"),{
-    nome,
-    valor,
-    oculto:false
-  });
-}
-
-onSnapshot(collection(db,"produtos"), snapshot=>{
-  document.getElementById("listaProdutos").innerHTML="";
-  document.getElementById("produtos").innerHTML="";
-
-  snapshot.forEach(docSnap=>{
-    const p = docSnap.data();
-
-    document.getElementById("listaProdutos").innerHTML+=`
-      <div>
-      ${p.nome} - R$ ${p.valor}
-      <button onclick="ocultar('${docSnap.id}',${!p.oculto})">
-      ${p.oculto ? "Mostrar":"Ocultar"}
-      </button>
-      <button onclick="remover('${docSnap.id}')">Remover</button>
-      </div>
-    `;
-
-    if(!p.oculto){
-      document.getElementById("produtos").innerHTML+=`
-        <div>${p.nome} - R$ ${p.valor}</div>
-      `;
+  // Monitorar autenticação
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      usuarioAtual = user;
+      await carregarRole(user.uid);
+      mostrarPainel();
+    } else {
+      usuarioAtual = null;
+      roleAtual = null;
+      loginDiv.style.display = "block";
+      adminDiv.style.display = "none";
+      clienteDiv.style.display = "none";
     }
   });
-});
 
-window.ocultar = async function(id,status){
-  await updateDoc(doc(db,"produtos",id),{oculto:status});
-}
+  // --- ADMIN ---
 
-window.remover = async function(id){
-  await deleteDoc(doc(db,"produtos",id));
-}
+  // Adicionar produto
+  document.getElementById("btnAddProduto").onclick = async () => {
+    const nome = document.getElementById("nomeProduto").value.trim();
+    const valor = parseFloat(document.getElementById("valorProduto").value);
 
-/* ========= CEP ========= */
-window.buscarCEP = async function(){
-  const cepV = document.getElementById("cep").value;
-  const res = await fetch(`https://viacep.com.br/ws/${cepV}/json/`);
-  const data = await res.json();
-  document.getElementById("rua").value = data.logradouro;
-}
+    if (!nome || isNaN(valor) || valor <= 0) {
+      alert("Preencha nome e valor válido.");
+      return;
+    }
 
-/* ========= PEDIDO ========= */
-window.fazerPedido = async function(){
-  const user = auth.currentUser;
+    try {
+      await addDoc(collection(db, "produtos"), {
+        nome,
+        valor,
+        oculto: false,
+        criadoEm: serverTimestamp()
+      });
+      document.getElementById("nomeProduto").value = "";
+      document.getElementById("valorProduto").value = "";
+    } catch (e) {
+      alert("Erro ao adicionar produto: " + e.message);
+    }
+  };
 
-  const pedidoRef = await addDoc(collection(db,"pedidos"),{
-    cliente:user.uid,
-    status:"aguardando",
-    criadoEm:new Date(),
-    chatLiberado:false
+  // Listar produtos admin com opções ocultar/remover
+  onSnapshot(collection(db, "produtos"), (snapshot) => {
+    const lista = document.getElementById("listaProdutos");
+    lista.innerHTML = "";
+
+    snapshot.forEach((docSnap) => {
+      const p = docSnap.data();
+      const div = document.createElement("div");
+      div.className = "produto";
+      div.textContent = `${p.nome} - R$ ${p.valor.toFixed(2)}`;
+
+      const btnOcultar = document.createElement("button");
+      btnOcultar.textContent = p.oculto ? "Mostrar" : "Ocultar";
+      btnOcultar.onclick = () => {
+        updateDoc(doc(db, "produtos", docSnap.id), { oculto: !p.oculto });
+      };
+
+      const btnRemover = document.createElement("button");
+      btnRemover.textContent = "Remover";
+      btnRemover.onclick = () => {
+        if (confirm("Deseja remover este produto?")) {
+          deleteDoc(doc(db, "produtos", docSnap.id));
+        }
+      };
+
+      div.appendChild(btnOcultar);
+      div.appendChild(btnRemover);
+      lista.appendChild(div);
+    });
   });
 
-  setTimeout(async()=>{
-    await updateDoc(doc(db,"pedidos",pedidoRef.id),{
-      chatLiberado:true
+  // Listar pedidos para admin
+  onSnapshot(collection(db, "pedidos", orderBy("criadoEm", "desc")), (snapshot) => {
+    const listaPedidos = document.getElementById("listaPedidos");
+    listaPedidos.innerHTML = "<p><b>Pedidos recentes:</b></p>";
+
+    snapshot.forEach((docSnap) => {
+      const pedido = docSnap.data();
+      const div = document.createElement("div");
+      div.className = "pedido";
+      div.innerHTML = `
+        <b>Pedido ID:</b> ${docSnap.id}<br>
+        <b>Status:</b> ${pedido.status}<br>
+        <b>Cliente:</b> ${pedido.cliente}<br>
+        <button onclick="confirmarPedido('${docSnap.id}')">Confirmar a caminho</button>
+        <button onclick="finalizarPedido('${docSnap.id}')">Concluir</button>
+        <button onclick="mostrarChatPedido('${docSnap.id}')">Chat</button>
+      `;
+      listaPedidos.appendChild(div);
     });
-  },300000);
+  });
 
-  alert("Pedido feito!");
-}
+  // Funções para status pedido
+  window.confirmarPedido = async (pedidoId) => {
+    await updateDoc(doc(db, "pedidos", pedidoId), { status: "a caminho" });
+  };
+  window.finalizarPedido = async (pedidoId) => {
+    await updateDoc(doc(db, "pedidos", pedidoId), { status: "concluído" });
+  };
 
-</script>
+  // Mostrar chat para pedido (admin)
+  async function mostrarChatPedido(pedidoId) {
+    chatPedidoId = pedidoId;
+    alert("Chat aberto para pedido: " + pedidoId);
+    carregarChat();
+  }
 
-</body>
-</html>
+  // --- CLIENTE ---
+
+  // Listar produtos visíveis
+  onSnapshot(query(collection(db, "produtos"), where("oculto", "==", false)), (snapshot) => {
+    const produtosDiv = document.getElementById("produtos");
+    produtosDiv.innerHTML = "";
+
+    snapshot.forEach((docSnap) => {
+      const p = docSnap.data();
+      const div = document.createElement("div");
+      div.className = "produto";
+      div.textContent = `${p.nome} - R$ ${p.valor.toFixed(2)}`;
+      produtosDiv.appendChild(div);
+    });
+  });
+
+  // Buscar CEP e preencher rua
+  document.getElementById("btnBuscarCep").onclick = async () => {
+    const cep = document.getElementById("cep").value.replace(/\D/g, "");
+    if (cep.length !== 8) {
+      alert("Digite um CEP válido com 8 números.");
+      return;
+    }
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+      const data = await res.json();
+      if (data.erro) {
+        alert("CEP não encontrado.");
+        return;
+      }
+      document.getElementById("rua").value = data.logradouro || "";
+    } catch {
+      alert("Erro ao buscar CEP.");
+    }
+  };
+
+  // Fazer pedido
+  document.getElementById("btnFazerPedido").onclick = async () => {
+    if (!usuarioAtual) {
+      alert("Faça login primeiro.");
+      return;
+    }
+
+    // Pega todos os produtos visíveis
+    const produtosSnapshot = await getDocs(query(collection(db, "produtos"), where("oculto", "==", false)));
+    if (produtosSnapshot.empty) {
+      alert("Nenhum produto disponível para pedido.");
+      return;
+    }
+
+    const produtos = [];
+    produtosSnapshot.forEach((docSnap) => {
+      produtos.push({ id: docSnap.id, ...docSnap.data() });
+    });
+
+    const entrega = document.getElementById("entrega").value;
+    const cep = document.getElementById("cep").value.trim();
+    const rua = document.getElementById("rua").value.trim();
+    const numero = document.getElementById("numero").value.trim();
+    const referencia = document.getElementById("referencia").value.trim();
+
+    if (entrega === "sim" && (!cep || !rua || !numero)) {
+      alert("Preencha os dados completos de entrega.");
+      return;
+    }
+
+    try {
+      const pedidoRef = await addDoc(collection(db, "pedidos"), {
+        cliente: usuarioAtual.uid,
+        produtos,
+        entrega,
+        endereco: entrega === "sim" ? { cep, rua, numero, referencia } : null,
+        status: "aguardando",
+        criadoEm: serverTimestamp(),
+        chatLiberado: false
+      });
+
+      // Liberar chat após 5 minutos
+      setTimeout(async () => {
+        await updateDoc(doc(db, "pedidos", pedidoRef.id), { chatLiberado: true });
+      }, 300000);
+
+      alert("Pedido feito com sucesso! ID: " + pedidoRef.id);
+      limparFormularioPedido();
+      carregarMeusPedidos();
+    } catch (e) {
+      alert("Erro ao fazer pedido: " + e.message);
+    }
+  };
+
+  // Limpa formulário de pedido
+  function limparFormularioPedido() {
+    document.getElementById("cep").value = "";
+    document.getElementById("rua").value = "";
+    document.getElementById("numero").value = "";
+    document.getElementById("referencia").value = "";
+    document.getElementById("entrega").value = "sim";
+  }
+
+  // Carregar pedidos do cliente
+  async function carregarMeusPedidos() {
+    if (!usuarioAtual) return;
+    const pedidosRef = collection(db, "pedidos");
+    const q = query(pedidosRef, where("cliente", "==", usuarioAtual.uid), orderBy("criadoEm", "desc"));
+    const snapshot = await getDocs(q);
+    const divPedidos = document.getElementById("meusPedidos");
+    divPedidos.innerHTML = "";
+
+    snapshot.forEach((docSnap) => {
+      const p = docSnap.data();
+      const div = document.createElement("div");
+      div.className = "pedido";
+      div.innerHTML = `
+        <b>ID:</b> ${docSnap.id}<br>
+        <b>Status:</b> ${p.status}<br>
+        <b>Entrega:</b> ${p.entrega === "sim" ? "Sim" : "Não"}<br>
+        <button onclick="mostrarChatCliente('${docSnap.id}', ${p.chatLiberado})" ${p.chatLiberado ? "" : "disabled"}>
+          ${p.chatLiberado ? "Abrir Chat" : "Chat disponível após 5 minutos"}
+        </button>
+      `;
+      divPedidos.appendChild(div);
+    });
+  }
+
+  // Mostrar chat para cliente
+  window.mostrarChatCliente = (pedidoId, chatLiberado) => {
+    if (!chatLiberado) {
+      alert("Chat liberado somente após 5 minutos do pedido.");
+      return;
+    }
+    chatPedidoId = pedidoId;
+    carregarChat();
+  };
+
+  // --- CHAT ---
+
+  const chatDiv = document.getElementById("chat");
+  const inputChat = document.getElementById("mensagemChat");
+  const btnEnviarChat = document.getElementById("btnEnviarChat");
+
+  btnEnviarChat.onclick = async () => {
+    const texto = inputChat.value.trim();
+    if (!texto) return;
+    if (!chatPedidoId) {
+      alert("Abra um pedido para conversar no chat.");
+      return;
+    }
+    try {
+      await addDoc(collection(db, "chats", chatPedidoId, "mensagens"), {
+        texto,
+        autor: usuarioAtual.uid

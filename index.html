@@ -3,133 +3,215 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sistema Admin Cliente</title>
+<title>Sistema Pedidos Completo</title>
 <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center">
+<body class="bg-gray-900 text-white min-h-screen p-4">
 
-<div class="bg-gray-800 p-8 rounded-xl w-96 shadow-xl">
+<h1 class="text-2xl font-bold mb-4 text-center">Sistema de Pedidos</h1>
 
-<h1 class="text-2xl font-bold text-center mb-6">Sistema</h1>
-
-<div id="areaLogin">
-<input type="email" id="email" placeholder="Email"
-class="w-full p-2 mb-3 rounded bg-gray-700">
-
-<input type="password" id="senha" placeholder="Senha"
-class="w-full p-2 mb-3 rounded bg-gray-700">
-
-<button onclick="cadastrar()" 
-class="w-full bg-green-600 p-2 rounded mb-2">
-Cadastrar
-</button>
-
-<button onclick="login()" 
-class="w-full bg-blue-600 p-2 rounded mb-2">
-Entrar
-</button>
+<div id="loginArea">
+<input id="email" placeholder="Email" class="p-2 bg-gray-700 mb-2 w-full">
+<input id="senha" type="password" placeholder="Senha" class="p-2 bg-gray-700 mb-2 w-full">
+<button onclick="cadastrar()" class="bg-green-600 p-2 w-full mb-2">Cadastrar</button>
+<button onclick="login()" class="bg-blue-600 p-2 w-full">Entrar</button>
 </div>
 
-<div id="areaAdmin" class="hidden text-center">
-<h2 class="text-xl text-green-400 mb-4">PAINEL ADMIN</h2>
-<p id="adminEmail" class="mb-4"></p>
-<button onclick="logout()" class="bg-red-600 p-2 rounded w-full">Sair</button>
+<div id="adminArea" class="hidden">
+<h2 class="text-xl mt-4">Admin</h2>
+
+<input id="prodNome" placeholder="Nome produto" class="p-2 bg-gray-700 mb-2 w-full">
+<input id="prodValor" placeholder="Valor" class="p-2 bg-gray-700 mb-2 w-full">
+<input id="prodImg" placeholder="URL imagem" class="p-2 bg-gray-700 mb-2 w-full">
+
+<button onclick="addProduto()" class="bg-green-600 p-2 w-full mb-2">Adicionar Produto</button>
+
+<h3 class="mt-4">Produtos</h3>
+<div id="listaAdminProdutos"></div>
+
+<h3 class="mt-4">Pedidos</h3>
+<div id="listaPedidos"></div>
+
+<button onclick="logout()" class="bg-red-600 p-2 w-full mt-4">Sair</button>
 </div>
 
-<div id="areaCliente" class="hidden text-center">
-<h2 class="text-xl text-blue-400 mb-4">ÁREA CLIENTE</h2>
-<p id="clienteEmail" class="mb-4"></p>
-<button onclick="logout()" class="bg-red-600 p-2 rounded w-full">Sair</button>
-</div>
+<div id="clienteArea" class="hidden">
+<h2 class="text-xl mt-4">Produtos</h2>
+<div id="listaProdutos"></div>
 
-<p id="msg" class="mt-4 text-yellow-400 text-sm text-center"></p>
+<h3 class="mt-4">Carrinho</h3>
+<div id="carrinho"></div>
 
+<input id="cep" placeholder="CEP" class="p-2 bg-gray-700 mt-2 w-full">
+<input id="numero" placeholder="Número" class="p-2 bg-gray-700 mt-2 w-full">
+<input id="ref" placeholder="Referência" class="p-2 bg-gray-700 mt-2 w-full">
+
+<button onclick="buscarCep()" class="bg-yellow-600 p-2 w-full mt-2">Buscar CEP</button>
+<button onclick="fazerPedido()" class="bg-green-600 p-2 w-full mt-2">Fazer Pedido</button>
+
+<h3 class="mt-4">Meus Pedidos</h3>
+<div id="meusPedidos"></div>
+
+<button onclick="logout()" class="bg-red-600 p-2 w-full mt-4">Sair</button>
 </div>
 
 <script type="module">
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged }
 from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
-import { getFirestore, collection, getDocs, doc, setDoc, getDoc }
+import { getFirestore, collection, getDocs, addDoc, doc, setDoc, getDoc, deleteDoc, updateDoc, onSnapshot }
 from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBgqjGYaV7rmgLMPB-Y4DcvgVkg82GFt0I",
-  authDomain: "sitepedidos.firebaseapp.com",
-  projectId: "sitepedidos",
-  storageBucket: "sitepedidos.firebasestorage.app",
-  messagingSenderId: "812273915392",
-  appId: "1:812273915392:web:eb939206a8dba04aca6ae5"
+  apiKey: "SUA_API_AQUI",
+  authDomain: "SEU_DOMINIO.firebaseapp.com",
+  projectId: "SEU_PROJECT_ID",
+  storageBucket: "SEU_BUCKET",
+  messagingSenderId: "SEU_ID",
+  appId: "SEU_APP_ID"
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-const areaLogin = document.getElementById("areaLogin");
-const areaAdmin = document.getElementById("areaAdmin");
-const areaCliente = document.getElementById("areaCliente");
-const msg = document.getElementById("msg");
+let userRole = null;
+let carrinho = [];
 
-window.cadastrar = async function() {
-  try {
-    const cred = await createUserWithEmailAndPassword(auth,email.value,senha.value);
-
-    // verifica quantos usuários já existem
-    const snapshot = await getDocs(collection(db,"users"));
-    const role = snapshot.size === 0 ? "admin" : "cliente";
-
-    await setDoc(doc(db,"users",cred.user.uid),{
-      email: email.value,
-      role: role
-    });
-
-    msg.innerText = "Conta criada como " + role;
-
-  } catch(e) {
-    msg.innerText = e.message;
-  }
+window.cadastrar = async () => {
+  const cred = await createUserWithEmailAndPassword(auth,email.value,senha.value);
+  const users = await getDocs(collection(db,"users"));
+  const role = users.size === 0 ? "admin" : "cliente";
+  await setDoc(doc(db,"users",cred.user.uid),{email:email.value,role});
+  alert("Conta criada como "+role);
 }
 
-window.login = async function(){
-  try{
-    await signInWithEmailAndPassword(auth,email.value,senha.value);
-  }catch(e){
-    msg.innerText = e.message;
-  }
+window.login = async () => {
+  await signInWithEmailAndPassword(auth,email.value,senha.value);
 }
 
-window.logout = function(){
-  signOut(auth);
-}
+window.logout = () => signOut(auth);
 
 onAuthStateChanged(auth, async (user)=>{
   if(!user){
-    areaLogin.classList.remove("hidden");
-    areaAdmin.classList.add("hidden");
-    areaCliente.classList.add("hidden");
+    loginArea.classList.remove("hidden");
+    adminArea.classList.add("hidden");
+    clienteArea.classList.add("hidden");
     return;
   }
 
   const snap = await getDoc(doc(db,"users",user.uid));
+  userRole = snap.data().role;
+  loginArea.classList.add("hidden");
 
-  if(!snap.exists()){
-    msg.innerText = "Usuário sem registro no Firestore.";
-    return;
-  }
-
-  areaLogin.classList.add("hidden");
-
-  if(snap.data().role === "admin"){
-    areaAdmin.classList.remove("hidden");
-    document.getElementById("adminEmail").innerText = user.email;
+  if(userRole==="admin"){
+    adminArea.classList.remove("hidden");
+    carregarProdutosAdmin();
+    carregarPedidosAdmin();
   } else {
-    areaCliente.classList.remove("hidden");
-    document.getElementById("clienteEmail").innerText = user.email;
+    clienteArea.classList.remove("hidden");
+    carregarProdutos();
+    carregarMeusPedidos();
   }
 });
 
+async function addProduto(){
+  await addDoc(collection(db,"products"),{
+    nome:prodNome.value,
+    valor:prodValor.value,
+    imagem:prodImg.value,
+    ativo:true
+  });
+}
+
+function carregarProdutosAdmin(){
+  onSnapshot(collection(db,"products"),snap=>{
+    listaAdminProdutos.innerHTML="";
+    snap.forEach(docu=>{
+      const p=docu.data();
+      listaAdminProdutos.innerHTML+=`
+      <div class="border p-2 mt-2">
+        ${p.nome} - R$${p.valor}
+        <button onclick="removerProduto('${docu.id}')" class="bg-red-600 p-1">Remover</button>
+      </div>`;
+    });
+  });
+}
+
+window.removerProduto = async(id)=>{
+  await deleteDoc(doc(db,"products",id));
+}
+
+function carregarProdutos(){
+  onSnapshot(collection(db,"products"),snap=>{
+    listaProdutos.innerHTML="";
+    snap.forEach(docu=>{
+      const p=docu.data();
+      if(!p.ativo) return;
+      listaProdutos.innerHTML+=`
+      <div class="border p-2 mt-2">
+        <img src="${p.imagem}" width="50">
+        ${p.nome} - R$${p.valor}
+        <button onclick="addCarrinho('${p.nome}',${p.valor})" class="bg-green-600 p-1">Adicionar</button>
+      </div>`;
+    });
+  });
+}
+
+window.addCarrinho=(nome,valor)=>{
+  carrinho.push({nome,valor});
+  renderCarrinho();
+}
+
+function renderCarrinho(){
+  carrinho.innerHTML="";
+}
+
+window.buscarCep=async()=>{
+  const res=await fetch(`https://viacep.com.br/ws/${cep.value}/json/`);
+  const data=await res.json();
+  alert("Rua: "+data.logradouro);
+}
+
+window.fazerPedido=async()=>{
+  await addDoc(collection(db,"orders"),{
+    user:auth.currentUser.uid,
+    produtos:carrinho,
+    status:"pendente"
+  });
+  carrinho=[];
+  alert("Pedido enviado");
+}
+
+function carregarPedidosAdmin(){
+  onSnapshot(collection(db,"orders"),snap=>{
+    listaPedidos.innerHTML="";
+    snap.forEach(docu=>{
+      const o=docu.data();
+      listaPedidos.innerHTML+=`
+      <div class="border p-2 mt-2">
+        Pedido - ${o.status}
+        <button onclick="mudarStatus('${docu.id}','confirmado')" class="bg-blue-600 p-1">Confirmar</button>
+      </div>`;
+    });
+  });
+}
+
+window.mudarStatus=async(id,status)=>{
+  await updateDoc(doc(db,"orders",id),{status});
+}
+
+function carregarMeusPedidos(){
+  onSnapshot(collection(db,"orders"),snap=>{
+    meusPedidos.innerHTML="";
+    snap.forEach(docu=>{
+      const o=docu.data();
+      if(o.user===auth.currentUser.uid){
+        meusPedidos.innerHTML+=`<div class="border p-2 mt-2">Status: ${o.status}</div>`;
+      }
+    });
+  });
+}
 </script>
 
 </body>

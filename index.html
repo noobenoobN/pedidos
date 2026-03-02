@@ -1,272 +1,121 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<title>Sistema Pedidos</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Site Pedidos - Conta Cliente</title>
 
-<style>
-body{font-family:Arial;background:#111;color:#fff;text-align:center;margin:0;padding:20px}
-input,button,select{padding:8px;margin:5px;border-radius:6px;border:none}
-button{background:#00c853;color:#fff;cursor:pointer}
-.card{background:#222;padding:15px;margin:10px;border-radius:10px}
-img{width:100px;border-radius:8px}
-h1{color:#00e676}
-</style>
+<script src="https://cdn.tailwindcss.com"></script>
+
 </head>
-<body>
+<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center">
 
-<h1>SISTEMA PEDIDOS</h1>
+<div class="bg-gray-800 p-8 rounded-xl w-96 shadow-xl">
 
-<!-- LOGIN -->
-<div id="authBox">
-<h2>Registrar</h2>
-<input id="regEmail" placeholder="Email">
-<input id="regSenha" type="password" placeholder="Senha">
-<input id="regTelefone" placeholder="Telefone com DDD">
-<button onclick="registrar()">Registrar</button>
+<h1 class="text-2xl font-bold text-center mb-6">Área do Cliente</h1>
 
-<h2>Login</h2>
-<input id="loginEmail" placeholder="Email">
-<input id="loginSenha" type="password">
-<button onclick="login()">Entrar</button>
+<div id="areaLogin">
+
+<input type="email" id="email" placeholder="Email"
+class="w-full p-2 mb-3 rounded bg-gray-700 outline-none">
+
+<input type="password" id="senha" placeholder="Senha"
+class="w-full p-2 mb-3 rounded bg-gray-700 outline-none">
+
+<button onclick="cadastrar()" 
+class="w-full bg-green-600 hover:bg-green-700 p-2 rounded mb-2">
+Cadastrar
+</button>
+
+<button onclick="login()" 
+class="w-full bg-blue-600 hover:bg-blue-700 p-2 rounded mb-2">
+Entrar
+</button>
+
 </div>
 
-<!-- ADMIN -->
-<div id="adminBox" style="display:none">
-<h2>PAINEL ADMIN</h2>
+<div id="areaCliente" class="hidden text-center">
 
-<h3>Adicionar Produto</h3>
-<input id="nomeProd" placeholder="Nome">
-<input id="valorProd" placeholder="Valor">
-<input id="imgProd" placeholder="Link imagem">
-<button onclick="addProduto()">Adicionar</button>
+<p class="mb-4">Logado como:</p>
+<p id="usuarioEmail" class="font-bold text-yellow-400 mb-4"></p>
 
-<h3>Produtos</h3>
-<div id="adminProdutos"></div>
+<button onclick="logout()" 
+class="w-full bg-red-600 hover:bg-red-700 p-2 rounded">
+Sair
+</button>
 
-<h3>Pedidos</h3>
-<div id="adminPedidos"></div>
-
-<button onclick="logout()">Sair</button>
 </div>
 
-<!-- CLIENTE -->
-<div id="clienteBox" style="display:none">
-<h2>PRODUTOS</h2>
-<div id="listaProdutos"></div>
+<p id="mensagem" class="mt-4 text-center text-sm text-yellow-400"></p>
 
-<h3>Entrega</h3>
-<select id="tipoEntrega">
-<option value="retirada">Retirada</option>
-<option value="entrega">Entrega</option>
-</select>
-
-<div id="enderecoBox" style="display:none">
-<input id="rua" placeholder="Rua">
-<input id="numero" placeholder="Número">
-</div>
-
-<button onclick="fazerPedido()">Finalizar Pedido</button>
-
-<h3>Meus Pedidos</h3>
-<div id="meusPedidos"></div>
-
-<button onclick="logout()">Sair</button>
 </div>
 
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged }
+from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
 
 const firebaseConfig = {
-  apiKey: "SUA_API_KEY",
+  apiKey: "AIzaSyBgqjGYaV7rmgLMPB-Y4DcvgVkg82GFt0I",
   authDomain: "sitepedidos.firebaseapp.com",
   projectId: "sitepedidos",
   storageBucket: "sitepedidos.firebasestorage.app",
   messagingSenderId: "812273915392",
-  appId: "1:812273915392:web:eb939206a8dba04aca6ae5"
+  appId: "1:812273915392:web:eb939206a8dba04aca6ae5",
+  measurementId: "G-58RS0MLT87"
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app);
 
-let carrinho=[];
+const areaLogin = document.getElementById("areaLogin");
+const areaCliente = document.getElementById("areaCliente");
+const usuarioEmail = document.getElementById("usuarioEmail");
+const mensagem = document.getElementById("mensagem");
 
-/* REGISTRAR */
-window.registrar = async ()=>{
-  try{
-    const cred = await createUserWithEmailAndPassword(auth,regEmail.value,regSenha.value);
+window.cadastrar = function() {
+  const email = document.getElementById("email").value;
+  const senha = document.getElementById("senha").value;
 
-    const usersSnap = await getDocs(collection(db,"users"));
-    const role = usersSnap.size===0 ? "admin":"cliente";
-
-    await setDoc(doc(db,"users",cred.user.uid),{
-      email:regEmail.value,
-      telefone:regTelefone.value,
-      role
+  createUserWithEmailAndPassword(auth, email, senha)
+    .then(() => {
+      mensagem.innerText = "Conta criada com sucesso!";
+    })
+    .catch(error => {
+      mensagem.innerText = error.message;
     });
+}
 
-    alert("Conta criada como "+role);
-  }catch(e){
-    alert(e.message);
-  }
-};
+window.login = function() {
+  const email = document.getElementById("email").value;
+  const senha = document.getElementById("senha").value;
 
-/* LOGIN */
-window.login = async ()=>{
-  try{
-    await signInWithEmailAndPassword(auth,loginEmail.value,loginSenha.value);
-  }catch(e){
-    alert(e.message);
-  }
-};
+  signInWithEmailAndPassword(auth, email, senha)
+    .then(() => {
+      mensagem.innerText = "Login realizado!";
+    })
+    .catch(error => {
+      mensagem.innerText = error.message;
+    });
+}
 
-/* LOGOUT */
-window.logout = async ()=>{
-  await signOut(auth);
-  location.reload();
-};
+window.logout = function() {
+  signOut(auth);
+}
 
-/* MONITOR LOGIN */
-onAuthStateChanged(auth, async user=>{
-  if(!user){
-    authBox.style.display="block";
-    adminBox.style.display="none";
-    clienteBox.style.display="none";
-    return;
-  }
-
-  const snap = await getDoc(doc(db,"users",user.uid));
-  if(!snap.exists()){
-    alert("Erro ao carregar usuário");
-    return;
-  }
-
-  authBox.style.display="none";
-
-  if(snap.data().role==="admin"){
-    adminBox.style.display="block";
-    carregarAdmin();
-  }else{
-    clienteBox.style.display="block";
-    carregarProdutos();
-    carregarPedidosCliente();
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    areaLogin.classList.add("hidden");
+    areaCliente.classList.remove("hidden");
+    usuarioEmail.innerText = user.email;
+  } else {
+    areaLogin.classList.remove("hidden");
+    areaCliente.classList.add("hidden");
   }
 });
 
-/* ADMIN */
-window.addProduto = async ()=>{
-  await addDoc(collection(db,"produtos"),{
-    nome:nomeProd.value,
-    valor:valorProd.value,
-    imagem:imgProd.value,
-    oculto:false
-  });
-};
-
-function carregarAdmin(){
-  onSnapshot(collection(db,"produtos"), snap=>{
-    adminProdutos.innerHTML="";
-    snap.forEach(docu=>{
-      const p=docu.data();
-      adminProdutos.innerHTML+=`
-      <div class="card">
-      <img src="${p.imagem}">
-      <p>${p.nome} - R$${p.valor}</p>
-      <button onclick="remover('${docu.id}')">Remover</button>
-      </div>`;
-    });
-  });
-
-  onSnapshot(collection(db,"pedidos"), snap=>{
-    adminPedidos.innerHTML="";
-    snap.forEach(docu=>{
-      const p=docu.data();
-      adminPedidos.innerHTML+=`
-      <div class="card">
-      <p>Cliente: ${p.uid}</p>
-      <p>Status: ${p.status}</p>
-      <button onclick="atualizar('${docu.id}','A Caminho')">A Caminho</button>
-      <button onclick="atualizar('${docu.id}','Concluído')">Concluído</button>
-      </div>`;
-    });
-  });
-}
-
-window.remover=async id=>{
-  await deleteDoc(doc(db,"produtos",id));
-};
-
-window.atualizar=async (id,status)=>{
-  await updateDoc(doc(db,"pedidos",id),{status});
-};
-
-/* CLIENTE */
-function carregarProdutos(){
-  onSnapshot(collection(db,"produtos"), snap=>{
-    listaProdutos.innerHTML="";
-    snap.forEach(docu=>{
-      const p=docu.data();
-      if(!p.oculto){
-        listaProdutos.innerHTML+=`
-        <div class="card">
-        <img src="${p.imagem}">
-        <p>${p.nome} - R$${p.valor}</p>
-        <button onclick="addCarrinho('${p.nome}')">Adicionar</button>
-        </div>`;
-      }
-    });
-  });
-}
-
-window.addCarrinho=nome=>{
-  carrinho.push(nome);
-  alert("Adicionado ao carrinho");
-};
-
-tipoEntrega.onchange=()=>{
-  enderecoBox.style.display = tipoEntrega.value==="entrega"?"block":"none";
-};
-
-window.fazerPedido=async ()=>{
-  if(carrinho.length===0){
-    alert("Carrinho vazio");
-    return;
-  }
-
-  let endereco="Retirada";
-  if(tipoEntrega.value==="entrega"){
-    endereco=rua.value+" Nº "+numero.value;
-  }
-
-  await addDoc(collection(db,"pedidos"),{
-    uid:auth.currentUser.uid,
-    produtos:carrinho,
-    endereco,
-    status:"Recebido",
-    data:new Date()
-  });
-
-  carrinho=[];
-  alert("Pedido realizado!");
-};
-
-function carregarPedidosCliente(){
-  const q=query(collection(db,"pedidos"),where("uid","==",auth.currentUser.uid));
-  onSnapshot(q, snap=>{
-    meusPedidos.innerHTML="";
-    snap.forEach(docu=>{
-      meusPedidos.innerHTML+=`
-      <div class="card">
-      <p>Status: ${docu.data().status}</p>
-      </div>`;
-    });
-  });
-}
-
 </script>
+
 </body>
 </html>

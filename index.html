@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sistema com Admin</title>
+<title>Sistema Admin Cliente</title>
 <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-900 text-white min-h-screen flex items-center justify-center">
@@ -13,7 +13,6 @@
 <h1 class="text-2xl font-bold text-center mb-6">Sistema</h1>
 
 <div id="areaLogin">
-
 <input type="email" id="email" placeholder="Email"
 class="w-full p-2 mb-3 rounded bg-gray-700">
 
@@ -29,17 +28,16 @@ Cadastrar
 class="w-full bg-blue-600 p-2 rounded mb-2">
 Entrar
 </button>
-
 </div>
 
 <div id="areaAdmin" class="hidden text-center">
-<h2 class="text-xl mb-4 text-green-400">PAINEL ADMIN</h2>
+<h2 class="text-xl text-green-400 mb-4">PAINEL ADMIN</h2>
 <p id="adminEmail" class="mb-4"></p>
 <button onclick="logout()" class="bg-red-600 p-2 rounded w-full">Sair</button>
 </div>
 
 <div id="areaCliente" class="hidden text-center">
-<h2 class="text-xl mb-4 text-blue-400">ÁREA CLIENTE</h2>
+<h2 class="text-xl text-blue-400 mb-4">ÁREA CLIENTE</h2>
 <p id="clienteEmail" class="mb-4"></p>
 <button onclick="logout()" class="bg-red-600 p-2 rounded w-full">Sair</button>
 </div>
@@ -75,11 +73,12 @@ const areaCliente = document.getElementById("areaCliente");
 const msg = document.getElementById("msg");
 
 window.cadastrar = async function() {
-  try{
+  try {
     const cred = await createUserWithEmailAndPassword(auth,email.value,senha.value);
 
-    const usersSnapshot = await getDocs(collection(db,"users"));
-    const role = usersSnapshot.size === 0 ? "admin" : "cliente";
+    // verifica quantos usuários já existem
+    const snapshot = await getDocs(collection(db,"users"));
+    const role = snapshot.size === 0 ? "admin" : "cliente";
 
     await setDoc(doc(db,"users",cred.user.uid),{
       email: email.value,
@@ -88,7 +87,7 @@ window.cadastrar = async function() {
 
     msg.innerText = "Conta criada como " + role;
 
-  }catch(e){
+  } catch(e) {
     msg.innerText = e.message;
   }
 }
@@ -108,4 +107,30 @@ window.logout = function(){
 onAuthStateChanged(auth, async (user)=>{
   if(!user){
     areaLogin.classList.remove("hidden");
-    areaAdmin.class
+    areaAdmin.classList.add("hidden");
+    areaCliente.classList.add("hidden");
+    return;
+  }
+
+  const snap = await getDoc(doc(db,"users",user.uid));
+
+  if(!snap.exists()){
+    msg.innerText = "Usuário sem registro no Firestore.";
+    return;
+  }
+
+  areaLogin.classList.add("hidden");
+
+  if(snap.data().role === "admin"){
+    areaAdmin.classList.remove("hidden");
+    document.getElementById("adminEmail").innerText = user.email;
+  } else {
+    areaCliente.classList.remove("hidden");
+    document.getElementById("clienteEmail").innerText = user.email;
+  }
+});
+
+</script>
+
+</body>
+</html>

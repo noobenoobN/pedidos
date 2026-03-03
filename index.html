@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sistema Completo</title>
+<title>Sistema Pedidos</title>
 <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
@@ -11,7 +11,7 @@
 
 <!-- LOGIN -->
 <div id="authBox" class="bg-white p-6 rounded-xl shadow-md w-80">
-  <h2 class="text-2xl font-bold text-center mb-4">Login</h2>
+  <h2 class="text-2xl font-bold text-center mb-4">Login / Cadastro</h2>
 
   <input id="email" type="email" placeholder="Email"
     class="w-full p-2 mb-2 border rounded">
@@ -32,22 +32,20 @@
   <p id="msg" class="text-red-500 text-sm mt-2 text-center"></p>
 </div>
 
-<!-- ADMIN -->
-<div id="adminPanel" class="hidden bg-white p-6 rounded-xl shadow-md w-96">
-  <h1 class="text-xl font-bold mb-4">Painel Admin 👑</h1>
+<!-- CLIENTE -->
+<div id="clientePanel" class="hidden bg-white p-6 rounded-xl shadow-md w-96">
+  <h1 class="text-xl font-bold mb-4">Painel Cliente 🛒</h1>
 
-  <h2 class="font-bold">Adicionar Produto</h2>
-  <input id="nomeProduto" placeholder="Nome"
-    class="w-full p-2 border rounded mt-2">
-  <input id="precoProduto" placeholder="Preço"
-    class="w-full p-2 border rounded mt-2">
-  <button onclick="addProduto()"
-    class="w-full bg-blue-600 text-white p-2 rounded mt-2">
-    Salvar Produto
+  <h2 class="font-bold">Produtos</h2>
+  <div id="listaProdutos" class="mt-2"></div>
+
+  <button onclick="fazerPedido()"
+    class="w-full bg-green-600 text-white p-2 rounded mt-3">
+    Fazer Pedido
   </button>
 
-  <h2 class="font-bold mt-6">Pedidos</h2>
-  <div id="listaPedidos" class="mt-2"></div>
+  <h2 class="font-bold mt-6">Meus Pedidos</h2>
+  <div id="meusPedidos" class="mt-2"></div>
 
   <button onclick="logout()"
     class="mt-4 bg-red-500 text-white p-2 rounded w-full">
@@ -55,12 +53,12 @@
   </button>
 </div>
 
-<!-- CLIENTE -->
-<div id="clientePanel" class="hidden bg-white p-6 rounded-xl shadow-md w-96">
-  <h1 class="text-xl font-bold mb-4">Painel Cliente 🛒</h1>
+<!-- ADMIN -->
+<div id="adminPanel" class="hidden bg-white p-6 rounded-xl shadow-md w-96">
+  <h1 class="text-xl font-bold mb-4">Painel Admin 👑</h1>
 
-  <h2 class="font-bold">Produtos</h2>
-  <div id="listaProdutos" class="mt-2"></div>
+  <h2 class="font-bold">Todos Pedidos</h2>
+  <div id="listaPedidos" class="mt-2"></div>
 
   <button onclick="logout()"
     class="mt-4 bg-red-500 text-white p-2 rounded w-full">
@@ -70,8 +68,9 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-analytics.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, collection, addDoc, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBgqjGYaV7rmgLMPB-Y4DcvgVkg82GFt0I",
@@ -79,25 +78,21 @@ const firebaseConfig = {
   projectId: "sitepedidos",
   storageBucket: "sitepedidos.firebasestorage.app",
   messagingSenderId: "812273915392",
-  appId: "1:812273915392:web:9fc70d67ac717a11ca6ae5"
+  appId: "1:812273915392:web:9fc70d67ac717a11ca6ae5",
+  measurementId: "G-4HLF6VSY2Z"
 };
 
 const app = initializeApp(firebaseConfig);
+getAnalytics(app);
+
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-const authBox = document.getElementById("authBox");
-const adminPanel = document.getElementById("adminPanel");
-const clientePanel = document.getElementById("clientePanel");
-
 window.cadastrar = async function() {
-  const email = email.value;
-  const senha = senha.value;
-
-  const cred = await createUserWithEmailAndPassword(auth, email, senha);
+  const cred = await createUserWithEmailAndPassword(auth, email.value, senha.value);
 
   await setDoc(doc(db, "usuarios", cred.user.uid), {
-    email: email,
+    email: email.value,
     role: "cliente"
   });
 
@@ -112,51 +107,58 @@ window.logout = function() {
   signOut(auth);
 };
 
-window.addProduto = async function() {
-  await addDoc(collection(db, "produtos"), {
-    nome: nomeProduto.value,
-    preco: precoProduto.value
-  });
-
-  nomeProduto.value = "";
-  precoProduto.value = "";
-};
-
 function carregarProdutos() {
-  onSnapshot(collection(db, "produtos"), (snapshot) => {
-    listaProdutos.innerHTML = "";
-    snapshot.forEach((docSnap) => {
-      const produto = docSnap.data();
-      listaProdutos.innerHTML += `
-        <div class="border p-2 rounded mb-2">
-          ${produto.nome} - R$ ${produto.preco}
-          <button onclick="fazerPedido('${produto.nome}')"
-            class="bg-green-500 text-white px-2 py-1 rounded ml-2">
-            Pedir
-          </button>
-        </div>
-      `;
-    });
-  });
+  listaProdutos.innerHTML = `
+    <label class="block"><input type="checkbox" value="Maçã - R$2.50"> Maçã - R$2.50</label>
+    <label class="block"><input type="checkbox" value="Limão - R$1.30"> Limão - R$1.30</label>
+    <label class="block"><input type="checkbox" value="Pera - R$1.50"> Pera - R$1.50</label>
+  `;
 }
 
-window.fazerPedido = async function(nome) {
+window.fazerPedido = async function() {
+  const selecionados = document.querySelectorAll('#listaProdutos input:checked');
+  if (selecionados.length === 0) {
+    alert("Selecione pelo menos um item");
+    return;
+  }
+
+  const itens = [];
+  selecionados.forEach(i => itens.push(i.value));
+
   await addDoc(collection(db, "pedidos"), {
-    produto: nome,
-    usuario: auth.currentUser.email
+    usuario: auth.currentUser.email,
+    itens: itens,
+    data: new Date()
   });
 
   alert("Pedido enviado!");
 };
 
-function carregarPedidos() {
+function carregarMeusPedidos() {
+  onSnapshot(collection(db, "pedidos"), (snapshot) => {
+    meusPedidos.innerHTML = "";
+    snapshot.forEach((docSnap) => {
+      const pedido = docSnap.data();
+      if (pedido.usuario === auth.currentUser.email) {
+        meusPedidos.innerHTML += `
+          <div class="border p-2 rounded mb-2">
+            ${pedido.itens.join(", ")}
+          </div>
+        `;
+      }
+    });
+  });
+}
+
+function carregarPedidosAdmin() {
   onSnapshot(collection(db, "pedidos"), (snapshot) => {
     listaPedidos.innerHTML = "";
     snapshot.forEach((docSnap) => {
       const pedido = docSnap.data();
       listaPedidos.innerHTML += `
         <div class="border p-2 rounded mb-2">
-          ${pedido.usuario} pediu ${pedido.produto}
+          <strong>${pedido.usuario}</strong><br>
+          ${pedido.itens.join(", ")}
         </div>
       `;
     });
@@ -172,11 +174,12 @@ onAuthStateChanged(auth, async (user) => {
     if (docSnap.exists() && docSnap.data().role === "admin") {
       adminPanel.classList.remove("hidden");
       clientePanel.classList.add("hidden");
-      carregarPedidos();
+      carregarPedidosAdmin();
     } else {
       clientePanel.classList.remove("hidden");
       adminPanel.classList.add("hidden");
       carregarProdutos();
+      carregarMeusPedidos();
     }
   } else {
     authBox.classList.remove("hidden");

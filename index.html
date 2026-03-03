@@ -177,4 +177,61 @@ listaPedidos.innerHTML+=`
 <div class="item">
 ${d.id}<br>Status: ${p.status}
 <button onclick="mudarStatus('${d.id}','a caminho')">A Caminho</button>
-<button onclick="mudarStatus('${d.id}','concluído')">Concluir</
+<button onclick="mudarStatus('${d.id}','concluído')">Concluir</button>
+</div>`;
+});
+});
+}
+
+window.addProduto=async()=>{
+await addDoc(collection(db,"produtos"),{
+nome:nomeProduto.value,
+valor:Number(valorProduto.value),
+criadoEm:serverTimestamp()
+});
+nomeProduto.value="";
+valorProduto.value="";
+};
+
+window.removerProduto=async(id)=>{
+await updateDoc(doc(db,"produtos",id),{});
+};
+
+window.mudarStatus=async(id,status)=>{
+await updateDoc(doc(db,"pedidos",id),{status});
+};
+
+function iniciarCliente(){
+onSnapshot(collection(db,"produtos"),snap=>{
+produtos.innerHTML="";
+snap.forEach(d=>{
+const p=d.data();
+produtos.innerHTML+=`<div class="item">${p.nome} - R$ ${p.valor}</div>`;
+});
+});
+}
+
+window.fazerPedido=async()=>{
+const produtosSnap=await getDocs(collection(db,"produtos"));
+let lista=[];
+produtosSnap.forEach(d=>lista.push(d.data()));
+
+await addDoc(collection(db,"pedidos"),{
+cliente:usuarioAtual.uid,
+produtos:lista,
+status:"aguardando",
+criadoEm:serverTimestamp()
+});
+};
+
+onAuthStateChanged(auth,async user=>{
+if(user){
+usuarioAtual=user;
+await carregarRole(user.uid);
+mostrarPainel();
+}
+});
+</script>
+
+</body>
+</html>

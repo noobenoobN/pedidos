@@ -9,6 +9,7 @@
 
 <body class="bg-gray-100 min-h-screen flex items-center justify-center">
 
+<!-- LOGIN -->
 <div id="authBox" class="bg-white p-6 rounded-xl shadow-md w-80">
   <h2 class="text-2xl font-bold text-center mb-4">Login / Cadastro</h2>
   <input id="email" type="email" placeholder="Email" class="w-full p-2 mb-2 border rounded">
@@ -17,6 +18,7 @@
   <button onclick="cadastrar()" class="w-full bg-green-600 text-white p-2 rounded">Cadastrar</button>
 </div>
 
+<!-- APP -->
 <div id="app" class="hidden w-full max-w-md bg-white min-h-screen p-4">
 
   <div class="flex justify-between items-center mb-4">
@@ -24,13 +26,14 @@
     <button onclick="logout()" class="text-red-500">Sair</button>
   </div>
 
+  <!-- CLIENTE -->
   <div id="clienteArea">
     <h2 class="font-bold mb-2">Cardápio</h2>
     <div id="produtos"></div>
 
     <h2 class="font-bold mt-4">Carrinho</h2>
     <div id="carrinho"></div>
-    <p class="mt-2 font-bold">Total: R$ <span id="total">0.00</span></p>
+    <p class="mt-2 font-bold">Total: R$ <span id="totalSpan">0.00</span></p>
     <button onclick="enviarPedido()" class="w-full bg-red-600 text-white p-2 rounded mt-2">
       Finalizar Pedido
     </button>
@@ -39,6 +42,7 @@
     <div id="meusPedidos"></div>
   </div>
 
+  <!-- ADMIN -->
   <div id="adminArea" class="hidden">
     <h2 class="font-bold mb-2">Pedidos Recebidos</h2>
     <div id="adminPedidos"></div>
@@ -52,12 +56,12 @@ import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, on
 import { getFirestore, doc, setDoc, getDoc, collection, addDoc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "SUA_API",
-  authDomain: "SEU_AUTH",
-  projectId: "SEU_PROJECT",
-  storageBucket: "SEU_BUCKET",
-  messagingSenderId: "SEU_MSG",
-  appId: "SEU_APP"
+  apiKey: "AIzaSyBgqjGYaV7rmgLMPB-Y4DcvgVkg82GFt0I",
+  authDomain: "sitepedidos.firebaseapp.com",
+  projectId: "sitepedidos",
+  storageBucket: "sitepedidos.firebasestorage.app",
+  messagingSenderId: "812273915392",
+  appId: "1:812273915392:web:9fc70d67ac717a11ca6ae5"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -140,9 +144,15 @@ function ouvirPedidosCliente() {
     snap.forEach(docSnap => {
       const p = docSnap.data();
       if (p.usuario === auth.currentUser.email) {
+
+        const listaItens = p.itens
+          ? p.itens.map(item => `${item.nome} - R$ ${item.preco}`).join("<br>")
+          : "";
+
         meusPedidos.innerHTML += `
-          <div class="border p-2 rounded mb-2">
-            Total: R$ ${p.total} <br>
+          <div class="border p-3 rounded mb-3">
+            ${listaItens}<br><br>
+            Total: R$ ${p.total}<br>
             Status: <b>${p.status}</b>
           </div>
         `;
@@ -151,30 +161,44 @@ function ouvirPedidosCliente() {
   });
 }
 
+function proximoStatus(status) {
+  if (status === "Recebido") return "Em preparo";
+  if (status === "Em preparo") return "Saiu para entrega";
+  if (status === "Saiu para entrega") return "Entregue";
+  return "Entregue";
+}
+
+window.mudarStatus = async (id, statusAtual) => {
+  const ref = doc(db, "pedidos", id);
+  await updateDoc(ref, { status: proximoStatus(statusAtual) });
+};
+
 function ouvirPedidosAdmin() {
   onSnapshot(collection(db, "pedidos"), snap => {
     adminPedidos.innerHTML = "";
     snap.forEach(docSnap => {
       const p = docSnap.data();
+
+      const listaItens = p.itens
+        ? p.itens.map(item => `${item.nome} - R$ ${item.preco}`).join("<br>")
+        : "";
+
       adminPedidos.innerHTML += `
-        <div class="border p-2 rounded mb-2">
-          ${p.usuario}<br>
-          R$ ${p.total}<br>
-          Status: ${p.status}
-          <button onclick="mudarStatus('${docSnap.id}')"
-            class="bg-blue-500 text-white px-2 rounded mt-1">
-            Avançar
+        <div class="border p-3 rounded mb-3">
+          <strong>${p.usuario}</strong><br><br>
+          ${listaItens}<br><br>
+          Total: R$ ${p.total}<br>
+          Status: <b>${p.status}</b><br><br>
+
+          <button onclick="mudarStatus('${docSnap.id}', '${p.status}')"
+            class="bg-blue-500 text-white px-2 py-1 rounded">
+            Avançar Status
           </button>
         </div>
       `;
     });
   });
 }
-
-window.mudarStatus = async (id) => {
-  const ref = doc(db, "pedidos", id);
-  await updateDoc(ref, { status: "Em preparo" });
-};
 
 onAuthStateChanged(auth, async user => {
   if (user) {

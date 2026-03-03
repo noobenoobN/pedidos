@@ -3,55 +3,78 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sistema de Pedidos</title>
+<title>Sistema Profissional</title>
 
 <style>
 body{
   font-family:Arial;
-  background:#f5f1e9;
+  background:#f2f2f2;
+  margin:0;
   display:flex;
   justify-content:center;
   align-items:center;
   min-height:100vh;
-  margin:0;
 }
 .card{
   background:white;
-  padding:20px;
-  border-radius:8px;
-  box-shadow:0 4px 8px rgba(0,0,0,0.2);
-  width:350px;
-  max-height:90vh;
+  width:380px;
+  max-height:95vh;
   overflow:auto;
+  padding:20px;
+  border-radius:12px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.2);
 }
-input,button{
+h2{text-align:center;margin-top:0}
+input,select,button{
   width:100%;
-  margin:6px 0;
   padding:10px;
+  margin:5px 0;
 }
 button{
-  background:#2086f0;
+  background:#ff6600;
   color:white;
   border:none;
   font-weight:bold;
   cursor:pointer;
+  border-radius:6px;
 }
-button:hover{background:#0f5cc1;}
-h2{text-align:center;}
-.item{
-  border-bottom:1px solid #ccc;
-  padding:6px 0;
+button:hover{opacity:0.9}
+.produto{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  border-bottom:1px solid #ddd;
+  padding:8px 0;
+}
+.qtd{
+  display:flex;
+  align-items:center;
+  gap:5px;
+}
+.qtd button{
+  width:30px;
+  height:30px;
+  padding:0;
 }
 .total{
+  font-size:18px;
   font-weight:bold;
   margin-top:10px;
-  font-size:18px;
 }
+.chat{
+  border:1px solid #ddd;
+  height:120px;
+  overflow:auto;
+  padding:5px;
+  margin-bottom:5px;
+  background:#fafafa;
+}
+.msgAdmin{color:red;font-size:14px}
+.msgCliente{color:green;font-size:14px}
 </style>
 </head>
 <body>
 
-<!-- LOGIN -->
 <div id="login" class="card">
 <h2>Login / Cadastro</h2>
 <input type="email" id="email" placeholder="Email">
@@ -62,35 +85,32 @@ h2{text-align:center;}
 <p id="status"></p>
 </div>
 
-<!-- ADMIN -->
-<div id="admin" class="card" style="display:none;">
-<h2>Painel Admin</h2>
-
-<h3>Novo Produto</h3>
-<input type="text" id="nomeProduto" placeholder="Nome">
-<input type="number" id="valorProduto" placeholder="Valor">
-<button onclick="addProduto()">Adicionar</button>
-
-<h3>Produtos</h3>
-<div id="listaProdutos"></div>
-
-<h3>Pedidos</h3>
-<div id="listaPedidos"></div>
-</div>
-
-<!-- CLIENTE -->
 <div id="cliente" class="card" style="display:none;">
-<h2>Painel Cliente</h2>
+<h2>Pedidos</h2>
 
-<h3>Produtos</h3>
 <div id="produtos"></div>
 
-<div class="total">Total: R$ <span id="total">0.00</span></div>
+<select id="tipoEntrega">
+<option value="retirada">Retirada</option>
+<option value="entrega">Entrega</option>
+</select>
 
-<button onclick="fazerPedido()">Fazer Pedido</button>
+<input id="cep" placeholder="CEP">
+<button onclick="buscarCep()">Buscar CEP</button>
+<input id="rua" placeholder="Rua">
+<input id="numero" placeholder="Número">
+<input id="referencia" placeholder="Referência">
 
-<h3>Meus Pedidos</h3>
-<div id="meusPedidos"></div>
+<div class="total">
+Total: R$ <span id="total">0.00</span>
+</div>
+
+<button onclick="fazerPedido()">Finalizar Pedido</button>
+
+<h3>Chat</h3>
+<div class="chat" id="chat"></div>
+<input id="msg" placeholder="Digite mensagem">
+<button onclick="enviarMsg()">Enviar</button>
 </div>
 
 <script type="module">
@@ -111,182 +131,106 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-let usuarioAtual=null;
-let roleAtual=null;
+let user=null;
 let carrinho=[];
-
-const emailInput=document.getElementById("email");
-const senhaInput=document.getElementById("senha");
-const telefoneInput=document.getElementById("telefone");
-const status=document.getElementById("status");
+let pedidoAtual=null;
 
 window.registrar=async()=>{
-try{
-const cred=await createUserWithEmailAndPassword(auth,emailInput.value,senhaInput.value);
-const uid=cred.user.uid;
-const usuarios=await getDocs(collection(db,"usuarios"));
-const primeiro=usuarios.empty;
-
-await setDoc(doc(db,"usuarios",uid),{
-email:emailInput.value,
-telefone:telefoneInput.value,
-role:primeiro?"admin":"cliente",
-criadoEm:serverTimestamp()
-});
-
-status.innerHTML="Registrado!";
-}catch(e){status.innerHTML=e.message;}
+await createUserWithEmailAndPassword(auth,email.value,senha.value);
 };
 
 window.entrar=async()=>{
-try{
-const cred=await signInWithEmailAndPassword(auth,emailInput.value,senhaInput.value);
-usuarioAtual=cred.user;
-await carregarRole(usuarioAtual.uid);
-mostrarPainel();
-}catch(e){status.innerHTML=e.message;}
+await signInWithEmailAndPassword(auth,email.value,senha.value);
 };
 
-async function carregarRole(uid){
-const snap=await getDoc(doc(db,"usuarios",uid));
-roleAtual=snap.data().role;
+onAuthStateChanged(auth,u=>{
+if(u){
+user=u;
+login.style.display="none";
+cliente.style.display="block";
+carregarProdutos();
 }
-
-function mostrarPainel(){
-document.getElementById("login").style.display="none";
-if(roleAtual==="admin"){
-document.getElementById("admin").style.display="block";
-iniciarAdmin();
-}else{
-document.getElementById("cliente").style.display="block";
-iniciarCliente();
-}
-}
-
-function iniciarAdmin(){
-onSnapshot(collection(db,"produtos"),snap=>{
-listaProdutos.innerHTML="";
-snap.forEach(d=>{
-const p=d.data();
-listaProdutos.innerHTML+=`
-<div class="item">
-${p.nome} - R$ ${p.valor}
-</div>`;
-});
 });
 
-onSnapshot(query(collection(db,"pedidos"),orderBy("criadoEm","desc")),snap=>{
-listaPedidos.innerHTML="";
-snap.forEach(d=>{
-const p=d.data();
-let itens="";
-p.itens.forEach(i=>{
-itens+=`${i.nome} x${i.qtd} <br>`;
-});
-listaPedidos.innerHTML+=`
-<div class="item">
-<b>ID:</b>${d.id}<br>
-${itens}
-Status: ${p.status}<br>
-<button onclick="mudarStatus('${d.id}','a caminho')">A Caminho</button>
-<button onclick="mudarStatus('${d.id}','concluído')">Concluir</button>
-</div>`;
-});
-});
-}
-
-window.addProduto=async()=>{
-await addDoc(collection(db,"produtos"),{
-nome:nomeProduto.value,
-valor:Number(valorProduto.value),
-criadoEm:serverTimestamp()
-});
-nomeProduto.value="";
-valorProduto.value="";
-};
-
-window.mudarStatus=async(id,status)=>{
-await updateDoc(doc(db,"pedidos",id),{status});
-};
-
-function iniciarCliente(){
+function carregarProdutos(){
 onSnapshot(collection(db,"produtos"),snap=>{
 produtos.innerHTML="";
 carrinho=[];
-document.getElementById("total").innerText="0.00";
-
 snap.forEach(d=>{
 const p=d.data();
 produtos.innerHTML+=`
-<div class="item">
-<label>
-<input type="checkbox" onchange="selecionarProduto('${d.id}','${p.nome}',${p.valor},this)">
-${p.nome} - R$ ${p.valor}
-</label>
-<input type="number" min="1" value="1" id="qtd_${d.id}">
-</div>`;
-});
-});
-
-onSnapshot(
-query(collection(db,"pedidos"),where("cliente","==",usuarioAtual.uid),orderBy("criadoEm","desc")),
-snap=>{
-meusPedidos.innerHTML="";
-snap.forEach(d=>{
-const p=d.data();
-meusPedidos.innerHTML+=`
-<div class="item">
-ID:${d.id}<br>Status:${p.status}
+<div class="produto">
+<div>${p.nome}<br>R$ ${p.valor}</div>
+<div class="qtd">
+<button onclick="alterarQtd('${d.id}','${p.nome}',${p.valor},-1)">-</button>
+<span id="q_${d.id}">0</span>
+<button onclick="alterarQtd('${d.id}','${p.nome}',${p.valor},1)">+</button>
+</div>
 </div>`;
 });
 });
 }
 
-window.selecionarProduto=(id,nome,valor,checkbox)=>{
-const qtdInput=document.getElementById("qtd_"+id);
-const qtd=Number(qtdInput.value);
-
-if(checkbox.checked){
-carrinho.push({id,nome,valor,qtd});
-}else{
-carrinho=carrinho.filter(p=>p.id!==id);
+window.alterarQtd=(id,nome,valor,acao)=>{
+let item=carrinho.find(i=>i.id===id);
+if(!item && acao>0){
+item={id,nome,valor,qtd:0};
+carrinho.push(item);
 }
+if(item){
+item.qtd+=acao;
+if(item.qtd<=0){
+carrinho=carrinho.filter(i=>i.id!==id);
+}
+}
+document.getElementById("q_"+id).innerText=item?item.qtd:0;
 calcularTotal();
 };
 
 function calcularTotal(){
 let total=0;
-carrinho.forEach(p=>{
-total+=p.valor*p.qtd;
-});
+carrinho.forEach(i=>total+=i.valor*i.qtd);
+if(tipoEntrega.value==="entrega") total+=5;
 document.getElementById("total").innerText=total.toFixed(2);
 }
 
-window.fazerPedido=async()=>{
-if(carrinho.length===0){
-alert("Selecione produtos");
-return;
-}
+tipoEntrega.onchange=calcularTotal;
 
-await addDoc(collection(db,"pedidos"),{
-cliente:usuarioAtual.uid,
-itens:carrinho,
-status:"aguardando",
-criadoEm:serverTimestamp()
-});
-
-alert("Pedido enviado!");
-carrinho=[];
-document.getElementById("total").innerText="0.00";
+window.buscarCep=async()=>{
+const res=await fetch(`https://viacep.com.br/ws/${cep.value}/json/`);
+const data=await res.json();
+rua.value=data.logradouro||"";
 };
 
-onAuthStateChanged(auth,async user=>{
-if(user){
-usuarioAtual=user;
-await carregarRole(user.uid);
-mostrarPainel();
-}
+window.fazerPedido=async()=>{
+if(carrinho.length===0) return alert("Selecione itens");
+const pedido=await addDoc(collection(db,"pedidos"),{
+cliente:user.uid,
+itens:carrinho,
+status:"aguardando",
+entrega:tipoEntrega.value,
+endereco:{
+cep:cep.value,
+rua:rua.value,
+numero:numero.value,
+referencia:referencia.value
+},
+criadoEm:serverTimestamp()
 });
+pedidoAtual=pedido.id;
+alert("Pedido enviado!");
+};
+
+window.enviarMsg=async()=>{
+if(!pedidoAtual) return alert("Faça um pedido primeiro");
+await addDoc(collection(db,"pedidos",pedidoAtual,"chat"),{
+texto:msg.value,
+autor:user.uid,
+criadoEm:serverTimestamp()
+});
+msg.value="";
+};
+
 </script>
 </body>
 </html>

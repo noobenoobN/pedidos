@@ -20,11 +20,11 @@ body{
   padding:20px;
   border-radius:8px;
   box-shadow:0 4px 8px rgba(0,0,0,0.2);
-  width:330px;
+  width:350px;
   max-height:90vh;
   overflow:auto;
 }
-input,select,button{
+input,button{
   width:100%;
   margin:6px 0;
   padding:10px;
@@ -38,21 +38,31 @@ button{
 }
 button:hover{background:#0f5cc1;}
 h2{text-align:center;}
-.item{border-bottom:1px solid #ccc;padding:5px 0;}
+.item{
+  border-bottom:1px solid #ccc;
+  padding:6px 0;
+}
+.total{
+  font-weight:bold;
+  margin-top:10px;
+  font-size:18px;
+}
 </style>
 </head>
 <body>
 
+<!-- LOGIN -->
 <div id="login" class="card">
 <h2>Login / Cadastro</h2>
 <input type="email" id="email" placeholder="Email">
 <input type="password" id="senha" placeholder="Senha">
-<input type="text" id="telefone" placeholder="Telefone com DDD">
+<input type="text" id="telefone" placeholder="Telefone">
 <button onclick="registrar()">Registrar</button>
 <button onclick="entrar()">Entrar</button>
 <p id="status"></p>
 </div>
 
+<!-- ADMIN -->
 <div id="admin" class="card" style="display:none;">
 <h2>Painel Admin</h2>
 
@@ -68,11 +78,14 @@ h2{text-align:center;}
 <div id="listaPedidos"></div>
 </div>
 
+<!-- CLIENTE -->
 <div id="cliente" class="card" style="display:none;">
 <h2>Painel Cliente</h2>
 
 <h3>Produtos</h3>
 <div id="produtos"></div>
+
+<div class="total">Total: R$ <span id="total">0.00</span></div>
 
 <button onclick="fazerPedido()">Fazer Pedido</button>
 
@@ -100,12 +113,7 @@ const db = getFirestore(app);
 
 let usuarioAtual=null;
 let roleAtual=null;
-
-window.registrar = async function(){
-  const email=emailInput.value;
-  const senha=senhaInput.value;
-  const telefone=telefoneInput.value;
-}
+let carrinho=[];
 
 const emailInput=document.getElementById("email");
 const senhaInput=document.getElementById("senha");
@@ -116,7 +124,6 @@ window.registrar=async()=>{
 try{
 const cred=await createUserWithEmailAndPassword(auth,emailInput.value,senhaInput.value);
 const uid=cred.user.uid;
-
 const usuarios=await getDocs(collection(db,"usuarios"));
 const primeiro=usuarios.empty;
 
@@ -127,7 +134,7 @@ role:primeiro?"admin":"cliente",
 criadoEm:serverTimestamp()
 });
 
-status.innerHTML="Registrado com sucesso!";
+status.innerHTML="Registrado!";
 }catch(e){status.innerHTML=e.message;}
 };
 
@@ -164,7 +171,6 @@ const p=d.data();
 listaProdutos.innerHTML+=`
 <div class="item">
 ${p.nome} - R$ ${p.valor}
-<button onclick="removerProduto('${d.id}')">X</button>
 </div>`;
 });
 });
@@ -173,9 +179,15 @@ onSnapshot(query(collection(db,"pedidos"),orderBy("criadoEm","desc")),snap=>{
 listaPedidos.innerHTML="";
 snap.forEach(d=>{
 const p=d.data();
+let itens="";
+p.itens.forEach(i=>{
+itens+=`${i.nome} x${i.qtd} <br>`;
+});
 listaPedidos.innerHTML+=`
 <div class="item">
-${d.id}<br>Status: ${p.status}
+<b>ID:</b>${d.id}<br>
+${itens}
+Status: ${p.status}<br>
 <button onclick="mudarStatus('${d.id}','a caminho')">A Caminho</button>
 <button onclick="mudarStatus('${d.id}','concluído')">Concluir</button>
 </div>`;
@@ -193,10 +205,6 @@ nomeProduto.value="";
 valorProduto.value="";
 };
 
-window.removerProduto=async(id)=>{
-await updateDoc(doc(db,"produtos",id),{});
-};
-
 window.mudarStatus=async(id,status)=>{
 await updateDoc(doc(db,"pedidos",id),{status});
 };
@@ -204,24 +212,72 @@ await updateDoc(doc(db,"pedidos",id),{status});
 function iniciarCliente(){
 onSnapshot(collection(db,"produtos"),snap=>{
 produtos.innerHTML="";
+carrinho=[];
+document.getElementById("total").innerText="0.00";
+
 snap.forEach(d=>{
 const p=d.data();
-produtos.innerHTML+=`<div class="item">${p.nome} - R$ ${p.valor}</div>`;
+produtos.innerHTML+=`
+<div class="item">
+<label>
+<input type="checkbox" onchange="selecionarProduto('${d.id}','${p.nome}',${p.valor},this)">
+${p.nome} - R$ ${p.valor}
+</label>
+<input type="number" min="1" value="1" id="qtd_${d.id}">
+</div>`;
+});
+});
+
+onSnapshot(
+query(collection(db,"pedidos"),where("cliente","==",usuarioAtual.uid),orderBy("criadoEm","desc")),
+snap=>{
+meusPedidos.innerHTML="";
+snap.forEach(d=>{
+const p=d.data();
+meusPedidos.innerHTML+=`
+<div class="item">
+ID:${d.id}<br>Status:${p.status}
+</div>`;
 });
 });
 }
 
+window.selecionarProduto=(id,nome,valor,checkbox)=>{
+const qtdInput=document.getElementById("qtd_"+id);
+const qtd=Number(qtdInput.value);
+
+if(checkbox.checked){
+carrinho.push({id,nome,valor,qtd});
+}else{
+carrinho=carrinho.filter(p=>p.id!==id);
+}
+calcularTotal();
+};
+
+function calcularTotal(){
+let total=0;
+carrinho.forEach(p=>{
+total+=p.valor*p.qtd;
+});
+document.getElementById("total").innerText=total.toFixed(2);
+}
+
 window.fazerPedido=async()=>{
-const produtosSnap=await getDocs(collection(db,"produtos"));
-let lista=[];
-produtosSnap.forEach(d=>lista.push(d.data()));
+if(carrinho.length===0){
+alert("Selecione produtos");
+return;
+}
 
 await addDoc(collection(db,"pedidos"),{
 cliente:usuarioAtual.uid,
-produtos:lista,
+itens:carrinho,
 status:"aguardando",
 criadoEm:serverTimestamp()
 });
+
+alert("Pedido enviado!");
+carrinho=[];
+document.getElementById("total").innerText="0.00";
 };
 
 onAuthStateChanged(auth,async user=>{
@@ -232,6 +288,5 @@ mostrarPainel();
 }
 });
 </script>
-
 </body>
 </html>

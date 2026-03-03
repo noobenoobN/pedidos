@@ -1,264 +1,180 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sistema de Pedidos</title>
+
 <style>
-  body { font-family: Arial, sans-serif; background: #f5f1e9; margin:0; padding:0; display:flex; justify-content:center; align-items:center; min-height:100vh; }
-  #login, #painelAdmin, #painelCliente { background:white; padding:20px; border-radius:8px; box-shadow:0 4px 8px rgba(0,0,0,0.2); width:320px; max-height:90vh; overflow-y:auto; }
-  input, select, button { width:100%; margin:8px 0; padding:10px; font-size:1rem; }
-  button { cursor:pointer; background:#2086f0; border:none; color:white; font-weight:bold; border-radius:4px; }
-  button:hover { background:#0f5cc1; }
-  h2 { margin:0 0 20px 0; text-align:center; }
-  .produto, .pedido { border-bottom:1px solid #ccc; padding:6px 0; }
-  .produto button, .pedido button { width:auto; margin-left:8px; padding:4px 8px; font-size:0.9rem; }
-  #chat { border:1px solid #ddd; height:150px; overflow-y:auto; margin-bottom:8px; padding:8px; background:#fafafa; }
-  #chat p { margin:4px 0; }
+body{
+  font-family:Arial;
+  background:#f5f1e9;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:100vh;
+  margin:0;
+}
+.card{
+  background:white;
+  padding:20px;
+  border-radius:8px;
+  box-shadow:0 4px 8px rgba(0,0,0,0.2);
+  width:330px;
+  max-height:90vh;
+  overflow:auto;
+}
+input,select,button{
+  width:100%;
+  margin:6px 0;
+  padding:10px;
+}
+button{
+  background:#2086f0;
+  color:white;
+  border:none;
+  font-weight:bold;
+  cursor:pointer;
+}
+button:hover{background:#0f5cc1;}
+h2{text-align:center;}
+.item{border-bottom:1px solid #ccc;padding:5px 0;}
 </style>
 </head>
 <body>
 
-<!-- LOGIN -->
-<div id="login">
-  <h2>Login / Cadastro</h2>
-  <input type="email" id="email" placeholder="Email" required />
-  <input type="password" id="senha" placeholder="Senha" required />
-  <input type="text" id="telefone" placeholder="Telefone com DDD (somente números)" />
-  <button id="btnRegistrar">Registrar</button>
-  <button id="btnEntrar">Entrar</button>
-  <p id="loginStatus" style="text-align:center; font-weight:bold;"></p>
+<div id="login" class="card">
+<h2>Login / Cadastro</h2>
+<input type="email" id="email" placeholder="Email">
+<input type="password" id="senha" placeholder="Senha">
+<input type="text" id="telefone" placeholder="Telefone com DDD">
+<button onclick="registrar()">Registrar</button>
+<button onclick="entrar()">Entrar</button>
+<p id="status"></p>
 </div>
 
-<!-- PAINEL ADMIN -->
-<div id="painelAdmin" style="display:none;">
-  <h2>Painel Admin</h2>
+<div id="admin" class="card" style="display:none;">
+<h2>Painel Admin</h2>
 
-  <h3>Adicionar Produto</h3>
-  <input type="text" id="nomeProduto" placeholder="Nome do Produto" />
-  <input type="number" id="valorProduto" placeholder="Valor (R$)" />
-  <button id="btnAddProduto">Adicionar Produto</button>
+<h3>Novo Produto</h3>
+<input type="text" id="nomeProduto" placeholder="Nome">
+<input type="number" id="valorProduto" placeholder="Valor">
+<button onclick="addProduto()">Adicionar</button>
 
-  <h3>Produtos</h3>
-  <div id="listaProdutos"></div>
+<h3>Produtos</h3>
+<div id="listaProdutos"></div>
 
-  <h3>Pedidos</h3>
-  <div id="listaPedidos"></div>
+<h3>Pedidos</h3>
+<div id="listaPedidos"></div>
 </div>
 
-<!-- PAINEL CLIENTE -->
-<div id="painelCliente" style="display:none;">
-  <h2>Painel Cliente</h2>
+<div id="cliente" class="card" style="display:none;">
+<h2>Painel Cliente</h2>
 
-  <h3>Produtos Disponíveis</h3>
-  <div id="produtos"></div>
+<h3>Produtos</h3>
+<div id="produtos"></div>
 
-  <h3>Entrega?</h3>
-  <select id="entrega">
-    <option value="sim">Sim</option>
-    <option value="nao">Não</option>
-  </select>
+<button onclick="fazerPedido()">Fazer Pedido</button>
 
-  <input type="text" id="cep" placeholder="CEP (somente números)" />
-  <button id="btnBuscarCep">Buscar CEP</button>
-
-  <input type="text" id="rua" placeholder="Rua" readonly />
-  <input type="text" id="numero" placeholder="Número" />
-  <input type="text" id="referencia" placeholder="Referência (opcional)" />
-
-  <button id="btnFazerPedido">Fazer Pedido</button>
-
-  <h3>Meus Pedidos</h3>
-  <div id="meusPedidos"></div>
-
-  <h3>Chat com Admin</h3>
-  <div id="chat"></div>
-  <input type="text" id="mensagemChat" placeholder="Escreva uma mensagem..." />
-  <button id="btnEnviarChat">Enviar</button>
+<h3>Meus Pedidos</h3>
+<div id="meusPedidos"></div>
 </div>
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
-  import { getFirestore, collection, addDoc, getDocs, doc, setDoc, getDoc, onSnapshot, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, doc, setDoc, getDoc, onSnapshot, updateDoc, query, where, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
-  const firebaseConfig = {
-    apiKey: "SUA_API_KEY",
-    authDomain: "SEU_AUTH_DOMAIN",
-    projectId: "SEU_PROJECT_ID",
-    storageBucket: "SEU_STORAGE_BUCKET",
-    messagingSenderId: "SEU_MESSAGING_ID",
-    appId: "SEU_APP_ID"
-  };
+const firebaseConfig = {
+  apiKey: "AIzaSyBgqjGYaV7rmgLMPB-Y4DcvgVkg82GFt0I",
+  authDomain: "sitepedidos.firebaseapp.com",
+  projectId: "sitepedidos",
+  storageBucket: "sitepedidos.firebasestorage.app",
+  messagingSenderId: "812273915392",
+  appId: "1:812273915392:web:9fc70d67ac717a11ca6ae5"
+};
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-  const loginDiv = document.getElementById("login");
-  const adminDiv = document.getElementById("painelAdmin");
-  const clienteDiv = document.getElementById("painelCliente");
-  const loginStatus = document.getElementById("loginStatus");
+let usuarioAtual=null;
+let roleAtual=null;
 
-  let usuarioAtual = null;
-  let roleAtual = null;
-  let chatPedidoId = null;
+window.registrar = async function(){
+  const email=emailInput.value;
+  const senha=senhaInput.value;
+  const telefone=telefoneInput.value;
+}
 
-  function mostrarPainel() {
-    loginDiv.style.display = "none";
-    if (roleAtual === "admin") { adminDiv.style.display="block"; clienteDiv.style.display="none"; iniciarAdmin(); }
-    else if (roleAtual === "cliente") { clienteDiv.style.display="block"; adminDiv.style.display="none"; iniciarCliente(); }
-    else { alert("Role não encontrada"); auth.signOut(); location.reload(); }
-  }
+const emailInput=document.getElementById("email");
+const senhaInput=document.getElementById("senha");
+const telefoneInput=document.getElementById("telefone");
+const status=document.getElementById("status");
 
-  // REGISTRO
-  document.getElementById("btnRegistrar").onclick = async () => {
-    loginStatus.textContent="";
-    const email = document.getElementById("email").value.trim();
-    const senha = document.getElementById("senha").value.trim();
-    const telefone = document.getElementById("telefone").value.trim();
+window.registrar=async()=>{
+try{
+const cred=await createUserWithEmailAndPassword(auth,emailInput.value,senhaInput.value);
+const uid=cred.user.uid;
 
-    if(!email || !senha || !telefone) { loginStatus.style.color="red"; loginStatus.textContent="Preencha todos os campos."; return; }
+const usuarios=await getDocs(collection(db,"usuarios"));
+const primeiro=usuarios.empty;
 
-    try {
-      const cred = await createUserWithEmailAndPassword(auth, email, senha);
-      const uid = cred.user.uid;
-      const usuariosSnapshot = await getDocs(collection(db,"usuarios"));
-      const primeiro = usuariosSnapshot.empty;
+await setDoc(doc(db,"usuarios",uid),{
+email:emailInput.value,
+telefone:telefoneInput.value,
+role:primeiro?"admin":"cliente",
+criadoEm:serverTimestamp()
+});
 
-      await setDoc(doc(db,"usuarios",uid), { email, telefone, ddd:telefone.substring(0,2), role:primeiro?"admin":"cliente", criadoEm:serverTimestamp() });
-      loginStatus.style.color="green";
-      loginStatus.textContent = primeiro?"Registrado como ADMIN":"Cadastro realizado com sucesso!";
-    } catch(e){ loginStatus.style.color="red"; loginStatus.textContent="Erro ao registrar: "+e.message; console.error(e); }
-  };
+status.innerHTML="Registrado com sucesso!";
+}catch(e){status.innerHTML=e.message;}
+};
 
-  // LOGIN
-  document.getElementById("btnEntrar").onclick = async () => {
-    loginStatus.textContent="";
-    const email = document.getElementById("email").value.trim();
-    const senha = document.getElementById("senha").value.trim();
+window.entrar=async()=>{
+try{
+const cred=await signInWithEmailAndPassword(auth,emailInput.value,senhaInput.value);
+usuarioAtual=cred.user;
+await carregarRole(usuarioAtual.uid);
+mostrarPainel();
+}catch(e){status.innerHTML=e.message;}
+};
 
-    if(!email || !senha){ loginStatus.style.color="red"; loginStatus.textContent="Preencha email e senha."; return; }
+async function carregarRole(uid){
+const snap=await getDoc(doc(db,"usuarios",uid));
+roleAtual=snap.data().role;
+}
 
-    try {
-      const cred = await signInWithEmailAndPassword(auth,email,senha);
-      usuarioAtual = cred.user;
-      await carregarRole(usuarioAtual.uid);
-      loginStatus.style.color="green"; loginStatus.textContent="Login realizado com sucesso!";
-      setTimeout(mostrarPainel, 800);
-    } catch(e){ loginStatus.style.color="red"; loginStatus.textContent="Erro ao entrar: "+e.message; console.error(e); }
-  };
+function mostrarPainel(){
+document.getElementById("login").style.display="none";
+if(roleAtual==="admin"){
+document.getElementById("admin").style.display="block";
+iniciarAdmin();
+}else{
+document.getElementById("cliente").style.display="block";
+iniciarCliente();
+}
+}
 
-  async function carregarRole(uid){
-    const docUser = await getDoc(doc(db,"usuarios",uid));
-    roleAtual = docUser.exists()?docUser.data().role:null;
-  }
+function iniciarAdmin(){
+onSnapshot(collection(db,"produtos"),snap=>{
+listaProdutos.innerHTML="";
+snap.forEach(d=>{
+const p=d.data();
+listaProdutos.innerHTML+=`
+<div class="item">
+${p.nome} - R$ ${p.valor}
+<button onclick="removerProduto('${d.id}')">X</button>
+</div>`;
+});
+});
 
-  onAuthStateChanged(auth, async user=>{
-    if(user){ usuarioAtual=user; await carregarRole(user.uid); mostrarPainel(); }
-    else{ usuarioAtual=null; roleAtual=null; loginDiv.style.display="block"; adminDiv.style.display="none"; clienteDiv.style.display="none"; }
-  });
-
-  // --- FUNÇÕES ADMIN ---
-  function iniciarAdmin(){
-    const listaProdutos = document.getElementById("listaProdutos");
-    const listaPedidos = document.getElementById("listaPedidos");
-
-    // Adicionar Produto
-    document.getElementById("btnAddProduto").onclick=async()=>{
-      const nome=document.getElementById("nomeProduto").value.trim();
-      const valor=parseFloat(document.getElementById("valorProduto").value);
-      if(!nome || isNaN(valor) || valor<=0){ alert("Preencha nome e valor válido."); return; }
-      await addDoc(collection(db,"produtos"),{nome,valor,oculto:false,criadoEm:serverTimestamp()});
-      document.getElementById("nomeProduto").value="";
-      document.getElementById("valorProduto").value="";
-    };
-
-    // Listar produtos
-    onSnapshot(collection(db,"produtos"), snapshot=>{
-      listaProdutos.innerHTML="";
-      snapshot.forEach(docSnap=>{
-        const p = docSnap.data();
-        const div=document.createElement("div");
-        div.className="produto"; div.textContent=`${p.nome} - R$ ${p.valor.toFixed(2)}`;
-        const btnO=document.createElement("button"); btnO.textContent=p.oculto?"Mostrar":"Ocultar"; btnO.onclick=()=>updateDoc(doc(db,"produtos",docSnap.id),{oculto:!p.oculto});
-        const btnR=document.createElement("button"); btnR.textContent="Remover"; btnR.onclick=()=>{if(confirm("Remover produto?")) deleteDoc(doc(db,"produtos",docSnap.id));};
-        div.appendChild(btnO); div.appendChild(btnR); listaProdutos.appendChild(div);
-      });
-    });
-
-    // Listar pedidos
-    onSnapshot(query(collection(db,"pedidos"),orderBy("criadoEm","desc")), snapshot=>{
-      listaPedidos.innerHTML="<p><b>Pedidos recentes:</b></p>";
-      snapshot.forEach(docSnap=>{
-        const pedido=docSnap.data();
-        const div=document.createElement("div"); div.className="pedido";
-        div.innerHTML=`<b>ID:</b> ${docSnap.id}<br><b>Status:</b> ${pedido.status}<br><b>Cliente:</b> ${pedido.cliente}<br>`;
-        const btnC=document.createElement("button"); btnC.textContent="Confirmar a caminho"; btnC.onclick=()=>updateDoc(doc(db,"pedidos",docSnap.id),{status:"a caminho"});
-        const btnF=document.createElement("button"); btnF.textContent="Concluir"; btnF.onclick=()=>updateDoc(doc(db,"pedidos",docSnap.id),{status:"concluído"});
-        div.appendChild(btnC); div.appendChild(btnF);
-        listaPedidos.appendChild(div);
-      });
-    });
-  }
-
-  // --- FUNÇÕES CLIENTE ---
-  function iniciarCliente(){
-    const produtosDiv=document.getElementById("produtos");
-    const meusPedidos=document.getElementById("meusPedidos");
-
-    // Listar produtos visíveis
-    onSnapshot(query(collection(db,"produtos"),where("oculto","==",false)), snapshot=>{
-      produtosDiv.innerHTML="";
-      snapshot.forEach(docSnap=>{
-        const p = docSnap.data();
-        const div=document.createElement("div");
-        div.className="produto"; div.textContent=`${p.nome} - R$ ${p.valor.toFixed(2)}`;
-        produtosDiv.appendChild(div);
-      });
-    });
-
-    // Buscar CEP
-    document.getElementById("btnBuscarCep").onclick=async()=>{
-      const cep=document.getElementById("cep").value.replace(/\D/g,"");
-      if(cep.length!==8){ alert("Digite CEP válido."); return; }
-      const res=await fetch(`https://viacep.com.br/ws/${cep}/json/`); const data=await res.json();
-      if(data.erro){ alert("CEP não encontrado."); return; }
-      document.getElementById("rua").value=data.logradouro||"";
-    };
-
-    // Fazer pedido
-    document.getElementById("btnFazerPedido").onclick=async()=>{
-      const produtosSnapshot=await getDocs(query(collection(db,"produtos"),where("oculto","==",false)));
-      if(produtosSnapshot.empty){ alert("Nenhum produto disponível."); return; }
-      const produtos=[]; produtosSnapshot.forEach(d=>produtos.push({id:d.id,...d.data()}));
-      const entrega=document.getElementById("entrega").value;
-      const cep=document.getElementById("cep").value.trim();
-      const rua=document.getElementById("rua").value.trim();
-      const numero=document.getElementById("numero").value.trim();
-      const referencia=document.getElementById("referencia").value.trim();
-      if(entrega==="sim" && (!cep||!rua||!numero)){ alert("Preencha dados de entrega."); return; }
-      const pedidoRef=await addDoc(collection(db,"pedidos"),{cliente:usuarioAtual.uid,produtos,entrega,endereco:entrega==="sim"?{cep,rua,numero,referencia}:null,status:"aguardando",criadoEm:serverTimestamp(),chatLiberado:false});
-      setTimeout(async()=>{await updateDoc(doc(db,"pedidos",pedidoRef.id),{chatLiberado:true});},300000);
-      alert("Pedido feito! ID: "+pedidoRef.id); limparPedido(); carregarMeusPedidos();
-    };
-
-    function limparPedido(){ document.getElementById("cep").value=""; document.getElementById("rua").value=""; document.getElementById("numero").value=""; document.getElementById("referencia").value=""; document.getElementById("entrega").value="sim"; }
-
-    async function carregarMeusPedidos(){
-      const q=query(collection(db,"pedidos"),where("cliente","==",usuarioAtual.uid),orderBy("criadoEm","desc"));
-      const snapshot=await getDocs(q);
-      meusPedidos.innerHTML="";
-      snapshot.forEach(docSnap=>{
-        const p=docSnap.data();
-        const div=document.createElement("div"); div.className="pedido";
-        div.innerHTML=`<b>ID:</b>${docSnap.id}<br><b>Status:</b>${p.status}<br>`;
-        meusPedidos.appendChild(div);
-      });
-    }
-
-    carregarMeusPedidos();
-  }
-</script>
-</body>
-</html>
+onSnapshot(query(collection(db,"pedidos"),orderBy("criadoEm","desc")),snap=>{
+listaPedidos.innerHTML="";
+snap.forEach(d=>{
+const p=d.data();
+listaPedidos.innerHTML+=`
+<div class="item">
+${d.id}<br>Status: ${p.status}
+<button onclick="mudarStatus('${d.id}','a caminho')">A Caminho</button>
+<button onclick="mudarStatus('${d.id}','concluído')">Concluir</

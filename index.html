@@ -114,4 +114,77 @@ window.logout = function() {
 
 window.addProduto = async function() {
   await addDoc(collection(db, "produtos"), {
-    nome
+    nome: nomeProduto.value,
+    preco: precoProduto.value
+  });
+
+  nomeProduto.value = "";
+  precoProduto.value = "";
+};
+
+function carregarProdutos() {
+  onSnapshot(collection(db, "produtos"), (snapshot) => {
+    listaProdutos.innerHTML = "";
+    snapshot.forEach((docSnap) => {
+      const produto = docSnap.data();
+      listaProdutos.innerHTML += `
+        <div class="border p-2 rounded mb-2">
+          ${produto.nome} - R$ ${produto.preco}
+          <button onclick="fazerPedido('${produto.nome}')"
+            class="bg-green-500 text-white px-2 py-1 rounded ml-2">
+            Pedir
+          </button>
+        </div>
+      `;
+    });
+  });
+}
+
+window.fazerPedido = async function(nome) {
+  await addDoc(collection(db, "pedidos"), {
+    produto: nome,
+    usuario: auth.currentUser.email
+  });
+
+  alert("Pedido enviado!");
+};
+
+function carregarPedidos() {
+  onSnapshot(collection(db, "pedidos"), (snapshot) => {
+    listaPedidos.innerHTML = "";
+    snapshot.forEach((docSnap) => {
+      const pedido = docSnap.data();
+      listaPedidos.innerHTML += `
+        <div class="border p-2 rounded mb-2">
+          ${pedido.usuario} pediu ${pedido.produto}
+        </div>
+      `;
+    });
+  });
+}
+
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    const docSnap = await getDoc(doc(db, "usuarios", user.uid));
+
+    authBox.classList.add("hidden");
+
+    if (docSnap.exists() && docSnap.data().role === "admin") {
+      adminPanel.classList.remove("hidden");
+      clientePanel.classList.add("hidden");
+      carregarPedidos();
+    } else {
+      clientePanel.classList.remove("hidden");
+      adminPanel.classList.add("hidden");
+      carregarProdutos();
+    }
+  } else {
+    authBox.classList.remove("hidden");
+    adminPanel.classList.add("hidden");
+    clientePanel.classList.add("hidden");
+  }
+});
+</script>
+
+</body>
+</html>

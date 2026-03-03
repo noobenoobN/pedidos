@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sistema Pedidos</title>
+<title>Sistema Completo</title>
 <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
-<body class="bg-gray-100 flex items-center justify-center h-screen">
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
 
-<div class="bg-white p-6 rounded-xl shadow-md w-80">
-  <h2 class="text-2xl font-bold text-center mb-4">Sistema</h2>
+<div id="authBox" class="bg-white p-6 rounded-xl shadow-md w-80">
+  <h2 class="text-2xl font-bold text-center mb-4">Login / Cadastro</h2>
 
   <input id="email" type="email" placeholder="Email"
     class="w-full p-2 mb-2 border rounded">
@@ -31,9 +31,27 @@
   <p id="msg" class="text-red-500 text-sm mt-2 text-center"></p>
 </div>
 
+<div id="adminPanel" class="hidden bg-white p-6 rounded-xl shadow-md w-96 text-center">
+  <h1 class="text-2xl font-bold mb-4">Painel Admin 👑</h1>
+  <p>Você está logado como administrador</p>
+  <button onclick="logout()"
+    class="mt-4 bg-red-500 text-white p-2 rounded">
+    Sair
+  </button>
+</div>
+
+<div id="clientePanel" class="hidden bg-white p-6 rounded-xl shadow-md w-96 text-center">
+  <h1 class="text-2xl font-bold mb-4">Painel Cliente 🛒</h1>
+  <p>Você está logado como cliente</p>
+  <button onclick="logout()"
+    class="mt-4 bg-red-500 text-white p-2 rounded">
+    Sair
+  </button>
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -49,9 +67,13 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+const authBox = document.getElementById("authBox");
+const adminPanel = document.getElementById("adminPanel");
+const clientePanel = document.getElementById("clientePanel");
+
 window.cadastrar = async function() {
-  const email = email.value;
-  const senha = senha.value;
+  const email = document.getElementById("email").value;
+  const senha = document.getElementById("senha").value;
 
   try {
     const cred = await createUserWithEmailAndPassword(auth, email, senha);
@@ -62,37 +84,47 @@ window.cadastrar = async function() {
       criadoEm: new Date()
     });
 
-    alert("Conta criada!");
+    alert("Conta criada com sucesso!");
   } catch (error) {
     msg.innerText = error.message;
   }
 };
 
 window.login = async function() {
-  const emailValue = document.getElementById("email").value;
-  const senhaValue = document.getElementById("senha").value;
+  const email = document.getElementById("email").value;
+  const senha = document.getElementById("senha").value;
 
   try {
-    const cred = await signInWithEmailAndPassword(auth, emailValue, senhaValue);
-    const user = cred.user;
-
-    const docRef = doc(db, "usuarios", user.uid);
-    const docSnap = await getDoc(docRef);
-
-    if (docSnap.exists()) {
-      const dados = docSnap.data();
-
-      if (dados.role === "admin") {
-        window.location.href = "admin.html";
-      } else {
-        window.location.href = "cliente.html";
-      }
-    }
-
+    await signInWithEmailAndPassword(auth, email, senha);
   } catch (error) {
     msg.innerText = "Email ou senha inválidos";
   }
 };
+
+window.logout = function() {
+  signOut(auth);
+};
+
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    const docRef = doc(db, "usuarios", user.uid);
+    const docSnap = await getDoc(docRef);
+
+    authBox.classList.add("hidden");
+
+    if (docSnap.exists() && docSnap.data().role === "admin") {
+      adminPanel.classList.remove("hidden");
+      clientePanel.classList.add("hidden");
+    } else {
+      clientePanel.classList.remove("hidden");
+      adminPanel.classList.add("hidden");
+    }
+  } else {
+    authBox.classList.remove("hidden");
+    adminPanel.classList.add("hidden");
+    clientePanel.classList.add("hidden");
+  }
+});
 </script>
 
 </body>

@@ -3,33 +3,38 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Login</title>
+<title>Sistema Pedidos</title>
 <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
 <body class="bg-gray-100 flex items-center justify-center h-screen">
 
 <div class="bg-white p-6 rounded-xl shadow-md w-80">
-  <h2 class="text-2xl font-bold text-center mb-4">Login</h2>
+  <h2 class="text-2xl font-bold text-center mb-4">Sistema</h2>
 
   <input id="email" type="email" placeholder="Email"
-    class="w-full p-2 mb-3 border rounded">
+    class="w-full p-2 mb-2 border rounded">
 
   <input id="senha" type="password" placeholder="Senha"
-    class="w-full p-2 mb-4 border rounded">
+    class="w-full p-2 mb-3 border rounded">
 
   <button onclick="login()"
-    class="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">
+    class="w-full bg-blue-600 text-white p-2 rounded mb-2">
     Entrar
   </button>
 
-  <p id="erro" class="text-red-500 text-sm mt-2 text-center"></p>
+  <button onclick="cadastrar()"
+    class="w-full bg-green-600 text-white p-2 rounded">
+    Cadastrar
+  </button>
+
+  <p id="msg" class="text-red-500 text-sm mt-2 text-center"></p>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
-import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBgqjGYaV7rmgLMPB-Y4DcvgVkg82GFt0I",
@@ -44,12 +49,31 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-window.login = async function() {
-  const email = document.getElementById("email").value;
-  const senha = document.getElementById("senha").value;
+window.cadastrar = async function() {
+  const email = email.value;
+  const senha = senha.value;
 
   try {
-    const cred = await signInWithEmailAndPassword(auth, email, senha);
+    const cred = await createUserWithEmailAndPassword(auth, email, senha);
+
+    await setDoc(doc(db, "usuarios", cred.user.uid), {
+      email: email,
+      role: "cliente",
+      criadoEm: new Date()
+    });
+
+    alert("Conta criada!");
+  } catch (error) {
+    msg.innerText = error.message;
+  }
+};
+
+window.login = async function() {
+  const emailValue = document.getElementById("email").value;
+  const senhaValue = document.getElementById("senha").value;
+
+  try {
+    const cred = await signInWithEmailAndPassword(auth, emailValue, senhaValue);
     const user = cred.user;
 
     const docRef = doc(db, "usuarios", user.uid);
@@ -63,12 +87,10 @@ window.login = async function() {
       } else {
         window.location.href = "cliente.html";
       }
-    } else {
-      window.location.href = "cliente.html";
     }
 
   } catch (error) {
-    document.getElementById("erro").innerText = "Email ou senha inválidos";
+    msg.innerText = "Email ou senha inválidos";
   }
 };
 </script>

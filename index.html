@@ -1,122 +1,35 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sistema Profissional</title>
-
-<style>
-body{
-  font-family:Arial;
-  background:#f2f2f2;
-  margin:0;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  min-height:100vh;
-}
-.card{
-  background:white;
-  width:380px;
-  max-height:95vh;
-  overflow:auto;
-  padding:20px;
-  border-radius:12px;
-  box-shadow:0 4px 10px rgba(0,0,0,0.2);
-}
-h2{text-align:center;margin-top:0}
-input,select,button{
-  width:100%;
-  padding:10px;
-  margin:5px 0;
-}
-button{
-  background:#ff6600;
-  color:white;
-  border:none;
-  font-weight:bold;
-  cursor:pointer;
-  border-radius:6px;
-}
-button:hover{opacity:0.9}
-.produto{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  border-bottom:1px solid #ddd;
-  padding:8px 0;
-}
-.qtd{
-  display:flex;
-  align-items:center;
-  gap:5px;
-}
-.qtd button{
-  width:30px;
-  height:30px;
-  padding:0;
-}
-.total{
-  font-size:18px;
-  font-weight:bold;
-  margin-top:10px;
-}
-.chat{
-  border:1px solid #ddd;
-  height:120px;
-  overflow:auto;
-  padding:5px;
-  margin-bottom:5px;
-  background:#fafafa;
-}
-.msgAdmin{color:red;font-size:14px}
-.msgCliente{color:green;font-size:14px}
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login</title>
+<script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
 
-<div id="login" class="card">
-<h2>Login / Cadastro</h2>
-<input type="email" id="email" placeholder="Email">
-<input type="password" id="senha" placeholder="Senha">
-<input type="text" id="telefone" placeholder="Telefone">
-<button onclick="registrar()">Registrar</button>
-<button onclick="entrar()">Entrar</button>
-<p id="status"></p>
-</div>
+<body class="bg-gray-100 flex items-center justify-center h-screen">
 
-<div id="cliente" class="card" style="display:none;">
-<h2>Pedidos</h2>
+<div class="bg-white p-6 rounded-xl shadow-md w-80">
+  <h2 class="text-2xl font-bold text-center mb-4">Login</h2>
 
-<div id="produtos"></div>
+  <input id="email" type="email" placeholder="Email"
+    class="w-full p-2 mb-3 border rounded">
 
-<select id="tipoEntrega">
-<option value="retirada">Retirada</option>
-<option value="entrega">Entrega</option>
-</select>
+  <input id="senha" type="password" placeholder="Senha"
+    class="w-full p-2 mb-4 border rounded">
 
-<input id="cep" placeholder="CEP">
-<button onclick="buscarCep()">Buscar CEP</button>
-<input id="rua" placeholder="Rua">
-<input id="numero" placeholder="Número">
-<input id="referencia" placeholder="Referência">
+  <button onclick="login()"
+    class="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">
+    Entrar
+  </button>
 
-<div class="total">
-Total: R$ <span id="total">0.00</span>
-</div>
-
-<button onclick="fazerPedido()">Finalizar Pedido</button>
-
-<h3>Chat</h3>
-<div class="chat" id="chat"></div>
-<input id="msg" placeholder="Digite mensagem">
-<button onclick="enviarMsg()">Enviar</button>
+  <p id="erro" class="text-red-500 text-sm mt-2 text-center"></p>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, doc, setDoc, getDoc, onSnapshot, updateDoc, query, where, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBgqjGYaV7rmgLMPB-Y4DcvgVkg82GFt0I",
@@ -131,106 +44,34 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-let user=null;
-let carrinho=[];
-let pedidoAtual=null;
+window.login = async function() {
+  const email = document.getElementById("email").value;
+  const senha = document.getElementById("senha").value;
 
-window.registrar=async()=>{
-await createUserWithEmailAndPassword(auth,email.value,senha.value);
+  try {
+    const cred = await signInWithEmailAndPassword(auth, email, senha);
+    const user = cred.user;
+
+    const docRef = doc(db, "usuarios", user.uid);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      const dados = docSnap.data();
+
+      if (dados.role === "admin") {
+        window.location.href = "admin.html";
+      } else {
+        window.location.href = "cliente.html";
+      }
+    } else {
+      window.location.href = "cliente.html";
+    }
+
+  } catch (error) {
+    document.getElementById("erro").innerText = "Email ou senha inválidos";
+  }
 };
-
-window.entrar=async()=>{
-await signInWithEmailAndPassword(auth,email.value,senha.value);
-};
-
-onAuthStateChanged(auth,u=>{
-if(u){
-user=u;
-login.style.display="none";
-cliente.style.display="block";
-carregarProdutos();
-}
-});
-
-function carregarProdutos(){
-onSnapshot(collection(db,"produtos"),snap=>{
-produtos.innerHTML="";
-carrinho=[];
-snap.forEach(d=>{
-const p=d.data();
-produtos.innerHTML+=`
-<div class="produto">
-<div>${p.nome}<br>R$ ${p.valor}</div>
-<div class="qtd">
-<button onclick="alterarQtd('${d.id}','${p.nome}',${p.valor},-1)">-</button>
-<span id="q_${d.id}">0</span>
-<button onclick="alterarQtd('${d.id}','${p.nome}',${p.valor},1)">+</button>
-</div>
-</div>`;
-});
-});
-}
-
-window.alterarQtd=(id,nome,valor,acao)=>{
-let item=carrinho.find(i=>i.id===id);
-if(!item && acao>0){
-item={id,nome,valor,qtd:0};
-carrinho.push(item);
-}
-if(item){
-item.qtd+=acao;
-if(item.qtd<=0){
-carrinho=carrinho.filter(i=>i.id!==id);
-}
-}
-document.getElementById("q_"+id).innerText=item?item.qtd:0;
-calcularTotal();
-};
-
-function calcularTotal(){
-let total=0;
-carrinho.forEach(i=>total+=i.valor*i.qtd);
-if(tipoEntrega.value==="entrega") total+=5;
-document.getElementById("total").innerText=total.toFixed(2);
-}
-
-tipoEntrega.onchange=calcularTotal;
-
-window.buscarCep=async()=>{
-const res=await fetch(`https://viacep.com.br/ws/${cep.value}/json/`);
-const data=await res.json();
-rua.value=data.logradouro||"";
-};
-
-window.fazerPedido=async()=>{
-if(carrinho.length===0) return alert("Selecione itens");
-const pedido=await addDoc(collection(db,"pedidos"),{
-cliente:user.uid,
-itens:carrinho,
-status:"aguardando",
-entrega:tipoEntrega.value,
-endereco:{
-cep:cep.value,
-rua:rua.value,
-numero:numero.value,
-referencia:referencia.value
-},
-criadoEm:serverTimestamp()
-});
-pedidoAtual=pedido.id;
-alert("Pedido enviado!");
-};
-
-window.enviarMsg=async()=>{
-if(!pedidoAtual) return alert("Faça um pedido primeiro");
-await addDoc(collection(db,"pedidos",pedidoAtual,"chat"),{
-texto:msg.value,
-autor:user.uid,
-criadoEm:serverTimestamp()
-});
-msg.value="";
-};
-
 </script>
+
 </body>
 </html>

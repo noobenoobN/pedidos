@@ -3,250 +3,245 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sistema Delivery Completo</title>
+<title>Delivery Completo</title>
 <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
 <body class="bg-gray-100 min-h-screen">
 
+<!-- LOGIN -->
 <div id="authBox" class="flex items-center justify-center min-h-screen">
-<div class="bg-white p-6 rounded-xl shadow-md w-80">
-<h2 class="text-2xl font-bold text-center mb-4">Login</h2>
-<input id="email" type="email" placeholder="Email" class="w-full p-2 mb-2 border rounded">
-<input id="senha" type="password" placeholder="Senha" class="w-full p-2 mb-3 border rounded">
-<button onclick="login()" class="w-full bg-red-600 text-white p-2 rounded mb-2">Entrar</button>
-<button onclick="cadastrar()" class="w-full bg-green-600 text-white p-2 rounded">Cadastrar</button>
-</div>
+  <div class="bg-white p-6 rounded-xl shadow-md w-80">
+    <h2 class="text-2xl font-bold text-center mb-4">Login</h2>
+    <input id="email" type="email" placeholder="Email" class="w-full p-2 mb-2 border rounded">
+    <input id="senha" type="password" placeholder="Senha" class="w-full p-2 mb-3 border rounded">
+    <button onclick="login()" class="w-full bg-red-600 text-white p-2 rounded mb-2">Entrar</button>
+    <button onclick="cadastrar()" class="w-full bg-green-600 text-white p-2 rounded">Cadastrar</button>
+  </div>
 </div>
 
+<!-- APP -->
 <div id="app" class="hidden p-4 max-w-4xl mx-auto">
 
-<div class="flex justify-between items-center mb-4">
-<h1 class="text-2xl font-bold">Delivery Completo 🔥</h1>
-<div>
-<button onclick="toggleDark()" class="mr-3">🌙</button>
-<button onclick="logout()" class="text-red-600">Sair</button>
-</div>
-</div>
+  <div class="flex justify-between items-center mb-4">
+    <h1 class="text-2xl font-bold">Delivery Firebase 🔥</h1>
+    <button onclick="logout()" class="text-red-600">Sair</button>
+  </div>
 
-<div id="clienteArea" class="hidden"></div>
-<div id="adminArea" class="hidden"></div>
-<div id="entregadorArea" class="hidden"></div>
+  <div id="clienteArea" class="hidden"></div>
+  <div id="adminArea" class="hidden"></div>
+  <div id="entregadorArea" class="hidden"></div>
 
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-analytics.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, collection, addDoc, onSnapshot, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
 const firebaseConfig = {
-apiKey: "SUA_API",
-authDomain: "SEU_AUTH",
-projectId: "SEU_PROJECT",
-storageBucket: "SEU_BUCKET",
-messagingSenderId: "SEU_MSG",
-appId: "SEU_APP"
+  apiKey: "AIzaSyBgqjGYaV7rmgLMPB-Y4DcvgVkg82GFt0I",
+  authDomain: "sitepedidos.firebaseapp.com",
+  projectId: "sitepedidos",
+  storageBucket: "sitepedidos.firebasestorage.app",
+  messagingSenderId: "812273915392",
+  appId: "1:812273915392:web:9fc70d67ac717a11ca6ae5",
+  measurementId: "G-4HLF6VSY2Z"
 };
 
 const appFirebase = initializeApp(firebaseConfig);
+getAnalytics(appFirebase);
 const auth = getAuth(appFirebase);
 const db = getFirestore(appFirebase);
 
-let dark=false;
-window.toggleDark=()=>{
-dark=!dark;
-document.body.classList.toggle("bg-gray-900");
-document.body.classList.toggle("text-white");
+window.cadastrar = async () => {
+  const cred = await createUserWithEmailAndPassword(auth, email.value, senha.value);
+  await setDoc(doc(db, "usuarios", cred.user.uid), {
+    email: email.value,
+    role: "cliente"
+  });
+  alert("Conta criada!");
 };
 
-window.cadastrar=async()=>{
-const cred=await createUserWithEmailAndPassword(auth,email.value,senha.value);
-await setDoc(doc(db,"usuarios",cred.user.uid),{
-email:email.value,
-role:"cliente",
-online:true
-});
-alert("Criado!");
+window.login = async () => {
+  await signInWithEmailAndPassword(auth, email.value, senha.value);
 };
 
-window.login=async()=>{
-await signInWithEmailAndPassword(auth,email.value,senha.value);
+window.logout = () => signOut(auth);
+
+onAuthStateChanged(auth, async user => {
+  if (user) {
+    authBox.classList.add("hidden");
+    app.classList.remove("hidden");
+
+    const userDoc = await getDoc(doc(db, "usuarios", user.uid));
+    const role = userDoc.data().role;
+
+    clienteArea.classList.add("hidden");
+    adminArea.classList.add("hidden");
+    entregadorArea.classList.add("hidden");
+
+    if (role === "cliente") carregarCliente();
+    if (role === "admin") carregarAdmin();
+    if (role === "entregador") carregarEntregador();
+
+  } else {
+    authBox.classList.remove("hidden");
+    app.classList.add("hidden");
+  }
+});
+
+function carregarCliente() {
+  clienteArea.classList.remove("hidden");
+  clienteArea.innerHTML = `
+    <h2 class="text-xl font-bold mb-3">Cardápio</h2>
+    <div id="produtos"></div>
+    <h3 class="mt-4 font-bold">Carrinho</h3>
+    <div id="carrinho"></div>
+    <p>Total: R$ <span id="totalSpan">0</span></p>
+    <button onclick="enviarPedido()" class="bg-red-600 text-white p-2 rounded mt-2">Finalizar Pedido</button>
+    <h3 class="mt-6 font-bold">Meus Pedidos</h3>
+    <div id="meusPedidos"></div>
+  `;
+
+  const produtos = [
+    { nome: "Hambúrguer", preco: 20 },
+    { nome: "Pizza", preco: 35 },
+    { nome: "Refrigerante", preco: 8 }
+  ];
+
+  let carrinho = [];
+  let total = 0;
+
+  window.addCarrinho = (nome, preco) => {
+    carrinho.push({ nome, preco });
+    total += preco;
+    renderCarrinho();
+  };
+
+  function renderCarrinho() {
+    carrinhoDiv.innerHTML = "";
+    carrinho.forEach(item => {
+      carrinhoDiv.innerHTML += `<div>${item.nome} - R$ ${item.preco}</div>`;
+    });
+    totalSpan.innerText = total;
+  }
+
+  produtosDiv.innerHTML = "";
+  produtos.forEach(p => {
+    produtosDiv.innerHTML += `
+      <div class="border p-2 mb-2 flex justify-between">
+        ${p.nome} - R$ ${p.preco}
+        <button onclick="addCarrinho('${p.nome}',${p.preco})"
+        class="bg-green-500 text-white px-2 rounded">+</button>
+      </div>
+    `;
+  });
+
+  window.enviarPedido = async () => {
+    await addDoc(collection(db, "pedidos"), {
+      usuario: auth.currentUser.email,
+      total: total,
+      status: "Recebido",
+      criadoEm: new Date()
+    });
+    carrinho = [];
+    total = 0;
+    renderCarrinho();
+  };
+
+  onSnapshot(collection(db, "pedidos"), snap => {
+    meusPedidos.innerHTML = "";
+    snap.forEach(docSnap => {
+      const p = docSnap.data();
+      if (p.usuario === auth.currentUser.email) {
+        meusPedidos.innerHTML += `
+          <div class="border p-2 mb-2">
+            Status: ${p.status}
+            <button onclick="cancelarPedido('${docSnap.id}')"
+            class="bg-red-500 text-white px-2 ml-2">Cancelar</button>
+          </div>
+        `;
+      }
+    });
+  });
+
+  window.cancelarPedido = async (id) => {
+    await deleteDoc(doc(db, "pedidos", id));
+  };
+}
+
+function carregarAdmin() {
+  adminArea.classList.remove("hidden");
+  adminArea.innerHTML = `
+    <h2 class="text-xl font-bold mb-3">Pedidos</h2>
+    <div id="adminPedidos"></div>
+  `;
+
+  onSnapshot(collection(db, "pedidos"), snap => {
+    adminPedidos.innerHTML = "";
+    snap.forEach(docSnap => {
+      const p = docSnap.data();
+      adminPedidos.innerHTML += `
+        <div class="border p-3 mb-2">
+          Cliente: ${p.usuario}<br>
+          Total: R$ ${p.total}<br>
+          Status: ${p.status}<br>
+          <button onclick="confirmarPedido('${docSnap.id}')"
+          class="bg-green-600 text-white px-2 mr-2">Confirmar</button>
+          <button onclick="avancarStatus('${docSnap.id}','${p.status}')"
+          class="bg-blue-500 text-white px-2">Avançar</button>
+        </div>
+      `;
+    });
+  });
+}
+
+window.confirmarPedido = async (id) => {
+  await updateDoc(doc(db, "pedidos", id), { status: "Confirmado" });
 };
 
-window.logout=()=>signOut(auth);
-
-onAuthStateChanged(auth,async user=>{
-if(user){
-authBox.classList.add("hidden");
-app.classList.remove("hidden");
-
-const u=await getDoc(doc(db,"usuarios",user.uid));
-const role=u.data().role;
-
-clienteArea.classList.add("hidden");
-adminArea.classList.add("hidden");
-entregadorArea.classList.add("hidden");
-
-if(role==="admin"){
-adminArea.classList.remove("hidden");
-carregarAdmin();
-}
-if(role==="cliente"){
-clienteArea.classList.remove("hidden");
-carregarCliente();
-}
-if(role==="entregador"){
-entregadorArea.classList.remove("hidden");
-carregarEntregador();
-}
-}else{
-authBox.classList.remove("hidden");
-app.classList.add("hidden");
-}
-});
-
-function carregarCliente(){
-clienteArea.innerHTML=`
-<h2 class="text-xl font-bold mb-2">Cardápio</h2>
-<div id="produtos"></div>
-<h3 class="mt-4 font-bold">Carrinho</h3>
-<div id="carrinho"></div>
-<p>Total: R$ <span id="totalSpan">0</span></p>
-<button onclick="enviarPedido()" class="bg-red-600 text-white p-2 rounded mt-2">Finalizar</button>
-<h3 class="mt-6 font-bold">Meus Pedidos</h3>
-<div id="meusPedidos"></div>
-`;
-const produtos=[{n:"Hambúrguer",p:20},{n:"Pizza",p:35},{n:"Refri",p:8}];
-let carrinho=[];
-let total=0;
-
-window.addCarrinho=(n,p)=>{
-carrinho.push({nome:n,preco:p});
-total+=p;
-render();
+window.avancarStatus = async (id, status) => {
+  const mapa = {
+    Recebido: "Em preparo",
+    Confirmado: "Em preparo",
+    "Em preparo": "Saiu",
+    Saiu: "Entregue"
+  };
+  await updateDoc(doc(db, "pedidos", id), {
+    status: mapa[status] || "Entregue"
+  });
 };
 
-function render(){
-carrinhoDiv.innerHTML="";
-carrinho.forEach(i=>carrinhoDiv.innerHTML+=`<div>${i.nome} - R$ ${i.preco}</div>`);
-totalSpan.innerText=total;
+function carregarEntregador() {
+  entregadorArea.classList.remove("hidden");
+  entregadorArea.innerHTML = `
+    <h2 class="text-xl font-bold mb-3">Entregas</h2>
+    <div id="listaEntrega"></div>
+  `;
+
+  onSnapshot(collection(db, "pedidos"), snap => {
+    listaEntrega.innerHTML = "";
+    snap.forEach(docSnap => {
+      const p = docSnap.data();
+      if (p.status === "Saiu") {
+        listaEntrega.innerHTML += `
+          <div class="border p-3 mb-2">
+            Cliente: ${p.usuario}<br>
+            <button onclick="marcarEntregue('${docSnap.id}')"
+            class="bg-green-600 text-white px-2">Entregue</button>
+          </div>
+        `;
+      }
+    });
+  });
 }
 
-produtosDiv.innerHTML="";
-produtos.forEach(pr=>{
-produtosDiv.innerHTML+=`
-<div class="border p-2 mb-2 flex justify-between">
-${pr.n} - R$ ${pr.p}
-<button onclick="addCarrinho('${pr.n}',${pr.p})" class="bg-green-500 text-white px-2 rounded">+</button>
-</div>`;
-});
-
-window.enviarPedido=async()=>{
-await addDoc(collection(db,"pedidos"),{
-usuario:auth.currentUser.email,
-itens:carrinho,
-total:total,
-status:"Recebido",
-confirmado:false,
-criadoEm:new Date()
-});
-carrinho=[]; total=0; render();
-};
-
-onSnapshot(collection(db,"pedidos"),snap=>{
-meusPedidos.innerHTML="";
-snap.forEach(docSnap=>{
-const p=docSnap.data();
-if(p.usuario===auth.currentUser.email){
-meusPedidos.innerHTML+=`
-<div class="border p-2 mb-2">
-Status: ${p.status}
-<button onclick="cancelar('${docSnap.id}')"
-class="bg-red-500 text-white px-2 ml-2">Cancelar</button>
-</div>`;
-}
-});
-});
-
-window.cancelar=async(id)=>{
-await deleteDoc(doc(db,"pedidos",id));
-};
-}
-
-function carregarAdmin(){
-adminArea.innerHTML=`
-<h2 class="text-xl font-bold mb-3">Dashboard</h2>
-<div id="dashboard"></div>
-<h3 class="mt-4 font-bold">Pedidos</h3>
-<div id="adminPedidos"></div>
-`;
-
-onSnapshot(collection(db,"pedidos"),snap=>{
-let totalVendido=0;
-let pedidosAtivos=0;
-adminPedidos.innerHTML="";
-snap.forEach(docSnap=>{
-const p=docSnap.data();
-totalVendido+=p.total;
-if(p.status!=="Entregue")pedidosAtivos++;
-
-adminPedidos.innerHTML+=`
-<div class="border p-3 mb-2">
-<strong>${p.usuario}</strong><br>
-Total: R$ ${p.total}<br>
-Status: ${p.status}<br>
-<button onclick="confirmar('${docSnap.id}')" class="bg-green-600 text-white px-2 mr-1">Confirmar</button>
-<button onclick="avancar('${docSnap.id}','${p.status}')" class="bg-blue-500 text-white px-2 mr-1">Avançar</button>
-<button onclick="pix('${docSnap.id}')" class="bg-purple-500 text-white px-2">PIX</button>
-</div>`;
-});
-
-dashboard.innerHTML=`
-Total Vendido: R$ ${totalVendido}<br>
-Pedidos Ativos: ${pedidosAtivos}
-`;
-});
-}
-
-window.confirmar=async(id)=>{
-await updateDoc(doc(db,"pedidos",id),{status:"Confirmado"});
-};
-
-window.avancar=async(id,status)=>{
-const mapa={Recebido:"Em preparo",Confirmado:"Em preparo","Em preparo":"Saiu","Saiu":"Entregue"};
-await updateDoc(doc(db,"pedidos",id),{status:mapa[status]||"Entregue"});
-};
-
-window.pix=async(id)=>{
-alert("PIX copia e cola gerado!");
-await updateDoc(doc(db,"pedidos",id),{pago:true});
-};
-
-function carregarEntregador(){
-entregadorArea.innerHTML=`
-<h2 class="text-xl font-bold mb-3">Entregas</h2>
-<div id="listaEntrega"></div>
-`;
-
-onSnapshot(collection(db,"pedidos"),snap=>{
-listaEntrega.innerHTML="";
-snap.forEach(docSnap=>{
-const p=docSnap.data();
-if(p.status==="Saiu"){
-listaEntrega.innerHTML+=`
-<div class="border p-3 mb-2">
-Cliente: ${p.usuario}<br>
-<button onclick="entregue('${docSnap.id}')" class="bg-green-600 text-white px-2">Entregue</button>
-</div>`;
-}
-});
-});
-}
-
-window.entregue=async(id)=>{
-await updateDoc(doc(db,"pedidos",id),{status:"Entregue"});
+window.marcarEntregue = async (id) => {
+  await updateDoc(doc(db, "pedidos", id), { status: "Entregue" });
 };
 </script>
+
 </body>
 </html>

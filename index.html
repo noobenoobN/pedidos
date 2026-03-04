@@ -11,11 +11,14 @@
         .msg { margin-bottom: 8px; padding: 6px 12px; border-radius: 8px; max-width: 80%; }
         .msg-admin { background: #fee2e2; align-self: flex-start; border: 1px solid #fecaca; }
         .msg-cliente { background: #dbeafe; align-self: flex-end; border: 1px solid #bfdbfe; }
-        .status-pendente { color: #dc2626; font-weight: bold; }
-        .status-preparando { color: #d97706; font-weight: bold; }
-        .status-caminho { color: #2563eb; font-weight: bold; }
-        .status-entregue { color: #16a34a; font-weight: bold; }
-        .status-cancelado { color: #4b5563; font-weight: bold; background: #f3f4f6; padding: 2px 5px; border-radius: 4px; }
+        
+        /* Cores de Status para o Cliente */
+        .status-badge { padding: 2px 8px; border-radius: 99px; font-size: 12px; font-weight: bold; }
+        .status-pendente { background: #fee2e2; color: #dc2626; }
+        .status-preparando { background: #fef3c7; color: #d97706; }
+        .status-caminho { background: #dbeafe; color: #2563eb; }
+        .status-entregue { background: #dcfce7; color: #16a34a; }
+        .status-cancelado { background: #f3f4f6; color: #4b5563; }
     </style>
 </head>
 <body class="bg-gray-100 font-sans">
@@ -37,6 +40,7 @@
         </nav>
 
         <div class="max-w-6xl mx-auto p-4 grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
             <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow">
                 <div id="cliente-view" class="hidden">
                     <h3 class="text-xl font-bold mb-4">Cardápio</h3>
@@ -44,8 +48,8 @@
                     
                     <div class="border-t pt-4 space-y-3">
                         <h3 class="font-bold text-lg text-red-600 italic">Meus Pedidos Ativos</h3>
-                        <div id="meus-pedidos-status" class="bg-white border rounded p-3 text-sm space-y-2 mb-4 shadow-inner min-h-[50px]">
-                            Carregando pedidos...
+                        <div id="meus-pedidos-status" class="bg-gray-50 border rounded p-4 text-sm space-y-3 mb-4 shadow-inner min-h-[60px]">
+                            Buscando seus pedidos...
                         </div>
 
                         <h3 class="font-bold text-lg">Finalizar Novo Pedido</h3>
@@ -63,8 +67,8 @@
                             <input id="rua" type="text" placeholder="Rua / Endereço" class="w-full border p-2 rounded bg-gray-50">
                             <input id="num" type="text" placeholder="Número" class="w-full border p-2 rounded">
                         </div>
-                        <div class="bg-yellow-50 p-3 rounded border border-yellow-200 text-sm">
-                            <b>Total a Pagar:</b> <span id="resumo-carrinho">R$ 0.00</span>
+                        <div class="bg-yellow-50 p-3 rounded border border-yellow-200 text-sm font-bold">
+                            Total a Pagar: <span id="resumo-carrinho">R$ 0.00</span>
                         </div>
                         <button onclick="enviarPedidoCompleto()" class="w-full bg-green-600 text-white p-3 rounded font-bold uppercase hover:bg-green-700 transition">Confirmar e Enviar</button>
                         <button onclick="limparCarrinho()" class="w-full text-xs text-red-500 underline mt-2">Limpar Carrinho</button>
@@ -72,27 +76,28 @@
                 </div>
 
                 <div id="admin-view" class="hidden">
-                    <h3 class="text-xl font-bold mb-4">Gerenciar Cardápio</h3>
+                    <h3 class="text-xl font-bold mb-4 text-red-600">Painel Administrativo</h3>
                     <div class="bg-gray-50 p-4 rounded mb-6 border">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 font-bold mb-2">Novo Produto:</div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                            <input id="prod-nome" type="text" placeholder="Nome do Produto" class="border p-2 rounded">
+                            <input id="prod-nome" type="text" placeholder="Ex: Maca" class="border p-2 rounded">
                             <input id="prod-preco" type="number" placeholder="Preço" class="border p-2 rounded">
                         </div>
-                        <button onclick="salvarProduto()" class="mt-2 w-full bg-green-600 text-white p-2 rounded font-bold">Salvar Produto</button>
+                        <button onclick="salvarProduto()" class="mt-2 w-full bg-green-600 text-white p-2 rounded font-bold">Salvar no Cardápio</button>
                     </div>
                     <div id="admin-cardapio-lista" class="space-y-2 mb-8 text-sm"></div>
 
-                    <h3 class="text-xl font-bold mb-4 border-t pt-4">Painel de Pedidos (Ações)</h3>
+                    <h3 class="text-xl font-bold mb-4 border-t pt-4">Gestão de Pedidos</h3>
                     <div id="lista-pedidos" class="space-y-3 text-sm"></div>
                 </div>
             </div>
 
             <div class="bg-white p-6 rounded-lg shadow flex flex-col h-[500px]">
-                <h3 class="text-xl font-bold mb-4 text-blue-600 border-b pb-2">Suporte / Chat</h3>
-                <div id="chat-box" class="flex-1 p-2 mb-4 bg-gray-50 rounded"></div>
+                <h3 class="text-xl font-bold mb-4 text-blue-600 border-b pb-2 text-center">Chat de Suporte</h3>
+                <div id="chat-box" class="flex-1 p-2 mb-4 bg-gray-50 rounded shadow-inner"></div>
                 <div class="flex gap-2">
-                    <input id="chat-input" type="text" placeholder="Digite..." class="flex-1 border p-2 rounded focus:outline-none">
-                    <button onclick="enviarMensagem()" class="bg-blue-600 text-white px-4 py-2 rounded">Enviar</button>
+                    <input id="chat-input" type="text" placeholder="Dúvida sobre o pedido?" class="flex-1 border p-2 rounded focus:outline-none">
+                    <button onclick="enviarMensagem()" class="bg-blue-600 text-white px-4 py-2 rounded font-bold">OK</button>
                 </div>
             </div>
         </div>
@@ -119,13 +124,14 @@
         let carrinho = [];
         let totalAcumulado = 0;
 
+        // --- AUTENTICAÇÃO ---
         window.cadastrar = () => {
-            const e = document.getElementById('email').value;
+            const e = document.getElementById('email').value.trim();
             const s = document.getElementById('senha').value;
             createUserWithEmailAndPassword(auth, e, s).then(() => alert("Conta criada!")).catch(err => alert("Erro: " + err.message));
         };
         window.logar = () => {
-            const e = document.getElementById('email').value;
+            const e = document.getElementById('email').value.trim();
             const s = document.getElementById('senha').value;
             signInWithEmailAndPassword(auth, e, s).catch(err => alert("Login inválido!"));
         };
@@ -135,10 +141,9 @@
             if (user) {
                 document.getElementById('auth-screen').classList.add('hidden');
                 document.getElementById('main-screen').classList.remove('hidden');
-                document.getElementById('user-welcome').innerText = `Logado como: ${user.email}`;
+                document.getElementById('user-welcome').innerText = `Olá, ${user.email.split('@')[0]}`;
                 
-                const isAdmin = user.email.includes('admin');
-                if(isAdmin) {
+                if(user.email.toLowerCase().includes('admin')) {
                     document.getElementById('admin-view').classList.remove('hidden');
                     document.getElementById('cliente-view').classList.add('hidden');
                     carregarPedidosAdmin();
@@ -147,7 +152,7 @@
                     document.getElementById('cliente-view').classList.remove('hidden');
                     document.getElementById('admin-view').classList.add('hidden');
                     ouvirCardapio(false);
-                    ouvirStatusCliente(); //
+                    ouvirStatusCliente(); // Inicia o rastreio do pedido do cliente
                 }
                 ouvirChat();
             } else {
@@ -156,11 +161,12 @@
             }
         });
 
+        // --- CARDÁPIO ---
         window.salvarProduto = async () => {
-            const nome = document.getElementById('prod-nome').value;
+            const nome = document.getElementById('prod-nome').value.trim();
             const preco = document.getElementById('prod-preco').value;
             if(!nome || !preco) return alert("Preencha nome e preço!");
-            await setDoc(doc(db, "produtos", nome), { nome, preco: parseFloat(preco), ativo: true });
+            await setDoc(doc(db, "produtos", nome.toLowerCase()), { nome: nome, preco: parseFloat(preco), ativo: true });
             document.getElementById('prod-nome').value = "";
             document.getElementById('prod-preco').value = "";
         };
@@ -171,19 +177,6 @@
 
         window.excluirProduto = async (id) => {
             if(confirm("Deseja excluir este produto?")) await deleteDoc(doc(db, "produtos", id));
-        };
-
-        window.toggleEndereco = () => {
-            const div = document.getElementById('campos-endereco');
-            div.classList.toggle('hidden', document.getElementById('opcao-entrega').value === "Não");
-        };
-
-        window.buscarCEP = async () => {
-            const cep = document.getElementById('cep').value.replace(/\D/g, '');
-            if(cep.length !== 8) return;
-            const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-            const data = await res.json();
-            if(!data.erro) document.getElementById('rua').value = `${data.logradouro}, ${data.bairro}`;
         };
 
         function ouvirCardapio(isAdmin) {
@@ -205,11 +198,11 @@
                         </div>`;
                     }
                     if(p.ativo && listaC) {
-                        listaC.innerHTML += `<div class="flex flex-col md:flex-row justify-between items-center p-4 border rounded bg-white gap-3 shadow-sm">
+                        listaC.innerHTML += `<div class="flex justify-between items-center p-4 border rounded bg-white shadow-sm">
                                 <span class="font-bold text-gray-700">${p.nome} - R$ ${p.preco.toFixed(2)}</span>
                                 <div class="flex gap-2 items-center">
-                                    <input type="number" id="qtd-${id}" value="1" min="1" class="border w-14 p-1 rounded text-center">
-                                    <button onclick="selecionarItem('${p.nome}', ${p.preco}, '${id}')" class="bg-red-600 text-white px-4 py-1 rounded font-bold text-sm">ADICIONAR</button>
+                                    <input type="number" id="qtd-${id}" value="1" min="1" class="border w-12 p-1 rounded text-center">
+                                    <button onclick="selecionarItem('${p.nome}', ${p.preco}, '${id}')" class="bg-red-600 text-white px-3 py-1 rounded font-bold">ADD</button>
                                 </div>
                             </div>`;
                     }
@@ -217,9 +210,10 @@
             });
         }
 
+        // --- CARRINHO (SOMA IGUAIS) ---
         window.selecionarItem = (nome, preco, id) => {
             const qtdInput = parseInt(document.getElementById(`qtd-${id}`).value);
-            const index = carrinho.findIndex(item => item.nome === nome); //
+            const index = carrinho.findIndex(item => item.nome === nome);
             
             if (index !== -1) {
                 carrinho[index].qtd += qtdInput;
@@ -249,33 +243,35 @@
             resumoDiv.innerText = `R$ ${totalAcumulado.toFixed(2)}`;
         }
 
+        // --- PEDIDOS (ENVIO E STATUS) ---
         window.enviarPedidoCompleto = async () => {
             if(carrinho.length === 0) return alert("Adicione algo!");
             const entrega = document.getElementById('opcao-entrega').value;
-            let local = entrega === "Sim" ? `${document.getElementById('rua').value}, Nº ${document.getElementById('num').value}` : "Retirada no Local";
-            if(entrega === "Sim" && (!document.getElementById('rua').value)) return alert("Endereço vazio!");
-
-            await addDoc(collection(db, "pedidos"), {
-                cliente: auth.currentUser.email,
+            let local = entrega === "Sim" ? `${document.getElementById('rua').value}, ${document.getElementById('num').value}` : "Retirada";
+            
+            const novoPedido = {
+                cliente: auth.currentUser.email.toLowerCase(), // Email sempre em minúsculo
                 item: carrinho.map(i => `${i.qtd}x ${i.nome}`).join(", "),
                 total: totalAcumulado.toFixed(2),
                 entrega: local,
                 status: "Pendente",
                 motivoCancelamento: "",
                 data: serverTimestamp()
-            });
-            alert("Pedido enviado!");
+            };
+
+            await addDoc(collection(db, "pedidos"), novoPedido);
+            alert("Pedido Enviado com Sucesso!");
             limparCarrinho();
         };
 
         window.mudarStatus = async (id, novoStatus) => {
-            let dadosUpdate = { status: novoStatus };
+            let dados = { status: novoStatus };
             if (novoStatus === 'Cancelado') {
-                const motivo = prompt("Por que deseja cancelar?");
+                const motivo = prompt("Motivo do cancelamento?");
                 if (!motivo) return;
-                dadosUpdate.motivoCancelamento = motivo;
+                dados.motivoCancelamento = motivo;
             }
-            await updateDoc(doc(db, "pedidos", id), dadosUpdate); //
+            await updateDoc(doc(db, "pedidos", id), dados);
         };
 
         function carregarPedidosAdmin() {
@@ -286,61 +282,65 @@
                     const p = d.data();
                     const id = d.id;
                     lista.innerHTML += `
-                        <div class="p-3 bg-white border-l-4 border-red-500 rounded shadow-md flex flex-col gap-2">
-                            <div class="flex justify-between">
-                                <span><b>${p.cliente.split('@')[0]}:</b> ${p.item}</span>
-                                <span class="bg-gray-100 px-2 rounded text-xs flex items-center font-bold">${p.status}</span>
+                        <div class="p-3 bg-white border-l-4 border-red-500 rounded shadow mb-2">
+                            <div class="flex justify-between font-bold">
+                                <span>${p.cliente.split('@')[0]}</span>
+                                <span class="text-xs uppercase px-2 bg-gray-100 rounded">${p.status}</span>
                             </div>
-                            <div class="grid grid-cols-2 md:grid-cols-5 gap-1">
-                                <button onclick="mudarStatus('${id}', 'Confirmado')" class="bg-blue-500 text-white p-1 rounded text-[10px] font-bold">CONFIRMAR</button>
-                                <button onclick="mudarStatus('${id}', 'Preparando')" class="bg-orange-500 text-white p-1 rounded text-[10px] font-bold">PREPARAR</button>
-                                <button onclick="mudarStatus('${id}', 'A Caminho')" class="bg-purple-500 text-white p-1 rounded text-[10px] font-bold">A CAMINHO</button>
-                                <button onclick="mudarStatus('${id}', 'Entregue')" class="bg-green-600 text-white p-1 rounded text-[10px] font-bold">CONCLUIR</button>
-                                <button onclick="mudarStatus('${id}', 'Cancelado')" class="bg-gray-800 text-white p-1 rounded text-[10px] font-bold">CANCELAR</button>
+                            <div class="text-xs text-gray-600 my-1">${p.item}</div>
+                            <div class="grid grid-cols-5 gap-1 mt-2">
+                                <button onclick="mudarStatus('${id}', 'Confirmado')" class="bg-blue-500 text-white p-1 rounded text-[9px] font-bold">CONFIRMAR</button>
+                                <button onclick="mudarStatus('${id}', 'Preparando')" class="bg-orange-500 text-white p-1 rounded text-[9px] font-bold">PREPARAR</button>
+                                <button onclick="mudarStatus('${id}', 'A Caminho')" class="bg-purple-500 text-white p-1 rounded text-[9px] font-bold">CAMINHO</button>
+                                <button onclick="mudarStatus('${id}', 'Entregue')" class="bg-green-600 text-white p-1 rounded text-[9px] font-bold">FIM</button>
+                                <button onclick="mudarStatus('${id}', 'Cancelado')" class="bg-black text-white p-1 rounded text-[9px] font-bold">X</button>
                             </div>
                         </div>`;
                 });
             });
         }
 
+        // --- CORREÇÃO FINAL: OUVIR STATUS CLIENTE ---
         function ouvirStatusCliente() {
             if (!auth.currentUser) return;
-            const q = query(collection(db, "pedidos"), where("cliente", "==", auth.currentUser.email), orderBy("data", "desc"));
+            
+            // Filtra exatamente pelo email do cliente logado
+            const emailCliente = auth.currentUser.email.toLowerCase();
+            const q = query(
+                collection(db, "pedidos"), 
+                where("cliente", "==", emailCliente), 
+                orderBy("data", "desc")
+            );
             
             onSnapshot(q, (snap) => {
                 const box = document.getElementById('meus-pedidos-status');
                 if(!box) return;
-                box.innerHTML = "";
                 
                 if(snap.empty) {
                     box.innerHTML = "Nenhum pedido em andamento.";
                     return;
                 }
 
+                box.innerHTML = ""; // Limpa para atualizar
                 snap.forEach(d => {
                     const p = d.data();
-                    let classeStatus = p.status === 'Pendente' ? 'status-pendente' : 
-                                       (p.status === 'Preparando' ? 'status-preparando' : 
-                                       (p.status === 'A Caminho' ? 'status-caminho' : 
-                                       (p.status === 'Cancelado' ? 'status-cancelado' : 'status-entregue')));
-
-                    let motivoHtml = (p.status === 'Cancelado' && p.motivoCancelamento) 
-                        ? `<div class="text-xs text-red-600 bg-red-50 p-1 mt-1 rounded"><b>Motivo:</b> ${p.motivoCancelamento}</div>` 
-                        : '';
+                    const s = p.status;
+                    let cor = s === 'Pendente' ? 'status-pendente' : (s === 'Preparando' ? 'status-preparando' : (s === 'A Caminho' ? 'status-caminho' : (s === 'Cancelado' ? 'status-cancelado' : 'status-entregue')));
 
                     box.innerHTML += `
-                        <div class="border-b pb-2 mb-1">
+                        <div class="bg-white p-3 rounded border shadow-sm flex flex-col gap-1">
                             <div class="flex justify-between items-center">
-                                <span class="font-medium">${p.item}</span>
-                                <span class="${classeStatus}">● ${p.status}</span>
+                                <span class="font-bold text-gray-800">${p.item}</span>
+                                <span class="status-badge ${cor}">${s.toUpperCase()}</span>
                             </div>
-                            <div class="text-[10px] text-gray-500">Valor Total: R$ ${p.total}</div>
-                            ${motivoHtml}
+                            <div class="text-[11px] text-gray-500 font-bold">Total: R$ ${p.total} | Entrega: ${p.entrega}</div>
+                            ${p.status === 'Cancelado' ? `<div class="text-[11px] text-red-600 bg-red-50 p-1 rounded"><b>Motivo:</b> ${p.motivoCancelamento}</div>` : ''}
                         </div>`;
                 });
-            }); //
+            });
         }
 
+        // --- CHAT ---
         window.enviarMensagem = async () => {
             const input = document.getElementById('chat-input');
             if(!input.value.trim()) return;
@@ -355,7 +355,7 @@
                 snap.forEach(d => {
                     const m = d.data();
                     const classe = m.usuario.includes('admin') ? 'msg-admin' : 'msg-cliente';
-                    box.innerHTML += `<div class="msg ${classe}"><p class="text-[10px] font-bold opacity-50">${m.usuario.split('@')[0]}</p><p>${m.texto}</p></div>`;
+                    box.innerHTML += `<div class="msg ${classe}"><p class="text-[9px] font-bold opacity-50">${m.usuario.split('@')[0]}</p><p class="text-sm">${m.texto}</p></div>`;
                 });
                 box.scrollTop = box.scrollHeight;
             });

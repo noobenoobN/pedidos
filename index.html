@@ -38,24 +38,30 @@
                     <h3 class="text-xl font-bold mb-4">Cardápio</h3>
                     <div id="cardapio-lista" class="grid grid-cols-1 gap-3 mb-6"></div>
                     
-                    <div class="border-t-2 border-dashed pt-4 mt-6">
-                        <h3 class="font-bold text-lg mb-2">🛒 Seu Carrinho</h3>
-                        <div id="itens-carrinho" class="text-sm text-gray-600 mb-2 space-y-1">Nenhum item adicionado.</div>
-                        <div class="text-xl font-bold text-red-600 mb-4">Total: R$ <span id="valor-total">0.00</span></div>
+                    <div class="border-t pt-4 space-y-3">
+                        <h3 class="font-bold text-lg">Finalizar Pedido</h3>
+                        
+                        <div class="bg-gray-50 p-3 rounded border text-sm mb-2">
+                            <p class="font-bold mb-1 border-b pb-1">Carrinho:</p>
+                            <div id="lista-carrinho" class="space-y-1 mb-2 italic text-gray-600">
+                                Seu carrinho está vazio.
+                            </div>
+                        </div>
 
-                        <h3 class="font-bold text-lg mb-2">📍 Entrega</h3>
-                        <select id="opcao-entrega" onchange="toggleEndereco()" class="w-full border p-2 rounded mb-2">
+                        <select id="opcao-entrega" onchange="toggleEndereco()" class="w-full border p-2 rounded">
                             <option value="Sim">Preciso de Entrega (Sim)</option>
                             <option value="Não">Vou buscar no local (Não)</option>
                         </select>
-                        
                         <div id="campos-endereco" class="space-y-2">
                             <input id="cep" type="text" placeholder="CEP" onblur="buscarCEP()" class="w-full border p-2 rounded">
-                            <input id="rua" type="text" placeholder="Rua / Bairro" class="w-full border p-2 rounded bg-gray-50">
+                            <input id="rua" type="text" placeholder="Rua / Endereço" class="w-full border p-2 rounded bg-gray-50">
                             <input id="num" type="text" placeholder="Número" class="w-full border p-2 rounded">
                         </div>
-
-                        <button onclick="enviarPedidoFinal()" class="w-full bg-green-600 text-white p-4 rounded-lg font-bold mt-4 shadow-lg hover:bg-green-700 transition">FINALIZAR PEDIDO</button>
+                        <div class="bg-yellow-50 p-3 rounded border border-yellow-200 text-sm">
+                            <b>Total a Pagar:</b> <span id="resumo-carrinho">R$ 0.00</span>
+                        </div>
+                        <button onclick="enviarPedidoCompleto()" class="w-full bg-green-600 text-white p-3 rounded font-bold uppercase hover:bg-green-700 transition">Confirmar e Enviar</button>
+                        <button onclick="limparCarrinho()" class="w-full text-xs text-red-500 underline mt-2">Limpar Carrinho</button>
                     </div>
                 </div>
 
@@ -105,170 +111,219 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // VARIÁVEIS DO CARRINHO
-        let carrinhoItens = [];
-        let totalPedido = 0;
+        // --- ALTERAÇÃO: SISTEMA DE CARRINHO ---
+        let carrinho = [];
+        let totalAcumulado = 0;
 
         // --- AUTH ---
-        window.logar = () => {
-            signInWithEmailAndPassword(auth, email.value, senha.value).catch(() => alert("Erro no Login"));
-        };
         window.cadastrar = () => {
-            createUserWithEmailAndPassword(auth, email.value, senha.value).then(() => alert("Criado!")).catch(e => alert(e.message));
+            const e = document.getElementById('email').value;
+            const s = document.getElementById('senha').value;
+            createUserWithEmailAndPassword(auth, e, s).then(() => alert("Conta criada!")).catch(err => alert("Erro: " + err.message));
         };
+
+        window.logar = () => {
+            const e = document.getElementById('email').value;
+            const s = document.getElementById('senha').value;
+            signInWithEmailAndPassword(auth, e, s).catch(err => alert("Login inválido!"));
+        };
+
         window.sair = () => signOut(auth);
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                auth_screen.classList.add('hidden');
-                main_screen.classList.remove('hidden');
-                user_welcome.innerText = `Usuário: ${user.email}`;
+                document.getElementById('auth-screen').classList.add('hidden');
+                document.getElementById('main-screen').classList.remove('hidden');
+                document.getElementById('user-welcome').innerText = `Logado como: ${user.email}`;
+                
                 const isAdmin = user.email.includes('admin');
-                admin_view.classList.toggle('hidden', !isAdmin);
-                cliente_view.classList.toggle('hidden', isAdmin);
-                ouvirCardapio(isAdmin);
-                if(isAdmin) carregarPedidosAdmin();
+                if(isAdmin) {
+                    document.getElementById('admin-view').classList.remove('hidden');
+                    document.getElementById('cliente-view').classList.add('hidden');
+                    carregarPedidosAdmin();
+                    ouvirCardapio(true);
+                } else {
+                    document.getElementById('cliente-view').classList.remove('hidden');
+                    document.getElementById('admin-view').classList.add('hidden');
+                    ouvirCardapio(false);
+                }
                 ouvirChat();
             } else {
-                auth_screen.classList.remove('hidden');
-                main_screen.classList.add('hidden');
+                document.getElementById('auth-screen').classList.remove('hidden');
+                document.getElementById('main-screen').classList.add('hidden');
             }
         });
 
-        // --- GESTÃO CARDÁPIO ---
+        // --- GESTÃO DE CARDÁPIO ---
         window.salvarProduto = async () => {
-            const n = document.getElementById('prod-nome').value;
-            const p = document.getElementById('prod-preco').value;
-            if(!n || !p) return;
-            await setDoc(doc(db, "produtos", n), { nome: n, preco: parseFloat(p), ativo: true });
+            const nome = document.getElementById('prod-nome').value;
+            const preco = document.getElementById('prod-preco').value;
+            if(!nome || !preco) return alert("Preencha nome e preço!");
+            await setDoc(doc(db, "produtos", nome), { nome, preco: parseFloat(preco), ativo: true });
+            document.getElementById('prod-nome').value = "";
+            document.getElementById('prod-preco').value = "";
+        };
+
+        window.toggleProduto = async (id, statusAtual) => {
+            await updateDoc(doc(db, "produtos", id), { ativo: !statusAtual });
+        };
+
+        window.excluirProduto = async (id) => {
+            if(confirm("Deseja excluir este produto?")) await deleteDoc(doc(db, "produtos", id));
+        };
+
+        // --- CEP E ENTREGA ---
+        window.toggleEndereco = () => {
+            const div = document.getElementById('campos-endereco');
+            div.classList.toggle('hidden', document.getElementById('opcao-entrega').value === "Não");
+        };
+
+        window.buscarCEP = async () => {
+            const cep = document.getElementById('cep').value.replace(/\D/g, '');
+            if(cep.length !== 8) return;
+            const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+            const data = await res.json();
+            if(!data.erro) document.getElementById('rua').value = `${data.logradouro}, ${data.bairro}`;
         };
 
         function ouvirCardapio(isAdmin) {
-            onSnapshot(collection(db, "produtos"), (snap) => {
+            onSnapshot(collection(db, "produtos"), (snapshot) => {
                 const listaC = document.getElementById('cardapio-lista');
                 const listaA = document.getElementById('admin-cardapio-lista');
                 listaC.innerHTML = ""; listaA.innerHTML = "";
-                snap.forEach(d => {
-                    const p = d.data();
+
+                snapshot.forEach(docSnap => {
+                    const p = docSnap.data();
+                    const id = docSnap.id;
                     if(isAdmin) {
-                        listaA.innerHTML += `<div class="p-2 border rounded flex justify-between bg-white items-center">
-                            <span>${p.nome} - R$ ${p.preco}</span>
-                            <button onclick="excluirProduto('${d.id}')" class="bg-red-500 text-white px-2 py-1 rounded text-xs">Excluir</button>
+                        listaA.innerHTML += `<div class="flex justify-between items-center p-2 border rounded ${p.ativo ? 'bg-white' : 'bg-gray-200 opacity-60'}">
+                            <span>${p.nome} - <b>R$ ${p.preco.toFixed(2)}</b></span>
+                            <div class="flex gap-2">
+                                <button onclick="toggleProduto('${id}', ${p.ativo})" class="bg-yellow-500 text-white px-2 py-1 rounded text-xs">${p.ativo ? 'Ocultar' : 'Mostrar'}</button>
+                                <button onclick="excluirProduto('${id}')" class="bg-red-500 text-white px-2 py-1 rounded text-xs">Excluir</button>
+                            </div>
                         </div>`;
                     }
                     if(p.ativo) {
-                        listaC.innerHTML += `<div class="p-4 border rounded bg-white flex justify-between items-center shadow-sm">
-                            <div><p class="font-bold">${p.nome}</p><p class="text-green-600">R$ ${p.preco.toFixed(2)}</p></div>
-                            <div class="flex items-center gap-2">
-                                <input type="number" id="qtd-${d.id}" value="1" min="1" class="w-12 border p-1 rounded text-center">
-                                <button onclick="adicionarAoCarrinho('${p.nome}', ${p.preco}, '${d.id}')" class="bg-red-600 text-white px-3 py-1 rounded font-bold text-xs">+ ADD</button>
-                            </div>
-                        </div>`;
+                        listaC.innerHTML += `
+                            <div class="flex flex-col md:flex-row justify-between items-center p-4 border rounded bg-white gap-3">
+                                <span class="font-bold text-gray-700">${p.nome} - R$ ${p.preco.toFixed(2)}</span>
+                                <div class="flex gap-2 items-center">
+                                    <input type="number" id="qtd-${id}" value="1" min="1" class="border w-14 p-1 rounded text-center">
+                                    <button onclick="selecionarItem('${p.nome}', ${p.preco}, '${id}')" class="bg-red-600 text-white px-4 py-1 rounded font-bold text-sm">ADICIONAR</button>
+                                </div>
+                            </div>`;
                     }
                 });
             });
         }
 
-        window.excluirProduto = async (id) => deleteDoc(doc(db, "produtos", id));
-
-        // --- LOGICA DO CARRINHO (SOMA) ---
-        window.adicionarAoCarrinho = (nome, preco, id) => {
+        // --- FUNÇÃO DE SOMATÓRIA (CARRINHO) ---
+        window.selecionarItem = (nome, preco, id) => {
             const qtd = parseInt(document.getElementById(`qtd-${id}`).value);
             const subtotal = preco * qtd;
             
-            carrinhoItens.push({ nome, qtd, subtotal });
-            atualizarInterfaceCarrinho();
+            carrinho.push({ nome, qtd, subtotal });
+            atualizarCarrinhoVisual();
         };
 
-        function atualizarInterfaceCarrinho() {
-            const div = document.getElementById('itens-carrinho');
-            totalPedido = 0;
+        window.limparCarrinho = () => {
+            carrinho = [];
+            atualizarCarrinhoVisual();
+        };
+
+        function atualizarCarrinhoVisual() {
+            const listaDiv = document.getElementById('lista-carrinho');
+            const resumoDiv = document.getElementById('resumo-carrinho');
             
-            if(carrinhoItens.length === 0) {
-                div.innerText = "Nenhum item adicionado.";
-                document.getElementById('valor-total').innerText = "0.00";
+            if (carrinho.length === 0) {
+                listaDiv.innerHTML = "Seu carrinho está vazio.";
+                resumoDiv.innerText = "R$ 0.00";
+                totalAcumulado = 0;
                 return;
             }
 
-            div.innerHTML = "";
-            carrinhoItens.forEach((item, index) => {
-                totalPedido += item.subtotal;
-                div.innerHTML += `<div class="flex justify-between border-b py-1">
-                    <span>${item.qtd}x ${item.nome}</span>
-                    <span>R$ ${item.subtotal.toFixed(2)}</span>
-                </div>`;
-            });
+            listaDiv.innerHTML = "";
+            totalAcumulado = 0;
             
-            document.getElementById('valor-total').innerText = totalPedido.toFixed(2);
+            carrinho.forEach(item => {
+                totalAcumulado += item.subtotal;
+                listaDiv.innerHTML += `<div>• ${item.qtd}x ${item.nome} (R$ ${item.subtotal.toFixed(2)})</div>`;
+            });
+
+            resumoDiv.innerText = `R$ ${totalAcumulado.toFixed(2)}`;
         }
 
-        // --- ENDEREÇO E ENVIO ---
-        window.toggleEndereco = () => {
-            document.getElementById('campos-endereco').classList.toggle('hidden', opcao_entrega.value === "Não");
-        };
-
-        window.buscarCEP = async () => {
-            const val = cep.value.replace(/\D/g, '');
-            if(val.length !== 8) return;
-            const res = await fetch(`https://viacep.com.br/ws/${val}/json/`);
-            const data = await res.json();
-            if(!data.erro) rua.value = `${data.logradouro}, ${data.bairro}`;
-        };
-
-        window.enviarPedidoFinal = async () => {
-            if(carrinhoItens.length === 0) return alert("Seu carrinho está vazio!");
+        // --- ENVIO DO PEDIDO COMPLETO ---
+        window.enviarPedidoCompleto = async () => {
+            if(carrinho.length === 0) return alert("Adicione pelo menos um item!");
             
-            let entregaInfo = "Retirada no Local";
-            if(opcao_entrega.value === "Sim") {
-                if(!rua.value || !num.value) return alert("Preencha o endereço!");
-                entregaInfo = `${rua.value}, nº ${num.value}`;
+            const entrega = document.getElementById('opcao-entrega').value;
+            let local = "Retirada no Local";
+            
+            if(entrega === "Sim") {
+                const rua = document.getElementById('rua').value;
+                const num = document.getElementById('num').value;
+                if(!rua || !num) return alert("Preencha o endereço completo!");
+                local = `${rua}, Nº ${num}`;
             }
 
-            const resumoTexto = carrinhoItens.map(i => `${i.qtd}x ${i.nome}`).join(", ");
+            // Transforma a lista de itens em um texto para o Admin
+            const stringItens = carrinho.map(i => `${i.qtd}x ${i.nome}`).join(", ");
 
             await addDoc(collection(db, "pedidos"), {
                 cliente: auth.currentUser.email,
-                item: resumoTexto,
-                total: totalPedido.toFixed(2),
-                entrega: entregaInfo,
+                item: stringItens,
+                total: totalAcumulado.toFixed(2),
+                entrega: local,
                 data: serverTimestamp()
             });
-
-            alert("Pedido Enviado!");
-            carrinhoItens = [];
-            atualizarInterfaceCarrinho();
+            
+            alert("Pedido enviado com sucesso!");
+            limparCarrinho();
         };
 
         function carregarPedidosAdmin() {
-            onSnapshot(query(collection(db, "pedidos"), orderBy("data", "desc")), (snap) => {
-                lista_pedidos.innerHTML = "";
-                snap.forEach(d => {
-                    const p = d.data();
-                    lista_pedidos.innerHTML += `<div class="p-3 bg-white border-l-4 border-red-500 rounded shadow-sm">
-                        <p><b>Cliente:</b> ${p.cliente.split('@')[0]} | <b>R$ ${p.total}</b></p>
-                        <p class="text-gray-700">${p.item}</p>
-                        <p class="text-xs text-red-600">📍 ${p.entrega}</p>
-                    </div>`;
+            const q = query(collection(db, "pedidos"), orderBy("data", "desc"));
+            onSnapshot(q, (snapshot) => {
+                const lista = document.getElementById('lista-pedidos');
+                lista.innerHTML = "";
+                snapshot.forEach(doc => {
+                    const p = doc.data();
+                    lista.innerHTML += `
+                        <div class="p-3 bg-gray-50 border-l-4 border-red-500 rounded flex flex-col shadow-sm">
+                            <div class="flex justify-between">
+                                <span><b>${p.cliente.split('@')[0]}:</b> ${p.item}</span>
+                                <span class="font-bold">R$ ${p.total}</span>
+                            </div>
+                            <span class="text-xs text-red-600 mt-1">📍 Entrega: ${p.entrega}</span>
+                        </div>`;
                 });
             });
         }
 
         // --- CHAT ---
         window.enviarMensagem = async () => {
-            if(!chat_input.value.trim()) return;
-            await addDoc(collection(db, "mensagens"), { usuario: auth.currentUser.email, texto: chat_input.value, hora: serverTimestamp() });
-            chat_input.value = "";
+            const input = document.getElementById('chat-input');
+            if(!input.value.trim()) return;
+            await addDoc(collection(db, "mensagens"), { usuario: auth.currentUser.email, texto: input.value, hora: serverTimestamp() });
+            input.value = "";
         };
 
         function ouvirChat() {
-            onSnapshot(query(collection(db, "mensagens"), orderBy("hora", "asc")), (snap) => {
-                chat_box.innerHTML = "";
-                snap.forEach(d => {
-                    const m = d.data();
+            const q = query(collection(db, "mensagens"), orderBy("hora", "asc"));
+            onSnapshot(q, (snapshot) => {
+                const box = document.getElementById('chat-box');
+                box.innerHTML = "";
+                snapshot.forEach(doc => {
+                    const m = doc.data();
                     const classe = m.usuario.includes('admin') ? 'msg-admin' : 'msg-cliente';
-                    chat_box.innerHTML += `<div class="msg ${classe}"><b>${m.usuario.split('@')[0]}:</b> ${m.texto}</div>`;
+                    box.innerHTML += `<div class="msg ${classe}">
+                        <p class="text-[10px] font-bold opacity-50">${m.usuario.split('@')[0]}</p>
+                        <p>${m.texto}</p>
+                    </div>`;
                 });
-                chat_box.scrollTop = chat_box.scrollHeight;
+                box.scrollTop = box.scrollHeight;
             });
         }
     </script>

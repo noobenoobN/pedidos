@@ -3,71 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Delivery Pro - Painel Gestor</title>
+    <title>Meu Delivery Grátis</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .hidden { display: none; }
-        #chat-box { height: 200px; overflow-y: auto; display: flex; flex-direction: column; }
-        .msg { margin-bottom: 5px; padding: 5px 10px; border-radius: 5px; font-size: 13px; }
-        .msg-admin { background: #fee2e2; align-self: flex-start; }
-        .msg-cliente { background: #dbeafe; align-self: flex-end; }
+        #chat-box { height: 250px; overflow-y: auto; display: flex; flex-direction: column; }
+        .msg { margin-bottom: 8px; padding: 6px 12px; border-radius: 8px; max-width: 80%; }
+        .msg-admin { background: #fee2e2; align-self: flex-start; border: 1px solid #fecaca; }
+        .msg-cliente { background: #dbeafe; align-self: flex-end; border: 1px solid #bfdbfe; }
     </style>
 </head>
-<body class="bg-gray-50">
+<body class="bg-gray-100 font-sans">
 
-    <div id="auth-screen" class="max-w-md mx-auto mt-20 p-6 bg-white rounded shadow">
-        <h2 class="text-2xl font-bold mb-4 text-center">Acesso Delivery</h2>
-        <input id="email" type="email" placeholder="E-mail" class="w-full border p-2 mb-2 rounded">
-        <input id="senha" type="password" placeholder="Senha" class="w-full border p-2 mb-4 rounded">
-        <button onclick="logar()" class="w-full bg-red-600 text-white p-2 rounded">Entrar</button>
-        <button onclick="cadastrar()" class="w-full text-gray-500 mt-2 text-sm w-full">Criar conta</button>
+    <div id="auth-screen" class="max-w-md mx-auto mt-20 p-6 bg-white rounded-lg shadow-xl">
+        <h2 class="text-2xl font-bold mb-6 text-center text-red-600">Delivery Login</h2>
+        <div class="space-y-4">
+            <input id="email" type="email" placeholder="Seu e-mail" class="w-full border p-3 rounded focus:outline-none focus:ring-2 focus:ring-red-500">
+            <input id="senha" type="password" placeholder="Sua senha" class="w-full border p-3 rounded focus:outline-none focus:ring-2 focus:ring-red-500">
+            <button onclick="logar()" class="w-full bg-red-600 text-white font-bold p-3 rounded hover:bg-red-700 transition">Entrar</button>
+            <button onclick="cadastrar()" class="w-full bg-gray-200 text-gray-700 p-3 rounded hover:bg-gray-300 transition">Criar Nova Conta</button>
+        </div>
     </div>
 
-    <div id="main-screen" class="hidden">
-        <nav class="bg-red-600 text-white p-4 flex justify-between shadow-lg">
-            <span id="user-info" class="font-bold"></span>
-            <button onclick="auth.signOut()" class="text-sm underline">Sair</button>
+    <div id="main-screen" class="hidden min-h-screen">
+        <nav class="bg-red-600 text-white p-4 flex justify-between items-center shadow-md">
+            <span id="user-welcome" class="font-medium">Carregando...</span>
+            <button onclick="sair()" class="bg-red-800 px-3 py-1 rounded text-sm">Sair</button>
         </nav>
 
-        <div class="max-w-6xl mx-auto p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="max-w-6xl mx-auto p-4 grid grid-cols-1 lg:grid-cols-3 gap-6">
             
-            <div class="md:col-span-2 bg-white p-4 rounded shadow">
-                
-                <div id="admin-view" class="hidden">
-                    <h3 class="font-bold text-lg mb-4 border-b pb-2">Gerenciar Cardápio</h3>
-                    <div class="grid grid-cols-1 gap-2 mb-6 bg-gray-100 p-3 rounded">
-                        <input id="p-nome" type="text" placeholder="Nome do Produto" class="p-2 border rounded">
-                        <input id="p-preco" type="number" placeholder="Preço (Ex: 25.90)" class="p-2 border rounded">
-                        <button onclick="salvarProduto()" class="bg-green-600 text-white p-2 rounded font-bold">+ Adicionar/Atualizar</button>
-                    </div>
-                    <div id="lista-admin-produtos" class="space-y-2"></div>
-                    
-                    <h3 class="font-bold text-lg mt-8 mb-4 border-b pb-2">Pedidos Recebidos</h3>
-                    <div id="lista-pedidos" class="space-y-2"></div>
-                </div>
-
+            <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow">
                 <div id="cliente-view" class="hidden">
-                    <h3 class="font-bold text-lg mb-4">Fazer Pedido</h3>
-                    <div id="cardapio-cliente" class="grid grid-cols-1 gap-3">
+                    <h3 class="text-xl font-bold mb-4">Cardápio</h3>
+                    <div id="cardapio-lista" class="grid grid-cols-1 gap-3">
                         </div>
                 </div>
-            </div>
 
-            <div class="bg-white p-4 rounded shadow flex flex-col h-[500px]">
-                <h3 class="font-bold border-b mb-2">Chat Suporte</h3>
-                <div id="chat-box" class="flex-1 bg-gray-50 p-2 rounded mb-2"></div>
-                <div class="flex gap-1">
-                    <input id="chat-input" type="text" class="flex-1 border p-2 rounded text-sm">
-                    <button onclick="enviarMensagem()" class="bg-blue-600 text-white px-3 rounded">></button>
+                <div id="admin-view" class="hidden">
+                    <h3 class="text-xl font-bold mb-4">Gerenciar Cardápio</h3>
+                    <div class="bg-gray-50 p-4 rounded mb-6 border">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            <input id="prod-nome" type="text" placeholder="Nome do Produto" class="border p-2 rounded">
+                            <input id="prod-preco" type="number" placeholder="Preço" class="border p-2 rounded">
+                        </div>
+                        <button onclick="salvarProduto()" class="mt-2 w-full bg-green-600 text-white p-2 rounded font-bold">Salvar Produto</button>
+                    </div>
+                    <div id="admin-cardapio-lista" class="space-y-2 mb-8 text-sm">
+                        </div>
+
+                    <h3 class="text-xl font-bold mb-4 border-t pt-4">Painel de Pedidos</h3>
+                    <div id="lista-pedidos" class="space-y-3 text-sm"></div>
                 </div>
             </div>
+
+            <div class="bg-white p-6 rounded-lg shadow flex flex-col h-[500px]">
+                <h3 class="text-xl font-bold mb-4 text-blue-600 border-b pb-2">Suporte / Chat</h3>
+                <div id="chat-box" class="flex-1 p-2 mb-4 bg-gray-50 rounded"></div>
+                <div class="flex gap-2">
+                    <input id="chat-input" type="text" placeholder="Digite..." class="flex-1 border p-2 rounded focus:outline-none">
+                    <button onclick="enviarMensagem()" class="bg-blue-600 text-white px-4 py-2 rounded">Enviar</button>
+                </div>
+            </div>
+
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, setDoc, doc, deleteDoc, updateDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, doc, setDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBgqjGYaV7rmgLMPB-Y4DcvgVkg82GFt0I",
@@ -83,115 +88,153 @@
         const db = getFirestore(app);
 
         // --- AUTH ---
-        window.logar = () => signInWithEmailAndPassword(auth, email.value, senha.value);
-        window.cadastrar = () => createUserWithEmailAndPassword(auth, email.value, senha.value);
+        window.cadastrar = () => {
+            const e = document.getElementById('email').value;
+            const s = document.getElementById('senha').value;
+            createUserWithEmailAndPassword(auth, e, s).then(() => alert("Conta criada!")).catch(err => alert("Erro: " + err.message));
+        };
+
+        window.logar = () => {
+            const e = document.getElementById('email').value;
+            const s = document.getElementById('senha').value;
+            signInWithEmailAndPassword(auth, e, s).catch(err => alert("Login inválido!"));
+        };
+
+        window.sair = () => signOut(auth);
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                auth_screen.classList.add('hidden');
-                main_screen.classList.remove('hidden');
-                user_info.innerText = user.email;
+                document.getElementById('auth-screen').classList.add('hidden');
+                document.getElementById('main-screen').classList.remove('hidden');
+                document.getElementById('user-welcome').innerText = `Logado como: ${user.email}`;
                 
                 const isAdmin = user.email.includes('admin');
-                admin_view.classList.toggle('hidden', !isAdmin);
-                cliente_view.classList.toggle('hidden', isAdmin);
-                
-                carregarCardapio(isAdmin);
-                if(isAdmin) carregarPedidos();
+                if(isAdmin) {
+                    document.getElementById('admin-view').classList.remove('hidden');
+                    document.getElementById('cliente-view').classList.add('hidden');
+                    carregarPedidosAdmin();
+                    ouvirCardapio(true);
+                } else {
+                    document.getElementById('cliente-view').classList.remove('hidden');
+                    document.getElementById('admin-view').classList.add('hidden');
+                    ouvirCardapio(false);
+                }
                 ouvirChat();
             } else {
-                auth_screen.classList.remove('hidden');
-                main_screen.classList.add('hidden');
+                document.getElementById('auth-screen').classList.remove('hidden');
+                document.getElementById('main-screen').classList.add('hidden');
             }
         });
 
-        // --- GESTÃO DE PRODUTOS (ADMIN) ---
+        // --- GESTÃO DE CARDÁPIO (NOVO) ---
         window.salvarProduto = async () => {
-            const nome = document.getElementById('p-nome').value;
-            const preco = document.getElementById('p-preco').value;
-            if(!nome || !preco) return alert("Preencha tudo!");
+            const nome = document.getElementById('prod-nome').value;
+            const preco = document.getElementById('prod-preco').value;
+            if(!nome || !preco) return alert("Preencha nome e preço!");
 
             await setDoc(doc(db, "produtos", nome), {
                 nome: nome,
                 preco: parseFloat(preco),
-                visivel: true
+                ativo: true
             });
-            document.getElementById('p-nome').value = "";
-            document.getElementById('p-preco').value = "";
+            document.getElementById('prod-nome').value = "";
+            document.getElementById('prod-preco').value = "";
         };
 
-        window.alternarVisibilidade = async (id, status) => {
-            await updateDoc(doc(db, "produtos", id), { visivel: !status });
+        window.toggleProduto = async (id, statusAtual) => {
+            await updateDoc(doc(db, "produtos", id), { ativo: !statusAtual });
         };
 
         window.excluirProduto = async (id) => {
-            if(confirm("Excluir produto?")) await deleteDoc(doc(db, "produtos", id));
+            if(confirm("Deseja excluir este produto?")) await deleteDoc(doc(db, "produtos", id));
         };
 
-        // --- CARREGAR CARDÁPIO ---
-        function carregarCardapio(isAdmin) {
-            onSnapshot(collection(db, "produtos"), (snap) => {
-                const listaAdmin = document.getElementById('lista-admin-produtos');
-                const listaCliente = document.getElementById('cardapio-cliente');
-                listaAdmin.innerHTML = "";
-                listaCliente.innerHTML = "";
+        function ouvirCardapio(isAdmin) {
+            onSnapshot(collection(db, "produtos"), (snapshot) => {
+                const listaC = document.getElementById('cardapio-lista');
+                const listaA = document.getElementById('admin-cardapio-lista');
+                listaC.innerHTML = "";
+                listaA.innerHTML = "";
 
-                snap.forEach(d => {
-                    const p = d.data();
-                    // Render para Admin
-                    listaAdmin.innerHTML += `
-                        <div class="flex justify-between items-center p-2 border rounded ${p.visivel ? '' : 'opacity-40 bg-gray-200'}">
-                            <span><b>${p.nome}</b> - R$ ${p.preco}</span>
-                            <div class="flex gap-2">
-                                <button onclick="alternarVisibilidade('${d.id}', ${p.visivel})" class="text-xs bg-yellow-500 text-white p-1 rounded">${p.visivel ? 'Ocultar' : 'Mostrar'}</button>
-                                <button onclick="excluirProduto('${d.id}')" class="text-xs bg-red-500 text-white p-1 rounded">X</button>
-                            </div>
-                        </div>`;
-                    
-                    // Render para Cliente (só se visível)
-                    if(p.visivel) {
-                        listaCliente.innerHTML += `
-                            <div class="flex justify-between items-center p-4 border rounded shadow-sm bg-white">
-                                <span><b>${p.nome}</b><br><small class="text-green-600 font-bold">R$ ${p.preco}</small></span>
-                                <button onclick="fazerPedido('${p.nome}', ${p.preco})" class="bg-red-600 text-white px-4 py-2 rounded">Pedir</button>
+                snapshot.forEach(docSnap => {
+                    const p = docSnap.data();
+                    const id = docSnap.id;
+
+                    if(isAdmin) {
+                        listaA.innerHTML += `
+                            <div class="flex justify-between items-center p-2 border rounded ${p.ativo ? 'bg-white' : 'bg-gray-200 opacity-60'}">
+                                <span>${p.nome} - <b>R$ ${p.preco.toFixed(2)}</b></span>
+                                <div class="flex gap-2">
+                                    <button onclick="toggleProduto('${id}', ${p.ativo})" class="bg-yellow-500 text-white px-2 py-1 rounded text-xs">${p.ativo ? 'Ocultar' : 'Mostrar'}</button>
+                                    <button onclick="excluirProduto('${id}')" class="bg-red-500 text-white px-2 py-1 rounded text-xs">Scluir</button>
+                                </div>
                             </div>`;
+                    }
+
+                    if(p.ativo) {
+                        listaC.innerHTML += `
+                            <button onclick="fazerPedido('${p.nome}', ${p.preco})" class="flex justify-between p-4 border rounded hover:bg-gray-50 bg-white">
+                                <span>${p.nome}</span> <span class="font-bold text-green-600">R$ ${p.preco.toFixed(2)}</span>
+                            </button>`;
                     }
                 });
             });
         }
 
-        // --- PEDIDOS E CHAT (Resumido) ---
-        window.fazerPedido = async (item, valor) => {
-            await addDoc(collection(db, "pedidos"), { cliente: auth.currentUser.email, item, valor, data: serverTimestamp() });
-            alert("Pedido Enviado!");
+        // --- SISTEMA DE PEDIDOS ---
+        window.fazerPedido = async (nome, valor) => {
+            await addDoc(collection(db, "pedidos"), {
+                cliente: auth.currentUser.email,
+                item: nome,
+                total: valor,
+                data: serverTimestamp()
+            });
+            alert("Pedido enviado para a cozinha!");
         };
 
-        function carregarPedidos() {
-            onSnapshot(query(collection(db, "pedidos"), orderBy("data", "desc")), (snap) => {
-                lista_pedidos.innerHTML = "";
-                snap.forEach(d => {
-                    const p = d.data();
-                    lista_pedidos.innerHTML += `<div class="p-2 border-l-4 border-red-500 bg-gray-50 text-xs"><b>${p.cliente}:</b> ${p.item}</div>`;
+        function carregarPedidosAdmin() {
+            const q = query(collection(db, "pedidos"), orderBy("data", "desc"));
+            onSnapshot(q, (snapshot) => {
+                const lista = document.getElementById('lista-pedidos');
+                lista.innerHTML = "";
+                snapshot.forEach(doc => {
+                    const p = doc.data();
+                    lista.innerHTML += `
+                        <div class="p-3 bg-gray-50 border-l-4 border-red-500 rounded flex justify-between">
+                            <span><b>${p.cliente.split('@')[0]}:</b> ${p.item}</span>
+                            <span class="font-bold">R$ ${p.total}</span>
+                        </div>`;
                 });
             });
         }
 
+        // --- SISTEMA DE CHAT ---
         window.enviarMensagem = async () => {
-            const txt = chat_input.value;
-            if(!txt) return;
-            await addDoc(collection(db, "mensagens"), { usuario: auth.currentUser.email, texto: txt, hora: serverTimestamp() });
-            chat_input.value = "";
+            const input = document.getElementById('chat-input');
+            if(!input.value.trim()) return;
+            await addDoc(collection(db, "mensagens"), {
+                usuario: auth.currentUser.email,
+                texto: input.value,
+                hora: serverTimestamp()
+            });
+            input.value = "";
         };
 
         function ouvirChat() {
-            onSnapshot(query(collection(db, "mensagens"), orderBy("hora", "asc")), (snap) => {
-                chat_box.innerHTML = "";
-                snap.forEach(d => {
-                    const m = d.data();
-                    const classe = m.usuario.includes('admin') ? 'msg-admin' : 'msg-cliente';
-                    chat_box.innerHTML += `<div class="msg ${classe}"><b>${m.usuario.split('@')[0]}:</b> ${m.texto}</div>`;
+            const q = query(collection(db, "mensagens"), orderBy("hora", "asc"));
+            onSnapshot(q, (snapshot) => {
+                const box = document.getElementById('chat-box');
+                box.innerHTML = "";
+                snapshot.forEach(doc => {
+                    const m = doc.data();
+                    const isAdmin = m.usuario.includes('admin');
+                    const classe = isAdmin ? 'msg-admin' : 'msg-cliente';
+                    box.innerHTML += `<div class="msg ${classe}">
+                        <p class="text-[10px] font-bold opacity-50">${m.usuario.split('@')[0]}</p>
+                        <p>${m.texto}</p>
+                    </div>`;
                 });
-                chat_box.scrollTop = chat_box.scrollHeight;
+                box.scrollTop = box.scrollHeight;
             });
         }
     </script>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meu Delivery Grátis</title>
+    <title>Meu Delivery - Versão Final</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .hidden { display: none; }
@@ -11,7 +11,6 @@
         .msg { margin-bottom: 8px; padding: 6px 12px; border-radius: 8px; max-width: 80%; }
         .msg-admin { background: #fee2e2; align-self: flex-start; border: 1px solid #fecaca; }
         .msg-cliente { background: #dbeafe; align-self: flex-end; border: 1px solid #bfdbfe; }
-        /* Cores de Status */
         .status-pendente { color: #dc2626; font-weight: bold; }
         .status-preparando { color: #d97706; font-weight: bold; }
         .status-caminho { color: #2563eb; font-weight: bold; }
@@ -83,7 +82,7 @@
                     </div>
                     <div id="admin-cardapio-lista" class="space-y-2 mb-8 text-sm"></div>
 
-                    <h3 class="text-xl font-bold mb-4 border-t pt-4">Painel de Pedidos (Ações)</h3>
+                    <h3 class="text-xl font-bold mb-4 border-t pt-4">Painel de Pedidos</h3>
                     <div id="lista-pedidos" class="space-y-3 text-sm"></div>
                 </div>
             </div>
@@ -96,7 +95,6 @@
                     <button onclick="enviarMensagem()" class="bg-blue-600 text-white px-4 py-2 rounded">Enviar</button>
                 </div>
             </div>
-
         </div>
     </div>
 
@@ -121,6 +119,7 @@
         let carrinho = [];
         let totalAcumulado = 0;
 
+        // AUTH
         window.cadastrar = () => {
             const e = document.getElementById('email').value;
             const s = document.getElementById('senha').value;
@@ -138,7 +137,6 @@
                 document.getElementById('auth-screen').classList.add('hidden');
                 document.getElementById('main-screen').classList.remove('hidden');
                 document.getElementById('user-welcome').innerText = `Logado como: ${user.email}`;
-                
                 const isAdmin = user.email.includes('admin');
                 if(isAdmin) {
                     document.getElementById('admin-view').classList.remove('hidden');
@@ -149,7 +147,6 @@
                     document.getElementById('cliente-view').classList.remove('hidden');
                     document.getElementById('admin-view').classList.add('hidden');
                     ouvirCardapio(false);
-                    // Chamada movida para garantir que o 'user' está pronto
                     ouvirStatusCliente(user.email); 
                 }
                 ouvirChat();
@@ -159,23 +156,7 @@
             }
         });
 
-        window.salvarProduto = async () => {
-            const nome = document.getElementById('prod-nome').value;
-            const preco = document.getElementById('prod-preco').value;
-            if(!nome || !preco) return alert("Preencha nome e preço!");
-            await setDoc(doc(db, "produtos", nome), { nome, preco: parseFloat(preco), ativo: true });
-            document.getElementById('prod-nome').value = "";
-            document.getElementById('prod-preco').value = "";
-        };
-
-        window.toggleProduto = async (id, statusAtual) => {
-            await updateDoc(doc(db, "produtos", id), { ativo: !statusAtual });
-        };
-
-        window.excluirProduto = async (id) => {
-            if(confirm("Deseja excluir este produto?")) await deleteDoc(doc(db, "produtos", id));
-        };
-
+        // CEP
         window.toggleEndereco = () => {
             const div = document.getElementById('campos-endereco');
             div.classList.toggle('hidden', document.getElementById('opcao-entrega').value === "Não");
@@ -189,15 +170,15 @@
             if(!data.erro) document.getElementById('rua').value = `${data.logradouro}, ${data.bairro}`;
         };
 
+        // CARDÁPIO
         function ouvirCardapio(isAdmin) {
             onSnapshot(collection(db, "produtos"), (snapshot) => {
                 const listaC = document.getElementById('cardapio-lista');
                 const listaA = document.getElementById('admin-cardapio-lista');
-                listaC.innerHTML = ""; listaA.innerHTML = "";
+                if(listaC) listaC.innerHTML = ""; if(listaA) listaA.innerHTML = "";
                 snapshot.forEach(docSnap => {
-                    const p = docSnap.data();
-                    const id = docSnap.id;
-                    if(isAdmin) {
+                    const p = docSnap.data(); const id = docSnap.id;
+                    if(isAdmin && listaA) {
                         listaA.innerHTML += `<div class="flex justify-between items-center p-2 border rounded ${p.ativo ? 'bg-white' : 'bg-gray-200 opacity-60'}">
                             <span>${p.nome} - <b>R$ ${p.preco.toFixed(2)}</b></span>
                             <div class="flex gap-2">
@@ -206,7 +187,7 @@
                             </div>
                         </div>`;
                     }
-                    if(p.ativo) {
+                    if(p.ativo && listaC) {
                         listaC.innerHTML += `<div class="flex flex-col md:flex-row justify-between items-center p-4 border rounded bg-white gap-3 shadow-sm">
                                 <span class="font-bold text-gray-700">${p.nome} - R$ ${p.preco.toFixed(2)}</span>
                                 <div class="flex gap-2 items-center">
@@ -219,9 +200,24 @@
             });
         }
 
+        // CORREÇÃO: SOMA DE ITENS NO CARRINHO
         window.selecionarItem = (nome, preco, id) => {
-            const qtd = parseInt(document.getElementById(`qtd-${id}`).value);
-            carrinho.push({ nome, qtd, subtotal: preco * qtd });
+            const qtdInput = document.getElementById(`qtd-${id}`);
+            const qtdAdicionada = parseInt(qtdInput.value);
+            
+            // Procura se o item já está no carrinho
+            const itemExistente = carrinho.find(item => item.nome === nome);
+
+            if (itemExistente) {
+                // Se já existe, apenas aumenta a quantidade e o subtotal
+                itemExistente.qtd += qtdAdicionada;
+                itemExistente.subtotal = itemExistente.qtd * preco;
+            } else {
+                // Se não existe, adiciona como nova linha
+                carrinho.push({ nome, qtd: qtdAdicionada, preco: preco, subtotal: preco * qtdAdicionada });
+            }
+            
+            qtdInput.value = "1"; // Reseta o input para 1
             atualizarCarrinhoVisual();
         };
 
@@ -239,11 +235,12 @@
             listaDiv.innerHTML = ""; totalAcumulado = 0;
             carrinho.forEach(item => {
                 totalAcumulado += item.subtotal;
-                listaDiv.innerHTML += `<div>• ${item.qtd}x ${item.nome} (R$ ${item.subtotal.toFixed(2)})</div>`;
+                listaDiv.innerHTML += `<div>• <b>${item.qtd}x</b> ${item.nome} (R$ ${item.subtotal.toFixed(2)})</div>`;
             });
             resumoDiv.innerText = `R$ ${totalAcumulado.toFixed(2)}`;
         }
 
+        // PEDIDO
         window.enviarPedidoCompleto = async () => {
             if(carrinho.length === 0) return alert("Adicione algo!");
             const entrega = document.getElementById('opcao-entrega').value;
@@ -258,10 +255,11 @@
                 status: "Pendente",
                 data: serverTimestamp()
             });
-            alert("Pedido enviado!");
+            alert("Pedido enviado com sucesso!");
             limparCarrinho();
         };
 
+        // ADMIN: STATUS
         window.mudarStatus = async (id, novoStatus) => {
             await updateDoc(doc(db, "pedidos", id), { status: novoStatus });
         };
@@ -271,8 +269,7 @@
                 const lista = document.getElementById('lista-pedidos');
                 lista.innerHTML = "";
                 snap.forEach(d => {
-                    const p = d.data();
-                    const id = d.id;
+                    const p = d.data(); const id = d.id;
                     lista.innerHTML += `
                         <div class="p-3 bg-white border-l-4 border-red-500 rounded shadow-md flex flex-col gap-2">
                             <div class="flex justify-between">
@@ -290,49 +287,33 @@
             });
         }
 
-        // CORREÇÃO: Função aprimorada para monitorar status em tempo real
+        // CLIENTE: STATUS
         function ouvirStatusCliente(emailCliente) {
-            const q = query(
-                collection(db, "pedidos"), 
-                where("cliente", "==", emailCliente), 
-                orderBy("data", "desc")
-            );
-
+            const q = query(collection(db, "pedidos"), where("cliente", "==", emailCliente), orderBy("data", "desc"));
             onSnapshot(q, (snap) => {
                 const box = document.getElementById('meus-pedidos-status');
                 if(!box) return;
-                
                 box.innerHTML = "";
-                if(snap.empty) {
-                    box.innerHTML = "Nenhum pedido em andamento.";
-                    return;
-                }
-
+                if(snap.empty) { box.innerHTML = "Nenhum pedido em andamento."; return; }
                 snap.forEach(d => {
                     const p = d.data();
-                    let classeStatus = 'status-pendente';
-                    if(p.status === 'Preparando') classeStatus = 'status-preparando';
-                    if(p.status === 'A Caminho') classeStatus = 'status-caminho';
-                    if(p.status === 'Entregue') classeStatus = 'status-entregue';
-                    if(p.status === 'Confirmado') classeStatus = 'status-caminho';
-
+                    let classe = 'status-pendente';
+                    if(p.status === 'Preparando') classe = 'status-preparando';
+                    if(p.status === 'A Caminho' || p.status === 'Confirmado') classe = 'status-caminho';
+                    if(p.status === 'Entregue') classe = 'status-entregue';
                     box.innerHTML += `
                         <div class="border-b pb-2 mb-2 flex justify-between items-center last:border-0">
                             <div class="flex flex-col">
-                                <span class="font-medium">${p.item.substring(0, 30)}...</span>
+                                <span class="font-medium">${p.item.substring(0, 40)}...</span>
                                 <span class="text-[10px] text-gray-500">Total: R$ ${p.total}</span>
                             </div>
-                            <span class="${classeStatus} text-sm">● ${p.status}</span>
+                            <span class="${classe} text-sm">● ${p.status}</span>
                         </div>`;
                 });
-            }, (error) => {
-                console.error("Erro no filtro:", error);
-                // Se der erro de índice, mostramos todos os pedidos do cliente sem ordenar
-                const qSimples = query(collection(db, "pedidos"), where("cliente", "==", emailCliente));
-                onSnapshot(qSimples, (s) => { /* lógica repetida se necessário */ });
             });
         }
 
+        // CHAT
         window.enviarMensagem = async () => {
             const input = document.getElementById('chat-input');
             if(!input.value.trim()) return;
@@ -342,11 +323,9 @@
 
         function ouvirChat() {
             onSnapshot(query(collection(db, "mensagens"), orderBy("hora", "asc")), (snap) => {
-                const box = document.getElementById('chat-box');
-                box.innerHTML = "";
+                const box = document.getElementById('chat-box'); box.innerHTML = "";
                 snap.forEach(d => {
-                    const m = d.data();
-                    const classe = m.usuario.includes('admin') ? 'msg-admin' : 'msg-cliente';
+                    const m = d.data(); const classe = m.usuario.includes('admin') ? 'msg-admin' : 'msg-cliente';
                     box.innerHTML += `<div class="msg ${classe}"><p class="text-[10px] font-bold opacity-50">${m.usuario.split('@')[0]}</p><p>${m.texto}</p></div>`;
                 });
                 box.scrollTop = box.scrollHeight;

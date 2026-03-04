@@ -1,1 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Painel Admin - Pedidos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-800 p-5 text-white">
+    <h1 class="text-2xl font-bold mb-5">Pedidos Recebidos</h1>
+    
+    <div id="lista-pedidos" class="space-y-4">
+        </div>
 
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBgqjGYaV7rmgLMPB-Y4DcvgVkg82GFt0I",
+            authDomain: "sitepedidos.firebaseapp.com",
+            projectId: "sitepedidos",
+            storageBucket: "sitepedidos.firebasestorage.app",
+            messagingSenderId: "812273915392",
+            appId: "1:812273915392:web:9fc70d67ac717a11ca6ae5"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Escuta o banco de dados em tempo real
+        const q = query(collection(db, "pedidos"), orderBy("criadoEm", "desc"));
+        
+        onSnapshot(q, (snapshot) => {
+            const lista = document.getElementById("lista-pedidos");
+            lista.innerHTML = ""; // Limpa para atualizar
+
+            snapshot.forEach((doc) => {
+                const p = doc.data();
+                const card = `
+                    <div class="bg-slate-700 p-4 rounded border-l-4 border-yellow-500">
+                        <p><strong>Item:</strong> ${p.item}</p>
+                        <p><strong>Valor:</strong> R$ ${p.valor}</p>
+                        <p><strong>Endereço:</strong> ${p.endereco}</p>
+                        <p class="text-sm text-yellow-400">Status: ${p.status}</p>
+                    </div>
+                `;
+                lista.innerHTML += card;
+            });
+        });
+    </script>
+</body>
+</html>

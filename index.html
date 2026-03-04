@@ -101,7 +101,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, doc, setDoc, updateDoc, deleteDoc, where } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, doc, updateDoc, deleteDoc, where } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBgqjGYaV7rmgLMPB-Y4DcvgVkg82GFt0I",
@@ -170,7 +170,24 @@
             if(!data.erro) document.getElementById('rua').value = `${data.logradouro}, ${data.bairro}`;
         };
 
-        // CARDÁPIO
+        // CARDÁPIO E PRODUTOS
+        window.salvarProduto = async () => {
+            const nome = document.getElementById('prod-nome').value;
+            const preco = parseFloat(document.getElementById('prod-preco').value);
+            if(!nome || !preco) return alert("Preencha tudo");
+            await addDoc(collection(db, "produtos"), { nome, preco, ativo: true });
+            document.getElementById('prod-nome').value = "";
+            document.getElementById('prod-preco').value = "";
+        };
+
+        window.toggleProduto = async (id, statusAtual) => {
+            await updateDoc(doc(db, "produtos", id), { ativo: !statusAtual });
+        };
+
+        window.excluirProduto = async (id) => {
+            if(confirm("Excluir item?")) await deleteDoc(doc(db, "produtos", id));
+        };
+
         function ouvirCardapio(isAdmin) {
             onSnapshot(collection(db, "produtos"), (snapshot) => {
                 const listaC = document.getElementById('cardapio-lista');
@@ -200,24 +217,17 @@
             });
         }
 
-        // CORREÇÃO: SOMA DE ITENS NO CARRINHO
         window.selecionarItem = (nome, preco, id) => {
             const qtdInput = document.getElementById(`qtd-${id}`);
             const qtdAdicionada = parseInt(qtdInput.value);
-            
-            // Procura se o item já está no carrinho
             const itemExistente = carrinho.find(item => item.nome === nome);
-
             if (itemExistente) {
-                // Se já existe, apenas aumenta a quantidade e o subtotal
                 itemExistente.qtd += qtdAdicionada;
                 itemExistente.subtotal = itemExistente.qtd * preco;
             } else {
-                // Se não existe, adiciona como nova linha
                 carrinho.push({ nome, qtd: qtdAdicionada, preco: preco, subtotal: preco * qtdAdicionada });
             }
-            
-            qtdInput.value = "1"; // Reseta o input para 1
+            qtdInput.value = "1";
             atualizarCarrinhoVisual();
         };
 
@@ -240,7 +250,7 @@
             resumoDiv.innerText = `R$ ${totalAcumulado.toFixed(2)}`;
         }
 
-        // PEDIDO
+        // PEDIDOS E SINCRONIZAÇÃO DE STATUS
         window.enviarPedidoCompleto = async () => {
             if(carrinho.length === 0) return alert("Adicione algo!");
             const entrega = document.getElementById('opcao-entrega').value;
@@ -255,11 +265,10 @@
                 status: "Pendente",
                 data: serverTimestamp()
             });
-            alert("Pedido enviado com sucesso!");
+            alert("Pedido enviado!");
             limparCarrinho();
         };
 
-        // ADMIN: STATUS
         window.mudarStatus = async (id, novoStatus) => {
             await updateDoc(doc(db, "pedidos", id), { status: novoStatus });
         };
@@ -271,10 +280,10 @@
                 snap.forEach(d => {
                     const p = d.data(); const id = d.id;
                     lista.innerHTML += `
-                        <div class="p-3 bg-white border-l-4 border-red-500 rounded shadow-md flex flex-col gap-2">
+                        <div class="p-3 bg-white border-l-4 border-red-500 rounded shadow-md flex flex-col gap-2 mb-2">
                             <div class="flex justify-between">
                                 <span><b>${p.cliente.split('@')[0]}:</b> ${p.item}</span>
-                                <span class="bg-gray-100 px-2 rounded text-xs flex items-center">${p.status}</span>
+                                <span class="bg-gray-100 px-2 rounded text-xs flex items-center font-bold">${p.status}</span>
                             </div>
                             <div class="grid grid-cols-2 md:grid-cols-4 gap-1">
                                 <button onclick="mudarStatus('${id}', 'Confirmado')" class="bg-blue-500 text-white p-1 rounded text-[10px] font-bold">CONFIRMAR</button>
@@ -287,16 +296,21 @@
             });
         }
 
-        // CLIENTE: STATUS
         function ouvirStatusCliente(emailCliente) {
-            const q = query(collection(db, "pedidos"), where("cliente", "==", emailCliente), orderBy("data", "desc"));
+            // Removido o orderBy temporariamente para evitar erro de índice no Firebase, garantindo a sincronização imediata
+            const q = query(collection(db, "pedidos"), where("cliente", "==", emailCliente));
             onSnapshot(q, (snap) => {
                 const box = document.getElementById('meus-pedidos-status');
                 if(!box) return;
                 box.innerHTML = "";
                 if(snap.empty) { box.innerHTML = "Nenhum pedido em andamento."; return; }
-                snap.forEach(d => {
-                    const p = d.data();
+                
+                // Transformar em array para ordenar manualmente sem precisar de índice no Firebase
+                const docs = [];
+                snap.forEach(d => docs.push({id: d.id, ...d.data()}));
+                docs.sort((a, b) => (b.data?.seconds || 0) - (a.data?.seconds || 0));
+
+                docs.forEach(p => {
                     let classe = 'status-pendente';
                     if(p.status === 'Preparando') classe = 'status-preparando';
                     if(p.status === 'A Caminho' || p.status === 'Confirmado') classe = 'status-caminho';
@@ -304,7 +318,7 @@
                     box.innerHTML += `
                         <div class="border-b pb-2 mb-2 flex justify-between items-center last:border-0">
                             <div class="flex flex-col">
-                                <span class="font-medium">${p.item.substring(0, 40)}...</span>
+                                <span class="font-medium">${p.item}</span>
                                 <span class="text-[10px] text-gray-500">Total: R$ ${p.total}</span>
                             </div>
                             <span class="${classe} text-sm">● ${p.status}</span>

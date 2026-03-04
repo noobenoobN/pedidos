@@ -11,7 +11,6 @@
         .msg { margin-bottom: 8px; padding: 6px 12px; border-radius: 8px; max-width: 80%; }
         .msg-admin { background: #fee2e2; align-self: flex-start; border: 1px solid #fecaca; }
         .msg-cliente { background: #dbeafe; align-self: flex-end; border: 1px solid #bfdbfe; }
-        /* Cores de Status */
         .status-pendente { color: #dc2626; font-weight: bold; }
         .status-preparando { color: #d97706; font-weight: bold; }
         .status-caminho { color: #2563eb; font-weight: bold; }
@@ -38,7 +37,6 @@
         </nav>
 
         <div class="max-w-6xl mx-auto p-4 grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
             <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow">
                 <div id="cliente-view" class="hidden">
                     <h3 class="text-xl font-bold mb-4">Cardápio</h3>
@@ -47,7 +45,7 @@
                     <div class="border-t pt-4 space-y-3">
                         <h3 class="font-bold text-lg text-red-600 italic">Meus Pedidos Ativos</h3>
                         <div id="meus-pedidos-status" class="bg-white border rounded p-3 text-sm space-y-2 mb-4 shadow-inner min-h-[50px]">
-                            Nenhum pedido em andamento.
+                            Carregando pedidos...
                         </div>
 
                         <h3 class="font-bold text-lg">Finalizar Novo Pedido</h3>
@@ -97,7 +95,6 @@
                     <button onclick="enviarMensagem()" class="bg-blue-600 text-white px-4 py-2 rounded">Enviar</button>
                 </div>
             </div>
-
         </div>
     </div>
 
@@ -122,7 +119,6 @@
         let carrinho = [];
         let totalAcumulado = 0;
 
-        // --- AUTH ---
         window.cadastrar = () => {
             const e = document.getElementById('email').value;
             const s = document.getElementById('senha').value;
@@ -151,7 +147,7 @@
                     document.getElementById('cliente-view').classList.remove('hidden');
                     document.getElementById('admin-view').classList.add('hidden');
                     ouvirCardapio(false);
-                    ouvirStatusCliente();
+                    ouvirStatusCliente(); //
                 }
                 ouvirChat();
             } else {
@@ -160,7 +156,6 @@
             }
         });
 
-        // --- GESTÃO DE CARDÁPIO ---
         window.salvarProduto = async () => {
             const nome = document.getElementById('prod-nome').value;
             const preco = document.getElementById('prod-preco').value;
@@ -178,7 +173,6 @@
             if(confirm("Deseja excluir este produto?")) await deleteDoc(doc(db, "produtos", id));
         };
 
-        // --- CEP E ENTREGA ---
         window.toggleEndereco = () => {
             const div = document.getElementById('campos-endereco');
             div.classList.toggle('hidden', document.getElementById('opcao-entrega').value === "Não");
@@ -223,22 +217,16 @@
             });
         }
 
-        // --- CARRINHO COM SOMA DE QUANTIDADE ---
         window.selecionarItem = (nome, preco, id) => {
             const qtdInput = parseInt(document.getElementById(`qtd-${id}`).value);
-            
-            // Verifica se o item já está no carrinho
-            const index = carrinho.findIndex(item => item.nome === nome);
+            const index = carrinho.findIndex(item => item.nome === nome); //
             
             if (index !== -1) {
-                // Se já existe, soma a quantidade e o subtotal
                 carrinho[index].qtd += qtdInput;
                 carrinho[index].subtotal = carrinho[index].qtd * preco;
             } else {
-                // Se não existe, adiciona novo
                 carrinho.push({ nome, qtd: qtdInput, subtotal: preco * qtdInput });
             }
-            
             atualizarCarrinhoVisual();
         };
 
@@ -261,7 +249,6 @@
             resumoDiv.innerText = `R$ ${totalAcumulado.toFixed(2)}`;
         }
 
-        // --- PEDIDOS E STATUS ---
         window.enviarPedidoCompleto = async () => {
             if(carrinho.length === 0) return alert("Adicione algo!");
             const entrega = document.getElementById('opcao-entrega').value;
@@ -288,7 +275,7 @@
                 if (!motivo) return;
                 dadosUpdate.motivoCancelamento = motivo;
             }
-            await updateDoc(doc(db, "pedidos", id), dadosUpdate);
+            await updateDoc(doc(db, "pedidos", id), dadosUpdate); //
         };
 
         function carregarPedidosAdmin() {
@@ -302,7 +289,7 @@
                         <div class="p-3 bg-white border-l-4 border-red-500 rounded shadow-md flex flex-col gap-2">
                             <div class="flex justify-between">
                                 <span><b>${p.cliente.split('@')[0]}:</b> ${p.item}</span>
-                                <span class="bg-gray-100 px-2 rounded text-xs flex items-center">${p.status}</span>
+                                <span class="bg-gray-100 px-2 rounded text-xs flex items-center font-bold">${p.status}</span>
                             </div>
                             <div class="grid grid-cols-2 md:grid-cols-5 gap-1">
                                 <button onclick="mudarStatus('${id}', 'Confirmado')" class="bg-blue-500 text-white p-1 rounded text-[10px] font-bold">CONFIRMAR</button>
@@ -316,10 +303,8 @@
             });
         }
 
-        // --- CORREÇÃO: EXIBIÇÃO DE STATUS DO CLIENTE ---
         function ouvirStatusCliente() {
             if (!auth.currentUser) return;
-            // Busca apenas pedidos onde o campo 'cliente' é igual ao email do logado
             const q = query(collection(db, "pedidos"), where("cliente", "==", auth.currentUser.email), orderBy("data", "desc"));
             
             onSnapshot(q, (snap) => {
@@ -349,14 +334,13 @@
                                 <span class="font-medium">${p.item}</span>
                                 <span class="${classeStatus}">● ${p.status}</span>
                             </div>
-                            <div class="text-[10px] text-gray-500">Total: R$ ${p.total}</div>
+                            <div class="text-[10px] text-gray-500">Valor Total: R$ ${p.total}</div>
                             ${motivoHtml}
                         </div>`;
                 });
-            });
+            }); //
         }
 
-        // --- CHAT ---
         window.enviarMensagem = async () => {
             const input = document.getElementById('chat-input');
             if(!input.value.trim()) return;

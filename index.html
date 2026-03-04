@@ -2,18 +2,32 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Painel Admin - Pedidos</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-slate-800 p-5 text-white">
-    <h1 class="text-2xl font-bold mb-5">Pedidos Recebidos</h1>
+    <title>Meu Delivery - Cliente</title>
+    <script src="https://cdn.tailwindcss.com"></script> </head>
+<body class="bg-gray-100 p-5">
+    <h1 class="text-2xl font-bold text-red-600 mb-5">Cardápio Online</h1>
     
-    <div id="lista-pedidos" class="space-y-4">
+    <div class="grid grid-cols-1 gap-4">
+        <div class="bg-white p-4 rounded shadow flex justify-between items-center">
+            <div>
+                <h2 class="font-bold">X-Burger Especial</h2>
+                <p class="text-green-600">R$ 25,00</p>
+            </div>
+            <button onclick="fazerPedido('X-Burger', 25.00)" class="bg-red-500 text-white px-4 py-2 rounded">Pedir</button>
         </div>
+
+        <div class="bg-white p-4 rounded shadow flex justify-between items-center">
+            <div>
+                <h2 class="font-bold">Batata Frita G</h2>
+                <p class="text-green-600">R$ 15,00</p>
+            </div>
+            <button onclick="fazerPedido('Batata Frita G', 15.00)" class="bg-red-500 text-white px-4 py-2 rounded">Pedir</button>
+        </div>
+    </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-        import { getFirestore, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBgqjGYaV7rmgLMPB-Y4DcvgVkg82GFt0I",
@@ -27,26 +41,24 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // Escuta o banco de dados em tempo real
-        const q = query(collection(db, "pedidos"), orderBy("criadoEm", "desc"));
-        
-        onSnapshot(q, (snapshot) => {
-            const lista = document.getElementById("lista-pedidos");
-            lista.innerHTML = ""; // Limpa para atualizar
+        // Função global para o botão chamar
+        window.fazerPedido = async (nomeItem, preco) => {
+            const endereco = prompt("Digite seu endereço:");
+            if (!endereco) return;
 
-            snapshot.forEach((doc) => {
-                const p = doc.data();
-                const card = `
-                    <div class="bg-slate-700 p-4 rounded border-l-4 border-yellow-500">
-                        <p><strong>Item:</strong> ${p.item}</p>
-                        <p><strong>Valor:</strong> R$ ${p.valor}</p>
-                        <p><strong>Endereço:</strong> ${p.endereco}</p>
-                        <p class="text-sm text-yellow-400">Status: ${p.status}</p>
-                    </div>
-                `;
-                lista.innerHTML += card;
-            });
-        });
+            try {
+                await addDoc(collection(db, "pedidos"), {
+                    item: nomeItem,
+                    valor: preco,
+                    endereco: endereco,
+                    status: "pendente",
+                    criadoEm: serverTimestamp()
+                });
+                alert("Pedido enviado! Aguarde a confirmação.");
+            } catch (e) {
+                alert("Erro ao enviar pedido.");
+            }
+        };
     </script>
 </body>
 </html>

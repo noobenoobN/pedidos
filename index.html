@@ -3,52 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Delivery Grátis - Full</title>
+    <title>Meu Delivery Grátis</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .hidden { display: none; }
-        #chat-box { height: 200px; overflow-y: auto; }
+        #chat-box { height: 250px; overflow-y: auto; display: flex; flex-direction: column; }
+        .msg { margin-bottom: 8px; padding: 6px 12px; border-radius: 8px; max-width: 80%; }
+        .msg-admin { background: #fee2e2; align-self: flex-start; border: 1px solid #fecaca; }
+        .msg-cliente { background: #dbeafe; align-self: flex-end; border: 1px solid #bfdbfe; }
     </style>
 </head>
 <body class="bg-gray-100 font-sans">
 
-    <div id="auth-screen" class="max-w-md mx-auto mt-20 p-6 bg-white rounded shadow">
-        <h2 class="text-2xl font-bold mb-4 text-center">Login Delivery</h2>
-        <input id="email" type="email" placeholder="E-mail" class="w-full border p-2 mb-2 rounded">
-        <input id="senha" type="password" placeholder="Senha" class="w-full border p-2 mb-4 rounded">
-        <button onclick="logar()" class="w-full bg-blue-600 text-white p-2 rounded mb-2">Entrar</button>
-        <button onclick="cadastrar()" class="w-full bg-gray-400 text-white p-2 rounded">Criar Conta</button>
+    <div id="auth-screen" class="max-w-md mx-auto mt-20 p-6 bg-white rounded-lg shadow-xl">
+        <h2 class="text-2xl font-bold mb-6 text-center text-red-600">Delivery Login</h2>
+        <div class="space-y-4">
+            <input id="email" type="email" placeholder="Seu e-mail" class="w-full border p-3 rounded focus:outline-none focus:ring-2 focus:ring-red-500">
+            <input id="senha" type="password" placeholder="Sua senha" class="w-full border p-3 rounded focus:outline-none focus:ring-2 focus:ring-red-500">
+            <button onclick="logar()" class="w-full bg-red-600 text-white font-bold p-3 rounded hover:bg-red-700 transition">Entrar</button>
+            <button onclick="cadastrar()" class="w-full bg-gray-200 text-gray-700 p-3 rounded hover:bg-gray-300 transition">Criar Nova Conta</button>
+        </div>
     </div>
 
-    <div id="main-screen" class="hidden p-4">
-        <div class="flex justify-between items-center mb-6">
-            <h1 id="user-welcome" class="text-xl font-bold">Carregando...</h1>
-            <button onclick="auth.signOut()" class="text-red-500 underline">Sair</button>
-        </div>
+    <div id="main-screen" class="hidden min-h-screen">
+        <nav class="bg-red-600 text-white p-4 flex justify-between items-center shadow-md">
+            <span id="user-welcome" class="font-medium">Carregando...</span>
+            <button onclick="sair()" class="bg-red-800 px-3 py-1 rounded text-sm">Sair</button>
+        </nav>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div id="content-area" class="bg-white p-4 rounded shadow">
-                <h3 class="font-bold border-b mb-3 pb-2">Ações</h3>
+        <div class="max-w-6xl mx-auto p-4 grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow">
                 <div id="cliente-view" class="hidden">
-                    <button onclick="fazerPedido('Hambúrguer G', 25)" class="w-full bg-red-500 text-white p-3 rounded mb-2">Pedir Hambúrguer (R$ 25)</button>
-                    <button onclick="fazerPedido('Pizza M', 40)" class="w-full bg-red-500 text-white p-3 rounded">Pedir Pizza (R$ 40)</button>
+                    <h3 class="text-xl font-bold mb-4">Cardápio</h3>
+                    <div class="grid grid-cols-1 gap-3">
+                        <button onclick="fazerPedido('Hambúrguer Gourmet', 28.90)" class="flex justify-between p-4 border rounded hover:bg-gray-50">
+                            <span>🍔 Hambúrguer Gourmet</span> <span class="font-bold text-green-600">R$ 28,90</span>
+                        </button>
+                        <button onclick="fazerPedido('Pizza de Calabresa', 45.00)" class="flex justify-between p-4 border rounded hover:bg-gray-50">
+                            <span>🍕 Pizza de Calabresa</span> <span class="font-bold text-green-600">R$ 45,00</span>
+                        </button>
+                    </div>
                 </div>
+
                 <div id="admin-view" class="hidden">
-                    <p class="text-sm text-gray-500 mb-2">Pedidos Recentes:</p>
-                    <div id="lista-pedidos" class="space-y-2"></div>
+                    <h3 class="text-xl font-bold mb-4">Painel de Pedidos (ADMIN)</h3>
+                    <div id="lista-pedidos" class="space-y-3 text-sm">
+                        </div>
                 </div>
             </div>
 
-            <div class="bg-white p-4 rounded shadow">
-                <h3 class="font-bold border-b mb-3 pb-2 text-blue-600">Chat do Pedido</h3>
-                <div id="chat-box" class="bg-gray-50 p-2 rounded border mb-2 text-sm">
-                    <p class="text-gray-400 text-center">Selecione um pedido ou faça um para falar.</p>
-                </div>
+            <div class="bg-white p-6 rounded-lg shadow flex flex-col h-[500px]">
+                <h3 class="text-xl font-bold mb-4 text-blue-600 border-b pb-2">Suporte / Chat</h3>
+                <div id="chat-box" class="flex-1 p-2 mb-4 bg-gray-50 rounded">
+                    </div>
                 <div class="flex gap-2">
-                    <input id="chat-input" type="text" placeholder="Mensagem..." class="flex-1 border p-2 rounded">
-                    <button onclick="enviarMensagem()" class="bg-blue-600 text-white px-4 py-2 rounded">-></button>
+                    <input id="chat-input" type="text" placeholder="Digite..." class="flex-1 border p-2 rounded focus:outline-none">
+                    <button onclick="enviarMensagem()" class="bg-blue-600 text-white px-4 py-2 rounded">Enviar</button>
                 </div>
             </div>
+
         </div>
     </div>
 
@@ -57,7 +71,6 @@
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
-        // SUA CONFIGURAÇÃO DO FIREBASE (JÁ INCLUÍDA)
         const firebaseConfig = {
             apiKey: "AIzaSyBgqjGYaV7rmgLMPB-Y4DcvgVkg82GFt0I",
             authDomain: "sitepedidos.firebaseapp.com",
@@ -71,84 +84,94 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // --- AUTH ---
+        // --- SISTEMA DE AUTENTICAÇÃO ---
         window.cadastrar = () => {
-            const email = document.getElementById('email').value;
-            const senha = document.getElementById('senha').value;
-            createUserWithEmailAndPassword(auth, email, senha).catch(e => alert(e.message));
+            const e = document.getElementById('email').value;
+            const s = document.getElementById('senha').value;
+            createUserWithEmailAndPassword(auth, e, s).then(() => alert("Conta criada!")).catch(err => alert("Erro: " + err.message));
         };
 
         window.logar = () => {
-            const email = document.getElementById('email').value;
-            const senha = document.getElementById('senha').value;
-            signInWithEmailAndPassword(auth, email, senha).catch(e => alert(e.message));
+            const e = document.getElementById('email').value;
+            const s = document.getElementById('senha').value;
+            signInWithEmailAndPassword(auth, e, s).catch(err => alert("Login inválido!"));
         };
+
+        window.sair = () => signOut(auth);
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 document.getElementById('auth-screen').classList.add('hidden');
                 document.getElementById('main-screen').classList.remove('hidden');
-                document.getElementById('user-welcome').innerText = `Olá, ${user.email}`;
+                document.getElementById('user-welcome').innerText = `Logado como: ${user.email}`;
                 
-                // Lógica de Admin (Exemplo: se o email contiver 'admin')
                 if(user.email.includes('admin')) {
                     document.getElementById('admin-view').classList.remove('hidden');
+                    document.getElementById('cliente-view').classList.add('hidden');
                     carregarPedidosAdmin();
                 } else {
                     document.getElementById('cliente-view').classList.remove('hidden');
+                    document.getElementById('admin-view').classList.add('hidden');
                 }
-                ouvirMensagens();
+                ouvirChat();
             } else {
-                location.reload(); // Simples reset ao sair
+                document.getElementById('auth-screen').classList.remove('hidden');
+                document.getElementById('main-screen').classList.add('hidden');
             }
         });
 
-        // --- PEDIDOS ---
-        window.fazerPedido = async (item, valor) => {
+        // --- SISTEMA DE PEDIDOS ---
+        window.fazerPedido = async (nome, valor) => {
             await addDoc(collection(db, "pedidos"), {
                 cliente: auth.currentUser.email,
-                item: item,
-                valor: valor,
-                criadoEm: serverTimestamp()
+                item: nome,
+                total: valor,
+                data: serverTimestamp()
             });
-            alert("Pedido feito! O Admin verá no chat.");
+            alert("Pedido enviado para a cozinha!");
         };
 
         function carregarPedidosAdmin() {
-            const q = query(collection(db, "pedidos"), orderBy("criadoEm", "desc"));
-            onSnapshot(q, (snap) => {
+            const q = query(collection(db, "pedidos"), orderBy("data", "desc"));
+            onSnapshot(q, (snapshot) => {
                 const lista = document.getElementById('lista-pedidos');
                 lista.innerHTML = "";
-                snap.forEach(doc => {
+                snapshot.forEach(doc => {
                     const p = doc.data();
-                    lista.innerHTML += `<div class="p-2 border rounded text-sm bg-gray-50">
-                        <b>${p.cliente}:</b> ${p.item} (R$ ${p.valor})
-                    </div>`;
+                    lista.innerHTML += `
+                        <div class="p-3 bg-gray-50 border-l-4 border-red-500 rounded flex justify-between">
+                            <span><b>${p.cliente.split('@')[0]}:</b> ${p.item}</span>
+                            <span class="font-bold">R$ ${p.total}</span>
+                        </div>`;
                 });
             });
         }
 
-        // --- CHAT ---
+        // --- SISTEMA DE CHAT ---
         window.enviarMensagem = async () => {
             const input = document.getElementById('chat-input');
-            if(!input.value) return;
+            if(!input.value.trim()) return;
             await addDoc(collection(db, "mensagens"), {
-                user: auth.currentUser.email,
+                usuario: auth.currentUser.email,
                 texto: input.value,
-                timestamp: serverTimestamp()
+                hora: serverTimestamp()
             });
             input.value = "";
         };
 
-        function ouvirMensagens() {
-            const q = query(collection(db, "mensagens"), orderBy("timestamp", "asc"));
-            onSnapshot(q, (snap) => {
+        function ouvirChat() {
+            const q = query(collection(db, "mensagens"), orderBy("hora", "asc"));
+            onSnapshot(q, (snapshot) => {
                 const box = document.getElementById('chat-box');
                 box.innerHTML = "";
-                snap.forEach(doc => {
+                snapshot.forEach(doc => {
                     const m = doc.data();
-                    const cor = m.user.includes('admin') ? 'text-red-600' : 'text-blue-600';
-                    box.innerHTML += `<p class="mb-1"> <b class="${cor}">${m.user.split('@')[0]}:</b> ${m.texto} </p>`;
+                    const isAdmin = m.usuario.includes('admin');
+                    const classe = isAdmin ? 'msg-admin' : 'msg-cliente';
+                    box.innerHTML += `<div class="msg ${classe}">
+                        <p class="text-[10px] font-bold opacity-50">${m.usuario.split('@')[0]}</p>
+                        <p>${m.texto}</p>
+                    </div>`;
                 });
                 box.scrollTop = box.scrollHeight;
             });

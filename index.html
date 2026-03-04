@@ -1,247 +1,52 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Delivery Completo</title>
-<script src="https://cdn.tailwindcss.com"></script>
+    <meta charset="UTF-8">
+    <title>Painel Admin - Pedidos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-
-<body class="bg-gray-100 min-h-screen">
-
-<!-- LOGIN -->
-<div id="authBox" class="flex items-center justify-center min-h-screen">
-  <div class="bg-white p-6 rounded-xl shadow-md w-80">
-    <h2 class="text-2xl font-bold text-center mb-4">Login</h2>
-    <input id="email" type="email" placeholder="Email" class="w-full p-2 mb-2 border rounded">
-    <input id="senha" type="password" placeholder="Senha" class="w-full p-2 mb-3 border rounded">
-    <button onclick="login()" class="w-full bg-red-600 text-white p-2 rounded mb-2">Entrar</button>
-    <button onclick="cadastrar()" class="w-full bg-green-600 text-white p-2 rounded">Cadastrar</button>
-  </div>
-</div>
-
-<!-- APP -->
-<div id="app" class="hidden p-4 max-w-4xl mx-auto">
-
-  <div class="flex justify-between items-center mb-4">
-    <h1 class="text-2xl font-bold">Delivery Firebase 🔥</h1>
-    <button onclick="logout()" class="text-red-600">Sair</button>
-  </div>
-
-  <div id="clienteArea" class="hidden"></div>
-  <div id="adminArea" class="hidden"></div>
-  <div id="entregadorArea" class="hidden"></div>
-
-</div>
-
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-analytics.js";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, collection, addDoc, onSnapshot, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyBgqjGYaV7rmgLMPB-Y4DcvgVkg82GFt0I",
-  authDomain: "sitepedidos.firebaseapp.com",
-  projectId: "sitepedidos",
-  storageBucket: "sitepedidos.firebasestorage.app",
-  messagingSenderId: "812273915392",
-  appId: "1:812273915392:web:9fc70d67ac717a11ca6ae5",
-  measurementId: "G-4HLF6VSY2Z"
-};
-
-const appFirebase = initializeApp(firebaseConfig);
-getAnalytics(appFirebase);
-const auth = getAuth(appFirebase);
-const db = getFirestore(appFirebase);
-
-window.cadastrar = async () => {
-  const cred = await createUserWithEmailAndPassword(auth, email.value, senha.value);
-  await setDoc(doc(db, "usuarios", cred.user.uid), {
-    email: email.value,
-    role: "cliente"
-  });
-  alert("Conta criada!");
-};
-
-window.login = async () => {
-  await signInWithEmailAndPassword(auth, email.value, senha.value);
-};
-
-window.logout = () => signOut(auth);
-
-onAuthStateChanged(auth, async user => {
-  if (user) {
-    authBox.classList.add("hidden");
-    app.classList.remove("hidden");
-
-    const userDoc = await getDoc(doc(db, "usuarios", user.uid));
-    const role = userDoc.data().role;
-
-    clienteArea.classList.add("hidden");
-    adminArea.classList.add("hidden");
-    entregadorArea.classList.add("hidden");
-
-    if (role === "cliente") carregarCliente();
-    if (role === "admin") carregarAdmin();
-    if (role === "entregador") carregarEntregador();
-
-  } else {
-    authBox.classList.remove("hidden");
-    app.classList.add("hidden");
-  }
-});
-
-function carregarCliente() {
-  clienteArea.classList.remove("hidden");
-  clienteArea.innerHTML = `
-    <h2 class="text-xl font-bold mb-3">Cardápio</h2>
-    <div id="produtos"></div>
-    <h3 class="mt-4 font-bold">Carrinho</h3>
-    <div id="carrinho"></div>
-    <p>Total: R$ <span id="totalSpan">0</span></p>
-    <button onclick="enviarPedido()" class="bg-red-600 text-white p-2 rounded mt-2">Finalizar Pedido</button>
-    <h3 class="mt-6 font-bold">Meus Pedidos</h3>
-    <div id="meusPedidos"></div>
-  `;
-
-  const produtos = [
-    { nome: "Hambúrguer", preco: 20 },
-    { nome: "Pizza", preco: 35 },
-    { nome: "Refrigerante", preco: 8 }
-  ];
-
-  let carrinho = [];
-  let total = 0;
-
-  window.addCarrinho = (nome, preco) => {
-    carrinho.push({ nome, preco });
-    total += preco;
-    renderCarrinho();
-  };
-
-  function renderCarrinho() {
-    carrinhoDiv.innerHTML = "";
-    carrinho.forEach(item => {
-      carrinhoDiv.innerHTML += `<div>${item.nome} - R$ ${item.preco}</div>`;
-    });
-    totalSpan.innerText = total;
-  }
-
-  produtosDiv.innerHTML = "";
-  produtos.forEach(p => {
-    produtosDiv.innerHTML += `
-      <div class="border p-2 mb-2 flex justify-between">
-        ${p.nome} - R$ ${p.preco}
-        <button onclick="addCarrinho('${p.nome}',${p.preco})"
-        class="bg-green-500 text-white px-2 rounded">+</button>
-      </div>
-    `;
-  });
-
-  window.enviarPedido = async () => {
-    await addDoc(collection(db, "pedidos"), {
-      usuario: auth.currentUser.email,
-      total: total,
-      status: "Recebido",
-      criadoEm: new Date()
-    });
-    carrinho = [];
-    total = 0;
-    renderCarrinho();
-  };
-
-  onSnapshot(collection(db, "pedidos"), snap => {
-    meusPedidos.innerHTML = "";
-    snap.forEach(docSnap => {
-      const p = docSnap.data();
-      if (p.usuario === auth.currentUser.email) {
-        meusPedidos.innerHTML += `
-          <div class="border p-2 mb-2">
-            Status: ${p.status}
-            <button onclick="cancelarPedido('${docSnap.id}')"
-            class="bg-red-500 text-white px-2 ml-2">Cancelar</button>
-          </div>
-        `;
-      }
-    });
-  });
-
-  window.cancelarPedido = async (id) => {
-    await deleteDoc(doc(db, "pedidos", id));
-  };
-}
-
-function carregarAdmin() {
-  adminArea.classList.remove("hidden");
-  adminArea.innerHTML = `
-    <h2 class="text-xl font-bold mb-3">Pedidos</h2>
-    <div id="adminPedidos"></div>
-  `;
-
-  onSnapshot(collection(db, "pedidos"), snap => {
-    adminPedidos.innerHTML = "";
-    snap.forEach(docSnap => {
-      const p = docSnap.data();
-      adminPedidos.innerHTML += `
-        <div class="border p-3 mb-2">
-          Cliente: ${p.usuario}<br>
-          Total: R$ ${p.total}<br>
-          Status: ${p.status}<br>
-          <button onclick="confirmarPedido('${docSnap.id}')"
-          class="bg-green-600 text-white px-2 mr-2">Confirmar</button>
-          <button onclick="avancarStatus('${docSnap.id}','${p.status}')"
-          class="bg-blue-500 text-white px-2">Avançar</button>
+<body class="bg-slate-800 p-5 text-white">
+    <h1 class="text-2xl font-bold mb-5">Pedidos Recebidos</h1>
+    
+    <div id="lista-pedidos" class="space-y-4">
         </div>
-      `;
-    });
-  });
-}
 
-window.confirmarPedido = async (id) => {
-  await updateDoc(doc(db, "pedidos", id), { status: "Confirmado" });
-};
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
-window.avancarStatus = async (id, status) => {
-  const mapa = {
-    Recebido: "Em preparo",
-    Confirmado: "Em preparo",
-    "Em preparo": "Saiu",
-    Saiu: "Entregue"
-  };
-  await updateDoc(doc(db, "pedidos", id), {
-    status: mapa[status] || "Entregue"
-  });
-};
+        const firebaseConfig = {
+            apiKey: "AIzaSyBgqjGYaV7rmgLMPB-Y4DcvgVkg82GFt0I",
+            authDomain: "sitepedidos.firebaseapp.com",
+            projectId: "sitepedidos",
+            storageBucket: "sitepedidos.firebasestorage.app",
+            messagingSenderId: "812273915392",
+            appId: "1:812273915392:web:9fc70d67ac717a11ca6ae5"
+        };
 
-function carregarEntregador() {
-  entregadorArea.classList.remove("hidden");
-  entregadorArea.innerHTML = `
-    <h2 class="text-xl font-bold mb-3">Entregas</h2>
-    <div id="listaEntrega"></div>
-  `;
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
-  onSnapshot(collection(db, "pedidos"), snap => {
-    listaEntrega.innerHTML = "";
-    snap.forEach(docSnap => {
-      const p = docSnap.data();
-      if (p.status === "Saiu") {
-        listaEntrega.innerHTML += `
-          <div class="border p-3 mb-2">
-            Cliente: ${p.usuario}<br>
-            <button onclick="marcarEntregue('${docSnap.id}')"
-            class="bg-green-600 text-white px-2">Entregue</button>
-          </div>
-        `;
-      }
-    });
-  });
-}
+        // Escuta o banco de dados em tempo real
+        const q = query(collection(db, "pedidos"), orderBy("criadoEm", "desc"));
+        
+        onSnapshot(q, (snapshot) => {
+            const lista = document.getElementById("lista-pedidos");
+            lista.innerHTML = ""; // Limpa para atualizar
 
-window.marcarEntregue = async (id) => {
-  await updateDoc(doc(db, "pedidos", id), { status: "Entregue" });
-};
-</script>
-
+            snapshot.forEach((doc) => {
+                const p = doc.data();
+                const card = `
+                    <div class="bg-slate-700 p-4 rounded border-l-4 border-yellow-500">
+                        <p><strong>Item:</strong> ${p.item}</p>
+                        <p><strong>Valor:</strong> R$ ${p.valor}</p>
+                        <p><strong>Endereço:</strong> ${p.endereco}</p>
+                        <p class="text-sm text-yellow-400">Status: ${p.status}</p>
+                    </div>
+                `;
+                lista.innerHTML += card;
+            });
+        });
+    </script>
 </body>
 </html>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meu Delivery Grátis</title>
+    <title>Meu Delivery Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .hidden { display: none; }
@@ -11,11 +11,11 @@
         .msg { margin-bottom: 8px; padding: 6px 12px; border-radius: 8px; max-width: 80%; }
         .msg-admin { background: #fee2e2; align-self: flex-start; border: 1px solid #fecaca; }
         .msg-cliente { background: #dbeafe; align-self: flex-end; border: 1px solid #bfdbfe; }
-        /* Cores de Status */
         .status-pendente { color: #dc2626; font-weight: bold; }
         .status-preparando { color: #d97706; font-weight: bold; }
         .status-caminho { color: #2563eb; font-weight: bold; }
         .status-entregue { color: #16a34a; font-weight: bold; }
+        .status-cancelado { color: #7f1d1d; font-weight: bold; text-decoration: line-through; }
     </style>
 </head>
 <body class="bg-gray-100 font-sans">
@@ -44,52 +44,49 @@
                     <div id="cardapio-lista" class="grid grid-cols-1 gap-3 mb-6"></div>
                     
                     <div class="border-t pt-4 space-y-3">
-                        <h3 class="font-bold text-lg text-red-600 italic">Meus Pedidos Ativos</h3>
+                        <h3 class="font-bold text-lg text-red-600 italic">Meus Pedidos</h3>
                         <div id="meus-pedidos-status" class="bg-white border rounded p-3 text-sm space-y-2 mb-4 shadow-inner min-h-[50px]">
                             Nenhum pedido em andamento.
                         </div>
 
-                        <h3 class="font-bold text-lg">Finalizar Novo Pedido</h3>
+                        <h3 class="font-bold text-lg">Novo Pedido</h3>
                         <div class="bg-gray-50 p-3 rounded border text-sm mb-2">
                             <p class="font-bold mb-1 border-b pb-1">Carrinho:</p>
-                            <div id="lista-carrinho" class="space-y-1 mb-2 italic text-gray-600">Seu carrinho está vazio.</div>
+                            <div id="lista-carrinho" class="space-y-1 mb-2 italic text-gray-600">Vazio</div>
                         </div>
 
                         <select id="opcao-entrega" onchange="toggleEndereco()" class="w-full border p-2 rounded">
-                            <option value="Sim">Preciso de Entrega (Sim)</option>
-                            <option value="Não">Vou buscar no local (Não)</option>
+                            <option value="Sim">Preciso de Entrega</option>
+                            <option value="Não">Vou buscar</option>
                         </select>
                         <div id="campos-endereco" class="space-y-2">
                             <input id="cep" type="text" placeholder="CEP" onblur="buscarCEP()" class="w-full border p-2 rounded">
-                            <input id="rua" type="text" placeholder="Rua / Endereço" class="w-full border p-2 rounded bg-gray-50">
+                            <input id="rua" type="text" placeholder="Rua" class="w-full border p-2 rounded bg-gray-50">
                             <input id="num" type="text" placeholder="Número" class="w-full border p-2 rounded">
                         </div>
                         <div class="bg-yellow-50 p-3 rounded border border-yellow-200 text-sm">
-                            <b>Total a Pagar:</b> <span id="resumo-carrinho">R$ 0.00</span>
+                            <b>Total:</b> <span id="resumo-carrinho">R$ 0.00</span>
                         </div>
-                        <button onclick="enviarPedidoCompleto()" class="w-full bg-green-600 text-white p-3 rounded font-bold uppercase hover:bg-green-700 transition">Confirmar e Enviar</button>
-                        <button onclick="limparCarrinho()" class="w-full text-xs text-red-500 underline mt-2">Limpar Carrinho</button>
+                        <button onclick="enviarPedidoCompleto()" class="w-full bg-green-600 text-white p-3 rounded font-bold uppercase hover:bg-green-700 transition">Enviar Pedido</button>
                     </div>
                 </div>
 
                 <div id="admin-view" class="hidden">
-                    <h3 class="text-xl font-bold mb-4">Gerenciar Cardápio</h3>
-                    <div class="bg-gray-50 p-4 rounded mb-6 border">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                            <input id="prod-nome" type="text" placeholder="Nome do Produto" class="border p-2 rounded">
-                            <input id="prod-preco" type="number" placeholder="Preço" class="border p-2 rounded">
-                        </div>
-                        <button onclick="salvarProduto()" class="mt-2 w-full bg-green-600 text-white p-2 rounded font-bold">Salvar Produto</button>
+                    <h3 class="text-xl font-bold mb-4">Admin - Cardápio</h3>
+                    <div class="bg-gray-50 p-4 rounded mb-6 border flex gap-2">
+                        <input id="prod-nome" type="text" placeholder="Produto" class="border p-2 rounded w-full">
+                        <input id="prod-preco" type="number" placeholder="Preço" class="border p-2 rounded w-32">
+                        <button onclick="salvarProduto()" class="bg-green-600 text-white px-4 rounded font-bold">Salvar</button>
                     </div>
                     <div id="admin-cardapio-lista" class="space-y-2 mb-8 text-sm"></div>
 
-                    <h3 class="text-xl font-bold mb-4 border-t pt-4">Painel de Pedidos (Ações)</h3>
+                    <h3 class="text-xl font-bold mb-4 border-t pt-4 text-red-600">Painel de Pedidos</h3>
                     <div id="lista-pedidos" class="space-y-3 text-sm"></div>
                 </div>
             </div>
 
             <div class="bg-white p-6 rounded-lg shadow flex flex-col h-[500px]">
-                <h3 class="text-xl font-bold mb-4 text-blue-600 border-b pb-2">Suporte / Chat</h3>
+                <h3 class="text-xl font-bold mb-4 text-blue-600 border-b pb-2">Chat Suporte</h3>
                 <div id="chat-box" class="flex-1 p-2 mb-4 bg-gray-50 rounded"></div>
                 <div class="flex gap-2">
                     <input id="chat-input" type="text" placeholder="Digite..." class="flex-1 border p-2 rounded focus:outline-none">
@@ -121,16 +118,16 @@
         let carrinho = [];
         let totalAcumulado = 0;
 
-        // --- AUTH ---
+        // AUTH
         window.cadastrar = () => {
             const e = document.getElementById('email').value;
             const s = document.getElementById('senha').value;
-            createUserWithEmailAndPassword(auth, e, s).then(() => alert("Conta criada!")).catch(err => alert("Erro: " + err.message));
+            createUserWithEmailAndPassword(auth, e, s).catch(err => alert(err.message));
         };
         window.logar = () => {
             const e = document.getElementById('email').value;
             const s = document.getElementById('senha').value;
-            signInWithEmailAndPassword(auth, e, s).catch(err => alert("Login inválido!"));
+            signInWithEmailAndPassword(auth, e, s).catch(err => alert("Erro no Login"));
         };
         window.sair = () => signOut(auth);
 
@@ -138,8 +135,7 @@
             if (user) {
                 document.getElementById('auth-screen').classList.add('hidden');
                 document.getElementById('main-screen').classList.remove('hidden');
-                document.getElementById('user-welcome').innerText = `Logado como: ${user.email}`;
-                
+                document.getElementById('user-welcome').innerText = user.email;
                 const isAdmin = user.email.includes('admin');
                 if(isAdmin) {
                     document.getElementById('admin-view').classList.remove('hidden');
@@ -150,7 +146,7 @@
                     document.getElementById('cliente-view').classList.remove('hidden');
                     document.getElementById('admin-view').classList.add('hidden');
                     ouvirCardapio(false);
-                    ouvirStatusCliente(); // Inicia monitoramento para o cliente
+                    ouvirStatusCliente();
                 }
                 ouvirChat();
             } else {
@@ -159,36 +155,12 @@
             }
         });
 
-        // --- GESTÃO DE CARDÁPIO ---
+        // CARDÁPIO
         window.salvarProduto = async () => {
             const nome = document.getElementById('prod-nome').value;
             const preco = document.getElementById('prod-preco').value;
-            if(!nome || !preco) return alert("Preencha nome e preço!");
+            if(!nome || !preco) return;
             await setDoc(doc(db, "produtos", nome), { nome, preco: parseFloat(preco), ativo: true });
-            document.getElementById('prod-nome').value = "";
-            document.getElementById('prod-preco').value = "";
-        };
-
-        window.toggleProduto = async (id, statusAtual) => {
-            await updateDoc(doc(db, "produtos", id), { ativo: !statusAtual });
-        };
-
-        window.excluirProduto = async (id) => {
-            if(confirm("Deseja excluir este produto?")) await deleteDoc(doc(db, "produtos", id));
-        };
-
-        // --- CEP E ENTREGA ---
-        window.toggleEndereco = () => {
-            const div = document.getElementById('campos-endereco');
-            div.classList.toggle('hidden', document.getElementById('opcao-entrega').value === "Não");
-        };
-
-        window.buscarCEP = async () => {
-            const cep = document.getElementById('cep').value.replace(/\D/g, '');
-            if(cep.length !== 8) return;
-            const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-            const data = await res.json();
-            if(!data.erro) document.getElementById('rua').value = `${data.logradouro}, ${data.bairro}`;
         };
 
         function ouvirCardapio(isAdmin) {
@@ -198,77 +170,67 @@
                 listaC.innerHTML = ""; listaA.innerHTML = "";
                 snapshot.forEach(docSnap => {
                     const p = docSnap.data();
-                    const id = docSnap.id;
                     if(isAdmin) {
-                        listaA.innerHTML += `<div class="flex justify-between items-center p-2 border rounded ${p.ativo ? 'bg-white' : 'bg-gray-200 opacity-60'}">
-                            <span>${p.nome} - <b>R$ ${p.preco.toFixed(2)}</b></span>
-                            <div class="flex gap-2">
-                                <button onclick="toggleProduto('${id}', ${p.ativo})" class="bg-yellow-500 text-white px-2 py-1 rounded text-xs">${p.ativo ? 'Ocultar' : 'Mostrar'}</button>
-                                <button onclick="excluirProduto('${id}')" class="bg-red-500 text-white px-2 py-1 rounded text-xs">Excluir</button>
-                            </div>
+                        listaA.innerHTML += `<div class="p-2 border rounded flex justify-between bg-white">
+                            <span>${p.nome} - R$ ${p.preco}</span>
+                            <button onclick="deleteDoc(doc(db, 'produtos', '${docSnap.id}'))" class="text-red-500">Excluir</button>
                         </div>`;
                     }
                     if(p.ativo) {
-                        listaC.innerHTML += `<div class="flex flex-col md:flex-row justify-between items-center p-4 border rounded bg-white gap-3 shadow-sm">
-                                <span class="font-bold text-gray-700">${p.nome} - R$ ${p.preco.toFixed(2)}</span>
-                                <div class="flex gap-2 items-center">
-                                    <input type="number" id="qtd-${id}" value="1" min="1" class="border w-14 p-1 rounded text-center">
-                                    <button onclick="selecionarItem('${p.nome}', ${p.preco}, '${id}')" class="bg-red-600 text-white px-4 py-1 rounded font-bold text-sm">ADICIONAR</button>
-                                </div>
-                            </div>`;
+                        listaC.innerHTML += `<div class="p-3 border rounded bg-white flex justify-between items-center shadow-sm">
+                            <span class="font-bold">${p.nome} - R$ ${p.preco.toFixed(2)}</span>
+                            <button onclick="selecionarItem('${p.nome}', ${p.preco})" class="bg-red-600 text-white px-3 py-1 rounded text-sm font-bold">ADD</button>
+                        </div>`;
                     }
                 });
             });
         }
 
-        // --- CARRINHO ---
-        window.selecionarItem = (nome, preco, id) => {
-            const qtd = parseInt(document.getElementById(`qtd-${id}`).value);
-            carrinho.push({ nome, qtd, subtotal: preco * qtd });
+        // PEDIDOS
+        window.selecionarItem = (nome, preco) => {
+            carrinho.push({ nome, subtotal: preco });
             atualizarCarrinhoVisual();
         };
-
-        window.limparCarrinho = () => { carrinho = []; atualizarCarrinhoVisual(); };
 
         function atualizarCarrinhoVisual() {
             const listaDiv = document.getElementById('lista-carrinho');
             const resumoDiv = document.getElementById('resumo-carrinho');
             if (carrinho.length === 0) {
-                listaDiv.innerHTML = "Seu carrinho está vazio.";
+                listaDiv.innerHTML = "Vazio";
                 resumoDiv.innerText = "R$ 0.00";
-                totalAcumulado = 0;
                 return;
             }
             listaDiv.innerHTML = ""; totalAcumulado = 0;
             carrinho.forEach(item => {
                 totalAcumulado += item.subtotal;
-                listaDiv.innerHTML += `<div>• ${item.qtd}x ${item.nome} (R$ ${item.subtotal.toFixed(2)})</div>`;
+                listaDiv.innerHTML += `<div>• ${item.nome}</div>`;
             });
             resumoDiv.innerText = `R$ ${totalAcumulado.toFixed(2)}`;
         }
 
-        // --- PEDIDOS E STATUS ---
         window.enviarPedidoCompleto = async () => {
-            if(carrinho.length === 0) return alert("Adicione algo!");
-            const entrega = document.getElementById('opcao-entrega').value;
-            let local = entrega === "Sim" ? `${document.getElementById('rua').value}, Nº ${document.getElementById('num').value}` : "Retirada no Local";
-            if(entrega === "Sim" && (!document.getElementById('rua').value)) return alert("Endereço vazio!");
-
+            if(carrinho.length === 0) return alert("Carrinho vazio!");
             await addDoc(collection(db, "pedidos"), {
                 cliente: auth.currentUser.email,
-                item: carrinho.map(i => `${i.qtd}x ${i.nome}`).join(", "),
+                item: carrinho.map(i => i.nome).join(", "),
                 total: totalAcumulado.toFixed(2),
-                entrega: local,
-                status: "Pendente", // STATUS INICIAL
+                status: "Pendente",
+                motivoCancelamento: "",
                 data: serverTimestamp()
             });
-            alert("Pedido enviado!");
-            limparCarrinho();
+            carrinho = []; atualizarCarrinhoVisual();
+            alert("Pedido Enviado!");
         };
 
-        // ADMIN: MUDAR STATUS
+        // FUNÇÃO DE MUDAR STATUS E CANCELAR
         window.mudarStatus = async (id, novoStatus) => {
-            await updateDoc(doc(db, "pedidos", id), { status: novoStatus });
+            if (novoStatus === 'Cancelado') {
+                const motivo = prompt("Digite o motivo do cancelamento para o cliente:");
+                if (!motivo) return alert("É obrigatório informar o motivo!");
+                await updateDoc(doc(db, "pedidos", id), { status: novoStatus, motivoCancelamento: motivo });
+            } else {
+                await updateDoc(doc(db, "pedidos", id), { status: novoStatus });
+            }
         };
 
         function carregarPedidosAdmin() {
@@ -277,18 +239,17 @@
                 lista.innerHTML = "";
                 snap.forEach(d => {
                     const p = d.data();
-                    const id = d.id;
                     lista.innerHTML += `
-                        <div class="p-3 bg-white border-l-4 border-red-500 rounded shadow-md flex flex-col gap-2">
+                        <div class="p-3 bg-white border-l-4 border-red-500 rounded shadow flex flex-col gap-2">
                             <div class="flex justify-between">
                                 <span><b>${p.cliente.split('@')[0]}:</b> ${p.item}</span>
-                                <span class="bg-gray-100 px-2 rounded text-xs flex items-center">${p.status}</span>
+                                <span class="text-xs font-bold uppercase">${p.status}</span>
                             </div>
-                            <div class="grid grid-cols-2 md:grid-cols-4 gap-1">
-                                <button onclick="mudarStatus('${id}', 'Confirmado')" class="bg-blue-500 text-white p-1 rounded text-[10px] font-bold">CONFIRMAR</button>
-                                <button onclick="mudarStatus('${id}', 'Preparando')" class="bg-orange-500 text-white p-1 rounded text-[10px] font-bold">PREPARAR</button>
-                                <button onclick="mudarStatus('${id}', 'A Caminho')" class="bg-purple-500 text-white p-1 rounded text-[10px] font-bold">A CAMINHO</button>
-                                <button onclick="mudarStatus('${id}', 'Entregue')" class="bg-green-600 text-white p-1 rounded text-[10px] font-bold">CONCLUIR</button>
+                            <div class="grid grid-cols-4 gap-1">
+                                <button onclick="mudarStatus('${d.id}', 'Preparando')" class="bg-orange-400 text-white p-1 rounded text-[10px]">PREPARAR</button>
+                                <button onclick="mudarStatus('${d.id}', 'A Caminho')" class="bg-blue-500 text-white p-1 rounded text-[10px]">CAMINHO</button>
+                                <button onclick="mudarStatus('${d.id}', 'Entregue')" class="bg-green-600 text-white p-1 rounded text-[10px]">OK</button>
+                                <button onclick="mudarStatus('${d.id}', 'Cancelado')" class="bg-black text-white p-1 rounded text-[10px]">CANCELAR</button>
                             </div>
                         </div>`;
                 });
@@ -300,37 +261,38 @@
             onSnapshot(q, (snap) => {
                 const box = document.getElementById('meus-pedidos-status');
                 box.innerHTML = "";
-                if(snap.empty) box.innerHTML = "Nenhum pedido recente.";
                 snap.forEach(d => {
                     const p = d.data();
-                    let classeStatus = p.status === 'Pendente' ? 'status-pendente' : (p.status === 'Preparando' ? 'status-preparando' : 'status-caminho');
-                    if(p.status === 'Entregue') classeStatus = 'status-entregue';
-
+                    let statusHtml = `<span class="status-${p.status.toLowerCase()}">${p.status}</span>`;
+                    let motivoHtml = p.status === 'Cancelado' ? `<p class="text-[10px] text-red-800 bg-red-50 p-1 mt-1 rounded">Motivo: ${p.motivoCancelamento}</p>` : '';
+                    
                     box.innerHTML += `
-                        <div class="border-b pb-1 flex justify-between items-center">
-                            <span>${p.item.substring(0, 20)}...</span>
-                            <span class="${classeStatus}">● ${p.status}</span>
+                        <div class="border-b py-2">
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">${p.item.substring(0, 25)}...</span>
+                                ${statusHtml}
+                            </div>
+                            ${motivoHtml}
                         </div>`;
                 });
             });
         }
 
-        // --- CHAT ---
+        // CHAT (simplificado para o exemplo)
         window.enviarMensagem = async () => {
             const input = document.getElementById('chat-input');
-            if(!input.value.trim()) return;
+            if(!input.value) return;
             await addDoc(collection(db, "mensagens"), { usuario: auth.currentUser.email, texto: input.value, hora: serverTimestamp() });
             input.value = "";
         };
-
         function ouvirChat() {
             onSnapshot(query(collection(db, "mensagens"), orderBy("hora", "asc")), (snap) => {
                 const box = document.getElementById('chat-box');
                 box.innerHTML = "";
                 snap.forEach(d => {
                     const m = d.data();
-                    const classe = m.usuario.includes('admin') ? 'msg-admin' : 'msg-cliente';
-                    box.innerHTML += `<div class="msg ${classe}"><p class="text-[10px] font-bold opacity-50">${m.usuario.split('@')[0]}</p><p>${m.texto}</p></div>`;
+                    const cl = m.usuario.includes('admin') ? 'msg-admin' : 'msg-cliente';
+                    box.innerHTML += `<div class="msg ${cl}"><p class="text-[10px] font-bold">${m.usuario.split('@')[0]}</p><p>${m.texto}</p></div>`;
                 });
                 box.scrollTop = box.scrollHeight;
             });

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meu Delivery Pro</title>
+    <title>Meu Delivery Grátis</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .hidden { display: none; }
@@ -18,10 +18,10 @@
     <div id="auth-screen" class="max-w-md mx-auto mt-20 p-6 bg-white rounded-lg shadow-xl">
         <h2 class="text-2xl font-bold mb-6 text-center text-red-600">Delivery Login</h2>
         <div class="space-y-4">
-            <input id="email" type="email" placeholder="Seu e-mail" class="w-full border p-3 rounded">
-            <input id="senha" type="password" placeholder="Sua senha" class="w-full border p-3 rounded">
-            <button onclick="logar()" class="w-full bg-red-600 text-white font-bold p-3 rounded">Entrar</button>
-            <button onclick="cadastrar()" class="w-full bg-gray-200 text-gray-700 p-3 rounded">Criar Conta</button>
+            <input id="email" type="email" placeholder="Seu e-mail" class="w-full border p-3 rounded focus:outline-none focus:ring-2 focus:ring-red-500">
+            <input id="senha" type="password" placeholder="Sua senha" class="w-full border p-3 rounded focus:outline-none focus:ring-2 focus:ring-red-500">
+            <button onclick="logar()" class="w-full bg-red-600 text-white font-bold p-3 rounded hover:bg-red-700 transition">Entrar</button>
+            <button onclick="cadastrar()" class="w-full bg-gray-200 text-gray-700 p-3 rounded hover:bg-gray-300 transition">Criar Nova Conta</button>
         </div>
     </div>
 
@@ -33,59 +33,51 @@
 
         <div class="max-w-6xl mx-auto p-4 grid grid-cols-1 lg:grid-cols-3 gap-6">
             
-            <div class="lg:col-span-2 space-y-6">
-                <div id="cliente-view" class="hidden space-y-6">
-                    <div class="bg-white p-6 rounded-lg shadow">
-                        <h3 class="text-xl font-bold mb-4">Cardápio</h3>
-                        <div id="cardapio-lista" class="grid grid-cols-1 gap-3"></div>
-                    </div>
-
-                    <div id="checkout-area" class="bg-white p-6 rounded-lg shadow border-t-4 border-red-500">
-                        <h3 class="text-xl font-bold mb-4">Finalizar Pedido</h3>
-                        <div class="space-y-3">
-                            <select id="entrega-tipo" onchange="toggleEndereco()" class="w-full border p-2 rounded">
-                                <option value="entrega">Entregar em Casa</option>
-                                <option value="retirada">Vou Buscar no Local</option>
-                            </select>
-                            
-                            <div id="endereco-campos" class="space-y-2">
-                                <input id="cep" type="text" placeholder="CEP" onblur="buscarCEP()" class="w-full border p-2 rounded">
-                                <input id="rua" type="text" placeholder="Rua / Logradouro" class="w-full border p-2 rounded bg-gray-50">
-                                <input id="num" type="text" placeholder="Número" class="w-full border p-2 rounded">
-                            </div>
-
-                            <div class="p-4 bg-gray-100 rounded">
-                                <p class="font-bold">Total do Pedido: <span id="total-carrinho" class="text-red-600 text-xl">R$ 0,00</span></p>
-                            </div>
-                            <button id="btn-finalizar" onclick="finalizarPedido()" class="w-full bg-green-600 text-white p-4 rounded-lg font-bold text-lg">ENVIAR PEDIDO</button>
+            <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow">
+                <div id="cliente-view" class="hidden">
+                    <h3 class="text-xl font-bold mb-4">Cardápio</h3>
+                    <div id="cardapio-lista" class="grid grid-cols-1 gap-3 mb-6"></div>
+                    
+                    <div class="border-t pt-4 space-y-3">
+                        <h3 class="font-bold text-lg">Finalizar Pedido</h3>
+                        <select id="opcao-entrega" onchange="toggleEndereco()" class="w-full border p-2 rounded">
+                            <option value="Sim">Preciso de Entrega (Sim)</option>
+                            <option value="Não">Vou buscar no local (Não)</option>
+                        </select>
+                        <div id="campos-endereco" class="space-y-2">
+                            <input id="cep" type="text" placeholder="CEP" onblur="buscarCEP()" class="w-full border p-2 rounded">
+                            <input id="rua" type="text" placeholder="Rua / Endereço" class="w-full border p-2 rounded bg-gray-50">
+                            <input id="num" type="text" placeholder="Número" class="w-full border p-2 rounded">
                         </div>
+                        <div class="bg-yellow-50 p-3 rounded border border-yellow-200 text-sm">
+                            <b>Seu Pedido:</b> <span id="resumo-carrinho">Nenhum item selecionado</span>
+                        </div>
+                        <button onclick="enviarPedidoCompleto()" class="w-full bg-green-600 text-white p-3 rounded font-bold uppercase">Confirmar e Enviar</button>
                     </div>
                 </div>
 
-                <div id="admin-view" class="hidden space-y-6">
-                    <div class="bg-white p-6 rounded-lg shadow">
-                        <h3 class="text-xl font-bold mb-4">Gerenciar Produtos</h3>
-                        <div class="flex gap-2 mb-4">
-                            <input id="prod-nome" type="text" placeholder="Nome" class="border p-2 rounded w-full">
-                            <input id="prod-preco" type="number" placeholder="Preço" class="border p-2 rounded w-32">
-                            <button onclick="salvarProduto()" class="bg-green-600 text-white px-4 rounded font-bold">Salvar</button>
+                <div id="admin-view" class="hidden">
+                    <h3 class="text-xl font-bold mb-4">Gerenciar Cardápio</h3>
+                    <div class="bg-gray-50 p-4 rounded mb-6 border">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            <input id="prod-nome" type="text" placeholder="Nome do Produto" class="border p-2 rounded">
+                            <input id="prod-preco" type="number" placeholder="Preço" class="border p-2 rounded">
                         </div>
-                        <div id="admin-cardapio-lista" class="space-y-2"></div>
+                        <button onclick="salvarProduto()" class="mt-2 w-full bg-green-600 text-white p-2 rounded font-bold">Salvar Produto</button>
                     </div>
+                    <div id="admin-cardapio-lista" class="space-y-2 mb-8 text-sm"></div>
 
-                    <div class="bg-white p-6 rounded-lg shadow">
-                        <h3 class="text-xl font-bold mb-4">Pedidos Recebidos</h3>
-                        <div id="lista-pedidos" class="space-y-3"></div>
-                    </div>
+                    <h3 class="text-xl font-bold mb-4 border-t pt-4">Painel de Pedidos</h3>
+                    <div id="lista-pedidos" class="space-y-3 text-sm"></div>
                 </div>
             </div>
 
-            <div class="bg-white p-6 rounded-lg shadow flex flex-col h-[600px]">
-                <h3 class="text-xl font-bold mb-4 text-blue-600 border-b pb-2">Suporte</h3>
+            <div class="bg-white p-6 rounded-lg shadow flex flex-col h-[500px]">
+                <h3 class="text-xl font-bold mb-4 text-blue-600 border-b pb-2">Suporte / Chat</h3>
                 <div id="chat-box" class="flex-1 p-2 mb-4 bg-gray-50 rounded"></div>
                 <div class="flex gap-2">
-                    <input id="chat-input" type="text" placeholder="Dúvida?" class="flex-1 border p-2 rounded focus:outline-none">
-                    <button onclick="enviarMensagem()" class="bg-blue-600 text-white px-4 py-2 rounded">></button>
+                    <input id="chat-input" type="text" placeholder="Digite..." class="flex-1 border p-2 rounded focus:outline-none">
+                    <button onclick="enviarMensagem()" class="bg-blue-600 text-white px-4 py-2 rounded">Enviar</button>
                 </div>
             </div>
 
@@ -110,145 +102,187 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        let carrinho = [];
+        let itemAtual = "";
+        let precoAtual = 0;
 
         // --- AUTH ---
-        window.logar = () => signInWithEmailAndPassword(auth, email.value, senha.value).catch(e => alert("Erro no login"));
-        window.cadastrar = () => createUserWithEmailAndPassword(auth, email.value, senha.value).catch(e => alert("Erro no cadastro"));
+        window.cadastrar = () => {
+            const e = document.getElementById('email').value;
+            const s = document.getElementById('senha').value;
+            createUserWithEmailAndPassword(auth, e, s).then(() => alert("Conta criada!")).catch(err => alert("Erro: " + err.message));
+        };
+
+        window.logar = () => {
+            const e = document.getElementById('email').value;
+            const s = document.getElementById('senha').value;
+            signInWithEmailAndPassword(auth, e, s).catch(err => alert("Login inválido!"));
+        };
+
         window.sair = () => signOut(auth);
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                auth_screen.classList.add('hidden');
-                main_screen.classList.remove('hidden');
-                user_welcome.innerText = `Logado: ${user.email}`;
+                document.getElementById('auth-screen').classList.add('hidden');
+                document.getElementById('main-screen').classList.remove('hidden');
+                document.getElementById('user-welcome').innerText = `Logado como: ${user.email}`;
+                
                 const isAdmin = user.email.includes('admin');
-                admin_view.classList.toggle('hidden', !isAdmin);
-                cliente_view.classList.toggle('hidden', isAdmin);
-                ouvirCardapio(isAdmin);
-                if(isAdmin) carregarPedidosAdmin();
+                if(isAdmin) {
+                    document.getElementById('admin-view').classList.remove('hidden');
+                    document.getElementById('cliente-view').classList.add('hidden');
+                    carregarPedidosAdmin();
+                    ouvirCardapio(true);
+                } else {
+                    document.getElementById('cliente-view').classList.remove('hidden');
+                    document.getElementById('admin-view').classList.add('hidden');
+                    ouvirCardapio(false);
+                }
                 ouvirChat();
             } else {
-                auth_screen.classList.remove('hidden');
-                main_screen.classList.add('hidden');
+                document.getElementById('auth-screen').classList.remove('hidden');
+                document.getElementById('main-screen').classList.add('hidden');
             }
         });
 
-        // --- CEP E ENDEREÇO ---
-        window.buscarCEP = async () => {
-            const val = cep.value.replace(/\D/g, '');
-            if(val.length !== 8) return;
-            const res = await fetch(`https://viacep.com.br/ws/${val}/json/`);
-            const data = await res.json();
-            if(!data.erro) { rua.value = data.logradouro + ", " + data.bairro; }
-        };
-
-        window.toggleEndereco = () => {
-            document.getElementById('endereco-campos').classList.toggle('hidden', entrega_tipo.value === 'retirada');
-        };
-
-        // --- GESTÃO DE PRODUTOS ---
+        // --- GESTÃO DE CARDÁPIO ---
         window.salvarProduto = async () => {
-            const n = document.getElementById('prod-nome').value;
-            const p = document.getElementById('prod-preco').value;
-            if(!n || !p) return;
-            await setDoc(doc(db, "produtos", n), { nome: n, preco: parseFloat(p), ativo: true });
+            const nome = document.getElementById('prod-nome').value;
+            const preco = document.getElementById('prod-preco').value;
+            if(!nome || !preco) return alert("Preencha nome e preço!");
+            await setDoc(doc(db, "produtos", nome), { nome, preco: parseFloat(preco), ativo: true });
+            document.getElementById('prod-nome').value = "";
+            document.getElementById('prod-preco').value = "";
         };
 
-        window.toggleProduto = async (id, status) => updateDoc(doc(db, "produtos", id), { ativo: !status });
-        window.excluirProduto = async (id) => deleteDoc(doc(db, "produtos", id));
+        window.toggleProduto = async (id, statusAtual) => {
+            await updateDoc(doc(db, "produtos", id), { ativo: !statusAtual });
+        };
+
+        window.excluirProduto = async (id) => {
+            if(confirm("Deseja excluir este produto?")) await deleteDoc(doc(db, "produtos", id));
+        };
+
+        // --- CEP E ENTREGA ---
+        window.toggleEndereco = () => {
+            const div = document.getElementById('campos-endereco');
+            div.classList.toggle('hidden', document.getElementById('opcao-entrega').value === "Não");
+        };
+
+        window.buscarCEP = async () => {
+            const cep = document.getElementById('cep').value.replace(/\D/g, '');
+            if(cep.length !== 8) return;
+            const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+            const data = await res.json();
+            if(!data.erro) document.getElementById('rua').value = `${data.logradouro}, ${data.bairro}`;
+        };
 
         function ouvirCardapio(isAdmin) {
-            onSnapshot(collection(db, "produtos"), (snap) => {
+            onSnapshot(collection(db, "produtos"), (snapshot) => {
                 const listaC = document.getElementById('cardapio-lista');
                 const listaA = document.getElementById('admin-cardapio-lista');
                 listaC.innerHTML = ""; listaA.innerHTML = "";
 
-                snap.forEach(d => {
-                    const p = d.data();
+                snapshot.forEach(docSnap => {
+                    const p = docSnap.data();
+                    const id = docSnap.id;
                     if(isAdmin) {
-                        listaA.innerHTML += `<div class="p-2 border rounded flex justify-between items-center ${p.ativo ? 'bg-white' : 'bg-gray-200'}">
-                            <span>${p.nome} - R$ ${p.preco}</span>
+                        listaA.innerHTML += `<div class="flex justify-between items-center p-2 border rounded ${p.ativo ? 'bg-white' : 'bg-gray-200 opacity-60'}">
+                            <span>${p.nome} - <b>R$ ${p.preco.toFixed(2)}</b></span>
                             <div class="flex gap-2">
-                                <button onclick="toggleProduto('${d.id}', ${p.ativo})" class="bg-yellow-500 text-white px-2 py-1 rounded text-xs">Visível</button>
-                                <button onclick="excluirProduto('${d.id}')" class="bg-red-500 text-white px-2 py-1 rounded text-xs">X</button>
+                                <button onclick="toggleProduto('${id}', ${p.ativo})" class="bg-yellow-500 text-white px-2 py-1 rounded text-xs">${p.ativo ? 'Ocultar' : 'Mostrar'}</button>
+                                <button onclick="excluirProduto('${id}')" class="bg-red-500 text-white px-2 py-1 rounded text-xs">Excluir</button>
                             </div>
                         </div>`;
                     }
                     if(p.ativo) {
-                        listaC.innerHTML += `<div class="p-4 border rounded bg-white flex justify-between items-center">
-                            <div><p class="font-bold">${p.nome}</p><p class="text-green-600">R$ ${p.preco}</p></div>
-                            <div class="flex items-center gap-2">
-                                <input type="number" id="qtd-${d.id}" value="1" min="1" class="border w-12 p-1 rounded text-center">
-                                <button onclick="addCarrinho('${p.nome}', ${p.preco}, '${d.id}')" class="bg-red-600 text-white px-4 py-2 rounded">Adicionar</button>
-                            </div>
-                        </div>`;
+                        listaC.innerHTML += `
+                            <div class="flex flex-col md:flex-row justify-between items-center p-4 border rounded bg-white gap-3">
+                                <span class="font-bold text-gray-700">${p.nome} - R$ ${p.preco.toFixed(2)}</span>
+                                <div class="flex gap-2 items-center">
+                                    <input type="number" id="qtd-${id}" value="1" min="1" class="border w-14 p-1 rounded text-center">
+                                    <button onclick="selecionarItem('${p.nome}', ${p.preco}, '${id}')" class="bg-red-600 text-white px-4 py-1 rounded font-bold text-sm">ESCOLHER</button>
+                                </div>
+                            </div>`;
                     }
                 });
             });
         }
 
-        // --- CARRINHO ---
-        window.addCarrinho = (nome, preco, id) => {
-            const qtd = parseInt(document.getElementById(`qtd-${id}`).value);
-            carrinho.push({ nome, preco, qtd });
-            atualizarTotal();
-            alert(`${qtd}x ${nome} adicionado!`);
+        window.selecionarItem = (nome, preco, id) => {
+            const qtd = document.getElementById(`qtd-${id}`).value;
+            itemAtual = `${qtd}x ${nome}`;
+            precoAtual = preco * qtd;
+            document.getElementById('resumo-carrinho').innerText = `${itemAtual} (Total: R$ ${precoAtual.toFixed(2)})`;
         };
 
-        function atualizarTotal() {
-            const total = carrinho.reduce((sum, item) => sum + (item.preco * item.qtd), 0);
-            total_carrinho.innerText = `R$ ${total.toFixed(2)}`;
-        }
-
-        window.finalizarPedido = async () => {
-            if(carrinho.length === 0) return alert("Seu carrinho está vazio!");
+        // --- SISTEMA DE PEDIDOS ATUALIZADO ---
+        window.enviarPedidoCompleto = async () => {
+            if(!itemAtual) return alert("Selecione um item no cardápio primeiro!");
             
-            const dadosPedido = {
-                cliente: auth.currentUser.email,
-                itens: carrinho,
-                tipo: entrega_tipo.value,
-                endereco: entrega_tipo.value === 'entrega' ? `${rua.value}, Nº ${num.value} (CEP: ${cep.value})` : 'Busca no Local',
-                total: carrinho.reduce((sum, i) => sum + (i.preco * i.qtd), 0),
-                data: serverTimestamp()
-            };
+            const entrega = document.getElementById('opcao-entrega').value;
+            let local = "Retirada no Local";
+            
+            if(entrega === "Sim") {
+                const rua = document.getElementById('rua').value;
+                const num = document.getElementById('num').value;
+                if(!rua || !num) return alert("Preencha o endereço completo!");
+                local = `${rua}, Nº ${num}`;
+            }
 
-            await addDoc(collection(db, "pedidos"), dadosPedido);
+            await addDoc(collection(db, "pedidos"), {
+                cliente: auth.currentUser.email,
+                item: itemAtual,
+                total: precoAtual.toFixed(2),
+                entrega: local,
+                data: serverTimestamp()
+            });
+            
             alert("Pedido enviado com sucesso!");
-            carrinho = []; atualizarTotal();
+            itemAtual = ""; 
+            document.getElementById('resumo-carrinho').innerText = "Nenhum item selecionado";
         };
 
-        // --- PEDIDOS E CHAT ---
         function carregarPedidosAdmin() {
-            onSnapshot(query(collection(db, "pedidos"), orderBy("data", "desc")), (snap) => {
-                lista_pedidos.innerHTML = "";
-                snap.forEach(d => {
-                    const p = d.data();
-                    const itensTxt = p.itens.map(i => `${i.qtd}x ${i.nome}`).join(', ');
-                    lista_pedidos.innerHTML += `<div class="p-3 bg-white border-l-4 border-red-500 rounded shadow-sm text-sm">
-                        <p><b>Cliente:</b> ${p.cliente.split('@')[0]} | <b>Total:</b> R$ ${p.total}</p>
-                        <p><b>Pedido:</b> ${itensTxt}</p>
-                        <p class="text-red-600"><b>Entrega:</b> ${p.endereco}</p>
-                    </div>`;
+            const q = query(collection(db, "pedidos"), orderBy("data", "desc"));
+            onSnapshot(q, (snapshot) => {
+                const lista = document.getElementById('lista-pedidos');
+                lista.innerHTML = "";
+                snapshot.forEach(doc => {
+                    const p = doc.data();
+                    lista.innerHTML += `
+                        <div class="p-3 bg-gray-50 border-l-4 border-red-500 rounded flex flex-col shadow-sm">
+                            <div class="flex justify-between">
+                                <span><b>${p.cliente.split('@')[0]}:</b> ${p.item}</span>
+                                <span class="font-bold">R$ ${p.total}</span>
+                            </div>
+                            <span class="text-xs text-red-600 mt-1">📍 Entrega: ${p.entrega}</span>
+                        </div>`;
                 });
             });
         }
 
+        // --- CHAT ---
         window.enviarMensagem = async () => {
-            if(!chat_input.value.trim()) return;
-            await addDoc(collection(db, "mensagens"), { usuario: auth.currentUser.email, texto: chat_input.value, hora: serverTimestamp() });
-            chat_input.value = "";
+            const input = document.getElementById('chat-input');
+            if(!input.value.trim()) return;
+            await addDoc(collection(db, "mensagens"), { usuario: auth.currentUser.email, texto: input.value, hora: serverTimestamp() });
+            input.value = "";
         };
 
         function ouvirChat() {
-            onSnapshot(query(collection(db, "mensagens"), orderBy("hora", "asc")), (snap) => {
-                chat_box.innerHTML = "";
-                snap.forEach(d => {
-                    const m = d.data();
+            const q = query(collection(db, "mensagens"), orderBy("hora", "asc"));
+            onSnapshot(q, (snapshot) => {
+                const box = document.getElementById('chat-box');
+                box.innerHTML = "";
+                snapshot.forEach(doc => {
+                    const m = doc.data();
                     const classe = m.usuario.includes('admin') ? 'msg-admin' : 'msg-cliente';
-                    chat_box.innerHTML += `<div class="msg ${classe}"><b>${m.usuario.split('@')[0]}:</b> ${m.texto}</div>`;
+                    box.innerHTML += `<div class="msg ${classe}">
+                        <p class="text-[10px] font-bold opacity-50">${m.usuario.split('@')[0]}</p>
+                        <p>${m.texto}</p>
+                    </div>`;
                 });
-                chat_box.scrollTop = chat_box.scrollHeight;
+                box.scrollTop = box.scrollHeight;
             });
         }
     </script>

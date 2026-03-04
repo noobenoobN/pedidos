@@ -11,6 +11,11 @@
         .msg { margin-bottom: 8px; padding: 6px 12px; border-radius: 8px; max-width: 80%; }
         .msg-admin { background: #fee2e2; align-self: flex-start; border: 1px solid #fecaca; }
         .msg-cliente { background: #dbeafe; align-self: flex-end; border: 1px solid #bfdbfe; }
+        /* Cores de Status */
+        .status-pendente { color: #dc2626; font-weight: bold; }
+        .status-preparando { color: #d97706; font-weight: bold; }
+        .status-caminho { color: #2563eb; font-weight: bold; }
+        .status-entregue { color: #16a34a; font-weight: bold; }
     </style>
 </head>
 <body class="bg-gray-100 font-sans">
@@ -39,13 +44,15 @@
                     <div id="cardapio-lista" class="grid grid-cols-1 gap-3 mb-6"></div>
                     
                     <div class="border-t pt-4 space-y-3">
-                        <h3 class="font-bold text-lg">Finalizar Pedido</h3>
-                        
+                        <h3 class="font-bold text-lg text-red-600 italic">Meus Pedidos Ativos</h3>
+                        <div id="meus-pedidos-status" class="bg-white border rounded p-3 text-sm space-y-2 mb-4 shadow-inner min-h-[50px]">
+                            Nenhum pedido em andamento.
+                        </div>
+
+                        <h3 class="font-bold text-lg">Finalizar Novo Pedido</h3>
                         <div class="bg-gray-50 p-3 rounded border text-sm mb-2">
                             <p class="font-bold mb-1 border-b pb-1">Carrinho:</p>
-                            <div id="lista-carrinho" class="space-y-1 mb-2 italic text-gray-600">
-                                Seu carrinho está vazio.
-                            </div>
+                            <div id="lista-carrinho" class="space-y-1 mb-2 italic text-gray-600">Seu carrinho está vazio.</div>
                         </div>
 
                         <select id="opcao-entrega" onchange="toggleEndereco()" class="w-full border p-2 rounded">
@@ -76,7 +83,7 @@
                     </div>
                     <div id="admin-cardapio-lista" class="space-y-2 mb-8 text-sm"></div>
 
-                    <h3 class="text-xl font-bold mb-4 border-t pt-4">Painel de Pedidos</h3>
+                    <h3 class="text-xl font-bold mb-4 border-t pt-4">Painel de Pedidos (Ações)</h3>
                     <div id="lista-pedidos" class="space-y-3 text-sm"></div>
                 </div>
             </div>
@@ -96,7 +103,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, doc, setDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, doc, setDoc, updateDoc, deleteDoc, where } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBgqjGYaV7rmgLMPB-Y4DcvgVkg82GFt0I",
@@ -111,7 +118,6 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // --- ALTERAÇÃO: SISTEMA DE CARRINHO ---
         let carrinho = [];
         let totalAcumulado = 0;
 
@@ -121,13 +127,11 @@
             const s = document.getElementById('senha').value;
             createUserWithEmailAndPassword(auth, e, s).then(() => alert("Conta criada!")).catch(err => alert("Erro: " + err.message));
         };
-
         window.logar = () => {
             const e = document.getElementById('email').value;
             const s = document.getElementById('senha').value;
             signInWithEmailAndPassword(auth, e, s).catch(err => alert("Login inválido!"));
         };
-
         window.sair = () => signOut(auth);
 
         onAuthStateChanged(auth, (user) => {
@@ -146,6 +150,7 @@
                     document.getElementById('cliente-view').classList.remove('hidden');
                     document.getElementById('admin-view').classList.add('hidden');
                     ouvirCardapio(false);
+                    ouvirStatusCliente(); // Inicia monitoramento para o cliente
                 }
                 ouvirChat();
             } else {
@@ -191,7 +196,6 @@
                 const listaC = document.getElementById('cardapio-lista');
                 const listaA = document.getElementById('admin-cardapio-lista');
                 listaC.innerHTML = ""; listaA.innerHTML = "";
-
                 snapshot.forEach(docSnap => {
                     const p = docSnap.data();
                     const id = docSnap.id;
@@ -205,8 +209,7 @@
                         </div>`;
                     }
                     if(p.ativo) {
-                        listaC.innerHTML += `
-                            <div class="flex flex-col md:flex-row justify-between items-center p-4 border rounded bg-white gap-3">
+                        listaC.innerHTML += `<div class="flex flex-col md:flex-row justify-between items-center p-4 border rounded bg-white gap-3 shadow-sm">
                                 <span class="font-bold text-gray-700">${p.nome} - R$ ${p.preco.toFixed(2)}</span>
                                 <div class="flex gap-2 items-center">
                                     <input type="number" id="qtd-${id}" value="1" min="1" class="border w-14 p-1 rounded text-center">
@@ -218,85 +221,95 @@
             });
         }
 
-        // --- FUNÇÃO DE SOMATÓRIA (CARRINHO) ---
+        // --- CARRINHO ---
         window.selecionarItem = (nome, preco, id) => {
             const qtd = parseInt(document.getElementById(`qtd-${id}`).value);
-            const subtotal = preco * qtd;
-            
-            carrinho.push({ nome, qtd, subtotal });
+            carrinho.push({ nome, qtd, subtotal: preco * qtd });
             atualizarCarrinhoVisual();
         };
 
-        window.limparCarrinho = () => {
-            carrinho = [];
-            atualizarCarrinhoVisual();
-        };
+        window.limparCarrinho = () => { carrinho = []; atualizarCarrinhoVisual(); };
 
         function atualizarCarrinhoVisual() {
             const listaDiv = document.getElementById('lista-carrinho');
             const resumoDiv = document.getElementById('resumo-carrinho');
-            
             if (carrinho.length === 0) {
                 listaDiv.innerHTML = "Seu carrinho está vazio.";
                 resumoDiv.innerText = "R$ 0.00";
                 totalAcumulado = 0;
                 return;
             }
-
-            listaDiv.innerHTML = "";
-            totalAcumulado = 0;
-            
+            listaDiv.innerHTML = ""; totalAcumulado = 0;
             carrinho.forEach(item => {
                 totalAcumulado += item.subtotal;
                 listaDiv.innerHTML += `<div>• ${item.qtd}x ${item.nome} (R$ ${item.subtotal.toFixed(2)})</div>`;
             });
-
             resumoDiv.innerText = `R$ ${totalAcumulado.toFixed(2)}`;
         }
 
-        // --- ENVIO DO PEDIDO COMPLETO ---
+        // --- PEDIDOS E STATUS ---
         window.enviarPedidoCompleto = async () => {
-            if(carrinho.length === 0) return alert("Adicione pelo menos um item!");
-            
+            if(carrinho.length === 0) return alert("Adicione algo!");
             const entrega = document.getElementById('opcao-entrega').value;
-            let local = "Retirada no Local";
-            
-            if(entrega === "Sim") {
-                const rua = document.getElementById('rua').value;
-                const num = document.getElementById('num').value;
-                if(!rua || !num) return alert("Preencha o endereço completo!");
-                local = `${rua}, Nº ${num}`;
-            }
-
-            // Transforma a lista de itens em um texto para o Admin
-            const stringItens = carrinho.map(i => `${i.qtd}x ${i.nome}`).join(", ");
+            let local = entrega === "Sim" ? `${document.getElementById('rua').value}, Nº ${document.getElementById('num').value}` : "Retirada no Local";
+            if(entrega === "Sim" && (!document.getElementById('rua').value)) return alert("Endereço vazio!");
 
             await addDoc(collection(db, "pedidos"), {
                 cliente: auth.currentUser.email,
-                item: stringItens,
+                item: carrinho.map(i => `${i.qtd}x ${i.nome}`).join(", "),
                 total: totalAcumulado.toFixed(2),
                 entrega: local,
+                status: "Pendente", // STATUS INICIAL
                 data: serverTimestamp()
             });
-            
-            alert("Pedido enviado com sucesso!");
+            alert("Pedido enviado!");
             limparCarrinho();
         };
 
+        // ADMIN: MUDAR STATUS
+        window.mudarStatus = async (id, novoStatus) => {
+            await updateDoc(doc(db, "pedidos", id), { status: novoStatus });
+        };
+
         function carregarPedidosAdmin() {
-            const q = query(collection(db, "pedidos"), orderBy("data", "desc"));
-            onSnapshot(q, (snapshot) => {
+            onSnapshot(query(collection(db, "pedidos"), orderBy("data", "desc")), (snap) => {
                 const lista = document.getElementById('lista-pedidos');
                 lista.innerHTML = "";
-                snapshot.forEach(doc => {
-                    const p = doc.data();
+                snap.forEach(d => {
+                    const p = d.data();
+                    const id = d.id;
                     lista.innerHTML += `
-                        <div class="p-3 bg-gray-50 border-l-4 border-red-500 rounded flex flex-col shadow-sm">
+                        <div class="p-3 bg-white border-l-4 border-red-500 rounded shadow-md flex flex-col gap-2">
                             <div class="flex justify-between">
                                 <span><b>${p.cliente.split('@')[0]}:</b> ${p.item}</span>
-                                <span class="font-bold">R$ ${p.total}</span>
+                                <span class="bg-gray-100 px-2 rounded text-xs flex items-center">${p.status}</span>
                             </div>
-                            <span class="text-xs text-red-600 mt-1">📍 Entrega: ${p.entrega}</span>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-1">
+                                <button onclick="mudarStatus('${id}', 'Confirmado')" class="bg-blue-500 text-white p-1 rounded text-[10px] font-bold">CONFIRMAR</button>
+                                <button onclick="mudarStatus('${id}', 'Preparando')" class="bg-orange-500 text-white p-1 rounded text-[10px] font-bold">PREPARAR</button>
+                                <button onclick="mudarStatus('${id}', 'A Caminho')" class="bg-purple-500 text-white p-1 rounded text-[10px] font-bold">A CAMINHO</button>
+                                <button onclick="mudarStatus('${id}', 'Entregue')" class="bg-green-600 text-white p-1 rounded text-[10px] font-bold">CONCLUIR</button>
+                            </div>
+                        </div>`;
+                });
+            });
+        }
+
+        function ouvirStatusCliente() {
+            const q = query(collection(db, "pedidos"), where("cliente", "==", auth.currentUser.email), orderBy("data", "desc"));
+            onSnapshot(q, (snap) => {
+                const box = document.getElementById('meus-pedidos-status');
+                box.innerHTML = "";
+                if(snap.empty) box.innerHTML = "Nenhum pedido recente.";
+                snap.forEach(d => {
+                    const p = d.data();
+                    let classeStatus = p.status === 'Pendente' ? 'status-pendente' : (p.status === 'Preparando' ? 'status-preparando' : 'status-caminho');
+                    if(p.status === 'Entregue') classeStatus = 'status-entregue';
+
+                    box.innerHTML += `
+                        <div class="border-b pb-1 flex justify-between items-center">
+                            <span>${p.item.substring(0, 20)}...</span>
+                            <span class="${classeStatus}">● ${p.status}</span>
                         </div>`;
                 });
             });
@@ -311,17 +324,13 @@
         };
 
         function ouvirChat() {
-            const q = query(collection(db, "mensagens"), orderBy("hora", "asc"));
-            onSnapshot(q, (snapshot) => {
+            onSnapshot(query(collection(db, "mensagens"), orderBy("hora", "asc")), (snap) => {
                 const box = document.getElementById('chat-box');
                 box.innerHTML = "";
-                snapshot.forEach(doc => {
-                    const m = doc.data();
+                snap.forEach(d => {
+                    const m = d.data();
                     const classe = m.usuario.includes('admin') ? 'msg-admin' : 'msg-cliente';
-                    box.innerHTML += `<div class="msg ${classe}">
-                        <p class="text-[10px] font-bold opacity-50">${m.usuario.split('@')[0]}</p>
-                        <p>${m.texto}</p>
-                    </div>`;
+                    box.innerHTML += `<div class="msg ${classe}"><p class="text-[10px] font-bold opacity-50">${m.usuario.split('@')[0]}</p><p>${m.texto}</p></div>`;
                 });
                 box.scrollTop = box.scrollHeight;
             });

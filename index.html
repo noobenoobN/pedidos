@@ -223,10 +223,22 @@
             });
         }
 
-        // --- CARRINHO ---
+        // --- CARRINHO COM SOMA DE QUANTIDADE ---
         window.selecionarItem = (nome, preco, id) => {
-            const qtd = parseInt(document.getElementById(`qtd-${id}`).value);
-            carrinho.push({ nome, qtd, subtotal: preco * qtd });
+            const qtdInput = parseInt(document.getElementById(`qtd-${id}`).value);
+            
+            // Verifica se o item já está no carrinho
+            const index = carrinho.findIndex(item => item.nome === nome);
+            
+            if (index !== -1) {
+                // Se já existe, soma a quantidade e o subtotal
+                carrinho[index].qtd += qtdInput;
+                carrinho[index].subtotal = carrinho[index].qtd * preco;
+            } else {
+                // Se não existe, adiciona novo
+                carrinho.push({ nome, qtd: qtdInput, subtotal: preco * qtdInput });
+            }
+            
             atualizarCarrinhoVisual();
         };
 
@@ -262,19 +274,18 @@
                 total: totalAcumulado.toFixed(2),
                 entrega: local,
                 status: "Pendente",
-                motivoCancelamento: "", // Inicialmente vazio
+                motivoCancelamento: "",
                 data: serverTimestamp()
             });
             alert("Pedido enviado!");
             limparCarrinho();
         };
 
-        // ADMIN: MUDAR STATUS E CANCELAR
         window.mudarStatus = async (id, novoStatus) => {
             let dadosUpdate = { status: novoStatus };
             if (novoStatus === 'Cancelado') {
-                const motivo = prompt("Por que deseja cancelar este pedido? (Aparecerá para o cliente)");
-                if (!motivo) return; // Não faz nada se cancelar o prompt
+                const motivo = prompt("Por que deseja cancelar?");
+                if (!motivo) return;
                 dadosUpdate.motivoCancelamento = motivo;
             }
             await updateDoc(doc(db, "pedidos", id), dadosUpdate);
@@ -305,12 +316,22 @@
             });
         }
 
+        // --- CORREÇÃO: EXIBIÇÃO DE STATUS DO CLIENTE ---
         function ouvirStatusCliente() {
+            if (!auth.currentUser) return;
+            // Busca apenas pedidos onde o campo 'cliente' é igual ao email do logado
             const q = query(collection(db, "pedidos"), where("cliente", "==", auth.currentUser.email), orderBy("data", "desc"));
+            
             onSnapshot(q, (snap) => {
                 const box = document.getElementById('meus-pedidos-status');
+                if(!box) return;
                 box.innerHTML = "";
-                if(snap.empty) box.innerHTML = "Nenhum pedido recente.";
+                
+                if(snap.empty) {
+                    box.innerHTML = "Nenhum pedido em andamento.";
+                    return;
+                }
+
                 snap.forEach(d => {
                     const p = d.data();
                     let classeStatus = p.status === 'Pendente' ? 'status-pendente' : 
@@ -319,15 +340,16 @@
                                        (p.status === 'Cancelado' ? 'status-cancelado' : 'status-entregue')));
 
                     let motivoHtml = (p.status === 'Cancelado' && p.motivoCancelamento) 
-                        ? `<div class="text-xs text-red-600 bg-red-50 p-1 mt-1 rounded"><b>Cancelado:</b> ${p.motivoCancelamento}</div>` 
+                        ? `<div class="text-xs text-red-600 bg-red-50 p-1 mt-1 rounded"><b>Motivo:</b> ${p.motivoCancelamento}</div>` 
                         : '';
 
                     box.innerHTML += `
                         <div class="border-b pb-2 mb-1">
                             <div class="flex justify-between items-center">
-                                <span>${p.item.substring(0, 20)}...</span>
+                                <span class="font-medium">${p.item}</span>
                                 <span class="${classeStatus}">● ${p.status}</span>
                             </div>
+                            <div class="text-[10px] text-gray-500">Total: R$ ${p.total}</div>
                             ${motivoHtml}
                         </div>`;
                 });

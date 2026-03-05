@@ -105,7 +105,7 @@
                             <div class="flex gap-2">
                                 <label class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-[10px] cursor-pointer hover:bg-blue-200 font-bold border border-blue-300">
                                     IMPORTAR HISTÓRICO <input type="file" id="import-pedidos" class="hidden" accept=".txt">
-                                </label>
+                                 </label>
                                 <button onclick="limparEBackupPedidos()" class="bg-gray-800 text-white px-2 py-1 rounded text-[10px] font-bold">BACKUP E LIMPAR</button>
                             </div>
                         </div>
@@ -142,7 +142,7 @@
                                 <label class="block text-sm font-bold">Valor Taxa por KM (R$):</label>
                                 <input id="config-valor-km" type="number" placeholder="Ex: 2.50" class="border p-2 w-full rounded">
                             </div>
-                            <button onclick="salvarConfigLoja()" class="bg-red-600 text-white p-3 w-full rounded font-bold">Salvar Configurações</button>
+                             <button onclick="salvarConfigLoja()" class="bg-red-600 text-white p-3 w-full rounded font-bold">Salvar Configurações</button>
                         </div>
                     </div>
                 </div>
@@ -151,10 +151,10 @@
                     <div class="bg-white p-4 rounded shadow mb-4 border-l-4 border-blue-600">
                         <h4 class="font-bold mb-2">Meu Status Atual:</h4>
                         <select id="status-trabalho-motoboy" onchange="atualizarStatusTrabalho(this.value)" class="w-full border p-2 rounded font-bold">
-                            <option value="Em Trabalho">🟢 Em Trabalho (Disponível)</option>
+                             <option value="Em Trabalho">🟢 Em Trabalho (Disponível)</option>
                             <option value="Folga">🟡 Folga</option>
                             <option value="Férias">🔴 Férias</option>
-                        </select>
+                         </select>
                     </div>
                     <h3 class="text-xl font-bold mb-4">Minhas Entregas Designadas</h3>
                     <div id="lista-entregas-motoboy" class="space-y-3"></div>
@@ -166,15 +166,15 @@
                 <div class="flex justify-between items-center mb-4 border-b pb-2">
                     <h3 class="text-xl font-bold text-blue-600">Suporte / Chat</h3>
                     <div id="admin-chat-tools" class="hidden flex gap-2">
-                        <label class="bg-gray-200 px-2 py-1 rounded text-[10px] cursor-pointer hover:bg-gray-300">
-                            Importar TXT <input type="file" id="import-chat" class="hidden" accept=".txt">
+                         <label class="bg-gray-200 px-2 py-1 rounded text-[10px] cursor-pointer hover:bg-gray-300">
+                            Importar TXT <input type="file" id="import-chat" class="hidden" accept=".txt" onchange="importarChat(event)">
                         </label>
                         <button onclick="finalizarChat()" class="bg-red-500 text-white px-2 py-1 rounded text-[10px] font-bold">Finalizar Chat</button>
                     </div>
                 </div>
                 <div id="chat-box" class="flex-1 p-2 mb-4 bg-gray-50 rounded"></div>
                 <div class="flex gap-2">
-                    <input id="chat-input" type="text" placeholder="Digite..." class="flex-1 border p-2 rounded focus:outline-none">
+                     <input id="chat-input" type="text" placeholder="Digite..." class="flex-1 border p-2 rounded focus:outline-none">
                     <button onclick="enviarMensagem()" class="bg-blue-600 text-white px-4 py-2 rounded">Enviar</button>
                 </div>
             </div>
@@ -185,7 +185,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, doc, updateDoc, deleteDoc, where, getDocs, writeBatch, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
-
+        
         const firebaseConfig = {
             apiKey: "AIzaSyBgqjGYaV7rmgLMPB-Y4DcvgVkg82GFt0I",
             authDomain: "sitepedidos.firebaseapp.com",
@@ -194,7 +194,6 @@
             messagingSenderId: "812273915392",
             appId: "1:812273915392:web:9fc70d67ac717a11ca6ae5"
         };
-
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
@@ -212,14 +211,13 @@
             const s = document.getElementById('senha').value;
             createUserWithEmailAndPassword(auth, e, s).then(() => alert("Conta criada!")).catch(err => alert("Erro: " + err.message));
         };
-
         window.logar = () => {
             const e = document.getElementById('email').value;
             const s = document.getElementById('senha').value;
             signInWithEmailAndPassword(auth, e, s).catch(err => alert("Login inválido!"));
         };
         window.sair = () => signOut(auth);
-
+        
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 document.getElementById('auth-screen').classList.add('hidden');
@@ -246,7 +244,6 @@
                         signOut(auth);
                     } else {
                         mostrarTela('motoboy-view');
-                        // Carregar o status de trabalho atual no select
                         const mData = docSnap.data();
                         if (document.getElementById('status-trabalho-motoboy')) {
                             document.getElementById('status-trabalho-motoboy').value = mData.statusTrabalho || "Em Trabalho";
@@ -292,17 +289,16 @@
             const rua = document.getElementById('moto-rua').value;
             const num = document.getElementById('moto-num').value;
             if(!tel || !cep || !num) return alert("Preencha todos os campos");
-
+            
             await setDoc(doc(db, "motoboys", auth.currentUser.uid), {
                 email: auth.currentUser.email,
                 telefone: tel,
                 endereco: `${rua}, Nº ${num}`,
                 cep: cep,
                 status: "Pendente",
-                statusTrabalho: "Em Trabalho", // Status padrão ao criar
+                statusTrabalho: "Em Trabalho",
                 dataCadastro: serverTimestamp()
             });
-
             alert("Perfil enviado! Aguarde aprovação do Admin.");
             signOut(auth);
         };
@@ -345,8 +341,7 @@
                         </div>`;
                     }
                 });
-
-                // A SOLUÇÃO: Atualiza os selects de pedidos sempre que a lista de motoboys mudar no Firebase
+                
                 const selects = document.querySelectorAll('.select-motoboy-dinamico');
                 selects.forEach(select => {
                     const motoboyDesignado = select.getAttribute('data-designado');
@@ -365,7 +360,7 @@
 
         window.aprovarMotoboy = async (id) => { await updateDoc(doc(db, "motoboys", id), { status: "Aprovado" }); };
         window.rejeitarMotoboy = async (id) => { if(confirm("Remover motoboy definitivamente?")) await deleteDoc(doc(db, "motoboys", id)); };
-
+        
         // --- CONFIG LOJA ---
         window.salvarConfigLoja = async () => {
             const cep = document.getElementById('config-cep-origem').value;
@@ -373,7 +368,7 @@
             await setDoc(doc(db, "config", "loja"), { cep, valorKm: valor });
             alert("Configurações salvas!");
         };
-
+        
         async function carregarConfigLoja() {
             const d = await getDoc(doc(db, "config", "loja"));
             if(d.exists()) {
@@ -413,7 +408,7 @@
                 atualizarCarrinhoVisual();
             }
         };
-
+        
         window.toggleEndereco = () => {
             const div = document.getElementById('campos-endereco');
             const isEntrega = document.getElementById('opcao-entrega').value === "Sim";
@@ -431,9 +426,7 @@
             alert("Pedido designado ao motoboy!");
         };
 
-        // --- TELA DO MOTOBOY (COM OS DOIS BOTÕES QUE VOCÊ PEDIU) ---
         function ouvirEntregasMotoboy(email) {
-            // Alterado para 'in' para o motoboy continuar vendo o pedido se ele marcar como Saiu para Entrega
             onSnapshot(query(collection(db, "pedidos"), where("motoboyDesignado", "==", email), where("status", "in", ["A Caminho", "Saiu para Entrega"])), (snap) => {
                 const lista = document.getElementById('lista-entregas-motoboy');
                 lista.innerHTML = "";
@@ -460,13 +453,12 @@
             const itemExistente = carrinho.find(item => item.nome === nome);
             if (itemExistente) { itemExistente.qtd += qtdAdicionada;
             itemExistente.subtotal = itemExistente.qtd * preco; }
-            else { carrinho.push({ nome, qtd: qtdAdicionada, preco: preco, subtotal: preco * qtdAdicionada });
-            }
+            else { carrinho.push({ nome, qtd: qtdAdicionada, preco: preco, subtotal: preco * qtdAdicionada }); }
             qtdInput.value = "1"; atualizarCarrinhoVisual();
         };
-
+        
         window.limparCarrinho = () => { carrinho = []; taxaEntrega = 0; atualizarCarrinhoVisual(); };
-
+        
         function atualizarCarrinhoVisual() {
             const listaDiv = document.getElementById('lista-carrinho');
             const resumoSub = document.getElementById('resumo-subtotal');
@@ -495,10 +487,8 @@
 
         window.enviarPedidoCompleto = async () => {
             if(carrinho.length === 0) return alert("Adicione algo!");
-            
             const entrega = document.getElementById('opcao-entrega').value;
             let local = entrega === "Sim" ? `${document.getElementById('rua').value}, Nº ${document.getElementById('num').value}` : "Retirada no Local";
-            
             if(entrega === "Sim" && (!document.getElementById('rua').value)) return alert("Endereço vazio!");
             
             await addDoc(collection(db, "pedidos"), {
@@ -511,7 +501,6 @@
                 motoboyDesignado: "",
                 data: serverTimestamp()
             });
-            
             alert("Pedido enviado!"); limparCarrinho();
         };
 
@@ -522,14 +511,13 @@
             if (motivo === null || motivo.trim() === "") return alert("Motivo obrigatório.");
             await updateDoc(doc(db, "pedidos", id), { status: "Cancelado", motivoCancelamento: motivo });
         };
-
+        
         function ouvirPedidosAdmin() {
             onSnapshot(query(collection(db, "pedidos"), orderBy("data", "desc")), (snap) => {
                 const lista = document.getElementById('lista-pedidos'); lista.innerHTML = "";
                 snap.forEach(d => {
                     const p = d.data(); const id = d.id; const isCancelado = p.status === "Cancelado";
                     
-                    // Adicionamos a classe 'select-motoboy-dinamico' e o data-designado aqui!
                     let selectMotoboy = `<select onchange="atribuirMotoboy('${id}', this.value)" class="bg-gray-100 text-[10px] p-1 rounded border select-motoboy-dinamico" data-designado="${p.motoboyDesignado || ''}">
                         <option value="">DESIGNAR MOTOBOY...</option>`;
                         
@@ -585,17 +573,15 @@
                 const status = d.data().status;
                 if(status === "Entregue" || status === "Cancelado") { batch.delete(d.ref); cont++; }
             });
-            
             if(cont > 0) { await batch.commit(); alert(`${cont} pedido(s) removido(s).`); }
         };
-
+        
         window.limparEBackupPedidos = async () => {
             if(!confirm("Isso irá baixar um TXT com os pedidos Entregues/Cancelados e apagá-los. Continuar?")) return;
             const snap = await getDocs(collection(db, "pedidos"));
             let conteudo = "";
             const batch = writeBatch(db);
             let cont = 0;
-            
             snap.forEach(d => {
                 const p = d.data();
                 if(p.status === "Entregue" || p.status === "Cancelado") {
@@ -605,7 +591,6 @@
                     cont++;
                 }
             });
-            
             if(cont > 0) {
                 const blob = new Blob([conteudo], { type: 'text/plain' });
                 const link = document.createElement('a');
@@ -627,7 +612,7 @@
 
         window.toggleProduto = async (id, statusAtual) => { await updateDoc(doc(db, "produtos", id), { ativo: !statusAtual }); };
         window.excluirProduto = async (id) => { if(confirm("Excluir item?")) await deleteDoc(doc(db, "produtos", id)); };
-
+        
         function ouvirCardapio(isAdmin) {
             onSnapshot(collection(db, "produtos"), (snapshot) => {
                 const listaC = document.getElementById('cardapio-lista');
@@ -664,7 +649,7 @@
             await addDoc(collection(db, "mensagens"), { usuario: auth.currentUser.email, texto: input.value, hora: serverTimestamp() });
             input.value = "";
         };
-
+        
         function ouvirChat() {
             onSnapshot(query(collection(db, "mensagens"), orderBy("hora", "asc")), (snap) => {
                 const box = document.getElementById('chat-box'); box.innerHTML = "";
@@ -684,7 +669,6 @@
             if(!motivo) return;
             let conteudo = `ATENDIMENTO FINALIZADO\nMotivo: ${motivo}\nData: ${new Date().toLocaleString()}\n---------------------------\n`;
             mensagensAtuais.forEach(m => { conteudo += `[${m.usuario}] : ${m.texto}\n`; });
-            
             const blob = new Blob([conteudo], { type: 'text/plain' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
@@ -695,6 +679,24 @@
             const batch = writeBatch(db);
             snap.forEach(d => batch.delete(d.ref));
             await batch.commit();
+        };
+
+        window.importarChat = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const conteudo = e.target.result;
+                await addDoc(collection(db, "mensagens"), { 
+                    usuario: auth.currentUser.email + " (Backup)", 
+                    texto: conteudo, 
+                    hora: serverTimestamp() 
+                });
+                alert("Histórico de chat importado com sucesso!");
+                event.target.value = ''; 
+            };
+            reader.readAsText(file);
         };
     </script>
 </body>

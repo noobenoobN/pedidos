@@ -44,16 +44,18 @@
 
     <div id="main-screen" class="hidden min-h-screen">
         <nav class="bg-red-600 text-white p-4 flex justify-between items-center shadow-md">
-            <span id="user-welcome" class="font-medium italic underline">Carregando...</span>
-            <button onclick="sair()" class="bg-red-800 px-3 py-1 rounded text-sm font-bold uppercase hover:bg-red-900">Sair</button>
+            <span id="user-welcome" class="font-medium">Carregando...</span>
+            <button onclick="sair()" class="bg-red-800 px-3 py-1 rounded text-sm">Sair</button>
         </nav>
 
         <div class="max-w-6xl mx-auto p-4 grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
             <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow">
                 
                 <div id="cliente-view" class="hidden">
-                    <h3 class="text-xl font-bold mb-4 border-b-2 border-red-600 inline-block">Cardápio</h3>
-                    <div id="cardapio-lista" class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6"></div>
+                    <h3 class="text-xl font-bold mb-4">Cardápio</h3>
+                    <div id="cardapio-lista" class="grid grid-cols-1 gap-3 mb-6"></div>
+                    
                     <div class="border-t pt-4 space-y-3">
                         <div class="flex justify-between items-center">
                             <h3 class="font-bold text-lg text-red-600 italic">Meus Pedidos Ativos</h3>
@@ -62,95 +64,99 @@
                         <div id="meus-pedidos-status" class="bg-white border rounded p-3 text-sm space-y-2 mb-4 shadow-inner min-h-[50px]">
                             Nenhum pedido em andamento.
                         </div>
+
                         <h3 class="font-bold text-lg">Finalizar Novo Pedido</h3>
                         <div class="bg-gray-50 p-3 rounded border text-sm mb-2">
                             <p class="font-bold mb-1 border-b pb-1">Carrinho:</p>
                             <div id="lista-carrinho" class="space-y-1 mb-2 italic text-gray-600">Seu carrinho está vazio.</div>
                         </div>
-                        <select id="opcao-entrega" onchange="toggleEndereco()" class="w-full border p-2 rounded focus:ring-2 focus:ring-red-500">
+
+                        <select id="opcao-entrega" onchange="toggleEndereco()" class="w-full border p-2 rounded">
                             <option value="Sim">Preciso de Entrega (Sim)</option>
                             <option value="Não">Vou buscar no local (Não)</option>
                         </select>
                         <div id="campos-endereco" class="space-y-2">
                             <input id="cep" type="text" placeholder="CEP" onblur="buscarCEP()" class="w-full border p-2 rounded">
-                            <input id="rua" type="text" placeholder="Rua / Endereço" class="w-full border p-2 rounded bg-gray-50 shadow-sm" readonly>
+                            <input id="rua" type="text" placeholder="Rua / Endereço" class="w-full border p-2 rounded bg-gray-50">
                             <input id="num" type="text" placeholder="Número" class="w-full border p-2 rounded">
                         </div>
                         <div class="bg-yellow-50 p-3 rounded border border-yellow-200 text-sm">
                             <div class="flex justify-between"><span>Subtotal:</span> <span id="resumo-subtotal">R$ 0.00</span></div>
                             <div class="flex justify-between text-blue-600"><span>Taxa de Entrega:</span> <span id="resumo-taxa">R$ 0.00</span></div>
-                            <hr class="my-1 border-yellow-200">
-                            <div class="flex justify-between font-bold text-lg"><span>Total a Pagar:</span> <span id="resumo-carrinho">R$ 0.00</span></div>
+                            <hr class="my-1">
+                            <div class="flex justify-between font-bold"><span>Total a Pagar:</span> <span id="resumo-carrinho">R$ 0.00</span></div>
                         </div>
-                        <button onclick="enviarPedidoCompleto()" class="w-full bg-green-600 text-white p-3 rounded font-bold uppercase hover:bg-green-700 transition shadow-lg">Confirmar e Enviar Pedido</button>
+                        <button onclick="enviarPedidoCompleto()" class="w-full bg-green-600 text-white p-3 rounded font-bold uppercase hover:bg-green-700 transition">Confirmar e Enviar</button>
                         <button onclick="limparCarrinho()" class="w-full text-xs text-red-500 underline mt-2">Limpar Carrinho</button>
                     </div>
                 </div>
 
                 <div id="admin-view" class="hidden">
-                    <div class="flex gap-4 mb-4 border-b overflow-x-auto">
-                        <button onclick="tabAdmin('pedidos')" id="btn-tab-pedidos" class="pb-2 font-bold border-b-2 border-red-600 px-2 whitespace-nowrap">Painel de Pedidos</button>
-                        <button onclick="tabAdmin('cardapio')" id="btn-tab-cardapio" class="pb-2 font-bold px-2 whitespace-nowrap text-gray-500">Cardápio</button>
-                        <button onclick="tabAdmin('motoboys')" id="btn-tab-motoboys" class="pb-2 font-bold px-2 whitespace-nowrap text-gray-500">Motoboys</button>
-                        <button onclick="tabAdmin('config')" id="btn-tab-config" class="pb-2 font-bold px-2 whitespace-nowrap text-gray-500">Configurações</button>
+                    <div class="flex gap-4 mb-4 border-b">
+                        <button onclick="tabAdmin('pedidos')" id="btn-tab-pedidos" class="pb-2 font-bold border-b-2 border-red-600">Pedidos</button>
+                        <button onclick="tabAdmin('cardapio')" id="btn-tab-cardapio" class="pb-2 font-bold">Cardápio</button>
+                        <button onclick="tabAdmin('motoboys')" id="btn-tab-motoboys" class="pb-2 font-bold">Gerenciar Motoboys</button>
+                        <button onclick="tabAdmin('config')" id="btn-tab-config" class="pb-2 font-bold">Configuração Loja</button>
                     </div>
 
                     <div id="tab-pedidos">
                         <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-xl font-bold">Pedidos em Tempo Real</h3>
+                            <h3 class="text-xl font-bold">Painel de Pedidos</h3>
                             <div class="flex gap-2">
                                 <label class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-[10px] cursor-pointer hover:bg-blue-200 font-bold border border-blue-300">
-                                    IMPORTAR TXT <input type="file" id="import-pedidos" class="hidden" accept=".txt">
+                                    IMPORTAR HISTÓRICO <input type="file" id="import-pedidos" class="hidden" accept=".txt">
                                 </label>
-                                <button onclick="limparEBackupPedidos()" class="bg-gray-800 text-white px-2 py-1 rounded text-[10px] font-bold">BACKUP E LIMPAR TUDO</button>
+                                <button onclick="limparEBackupPedidos()" class="bg-gray-800 text-white px-2 py-1 rounded text-[10px] font-bold">BACKUP E LIMPAR</button>
                             </div>
                         </div>
                         <div id="lista-pedidos" class="space-y-3 text-sm"></div>
                     </div>
 
                     <div id="tab-cardapio" class="hidden">
-                        <h3 class="text-xl font-bold mb-4">Gerenciar Itens</h3>
-                        <div class="bg-gray-50 p-4 rounded mb-6 border flex flex-col md:flex-row gap-2">
-                            <input id="prod-nome" type="text" placeholder="Nome do Produto" class="border p-2 rounded flex-1">
-                            <input id="prod-preco" type="number" placeholder="Preço" class="border p-2 rounded w-24">
-                            <button onclick="salvarProduto()" class="bg-green-600 text-white px-4 py-2 rounded font-bold">Adicionar</button>
+                        <h3 class="text-xl font-bold mb-4">Gerenciar Cardápio</h3>
+                        <div class="bg-gray-50 p-4 rounded mb-6 border">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                <input id="prod-nome" type="text" placeholder="Nome do Produto" class="border p-2 rounded">
+                                <input id="prod-preco" type="number" placeholder="Preço" class="border p-2 rounded">
+                            </div>
+                            <button onclick="salvarProduto()" class="mt-2 w-full bg-green-600 text-white p-2 rounded font-bold">Salvar Produto</button>
                         </div>
                         <div id="admin-cardapio-lista" class="space-y-2 mb-8 text-sm"></div>
                     </div>
 
                     <div id="tab-motoboys" class="hidden">
-                        <h3 class="text-xl font-bold mb-4">Solicitações Pendentes</h3>
+                        <h3 class="text-xl font-bold mb-4">Aprovação de Motoboys</h3>
                         <div id="lista-motoboys-pendentes" class="space-y-3"></div>
                         <h3 class="text-xl font-bold mt-8 mb-4">Motoboys Ativos</h3>
                         <div id="lista-motoboys-ativos" class="space-y-2"></div>
                     </div>
 
                     <div id="tab-config" class="hidden">
-                        <h3 class="text-xl font-bold mb-4">Configuração da Entrega</h3>
-                        <div class="space-y-4 bg-gray-50 p-4 border rounded max-w-sm">
+                        <h3 class="text-xl font-bold mb-4">Configuração de Entrega</h3>
+                        <div class="space-y-4 bg-gray-50 p-4 border rounded">
                             <div>
-                                <label class="block text-sm font-bold">CEP Base da Loja:</label>
+                                <label class="block text-sm font-bold">CEP da Loja (Origem):</label>
                                 <input id="config-cep-origem" type="text" placeholder="00000-000" class="border p-2 w-full rounded">
                             </div>
                             <div>
                                 <label class="block text-sm font-bold">Valor Taxa por KM (R$):</label>
-                                <input id="config-valor-km" type="number" step="0.01" placeholder="Ex: 2.00" class="border p-2 w-full rounded">
+                                <input id="config-valor-km" type="number" placeholder="Ex: 2.50" class="border p-2 w-full rounded">
                             </div>
-                            <button onclick="salvarConfigLoja()" class="bg-red-600 text-white p-3 w-full rounded font-bold">Salvar Dados da Loja</button>
+                            <button onclick="salvarConfigLoja()" class="bg-red-600 text-white p-3 w-full rounded font-bold">Salvar Configurações</button>
                         </div>
                     </div>
                 </div>
 
                 <div id="motoboy-view" class="hidden">
                     <div class="bg-white p-4 rounded shadow mb-4 border-l-4 border-blue-600">
-                        <h4 class="font-bold mb-2">Meu Status de Trabalho:</h4>
-                        <select id="status-trabalho-motoboy" onchange="atualizarStatusTrabalho(this.value)" class="w-full border p-2 rounded font-bold bg-gray-50">
+                        <h4 class="font-bold mb-2">Meu Status Atual:</h4>
+                        <select id="status-trabalho-motoboy" onchange="atualizarStatusTrabalho(this.value)" class="w-full border p-2 rounded font-bold">
                             <option value="Em Trabalho">🟢 Em Trabalho (Disponível)</option>
                             <option value="Folga">🟡 Folga</option>
                             <option value="Férias">🔴 Férias</option>
                         </select>
                     </div>
-                    <h3 class="text-xl font-bold mb-4">Entregas para Realizar</h3>
+                    <h3 class="text-xl font-bold mb-4">Minhas Entregas Designadas</h3>
                     <div id="lista-entregas-motoboy" class="space-y-3"></div>
                 </div>
 
@@ -158,18 +164,18 @@
 
             <div class="bg-white p-6 rounded-lg shadow flex flex-col h-[500px]">
                 <div class="flex justify-between items-center mb-4 border-b pb-2">
-                    <h3 class="text-xl font-bold text-blue-600">Suporte ao Cliente</h3>
+                    <h3 class="text-xl font-bold text-blue-600">Suporte / Chat</h3>
                     <div id="admin-chat-tools" class="hidden flex gap-2">
                         <label class="bg-gray-200 px-2 py-1 rounded text-[10px] cursor-pointer hover:bg-gray-300">
                             Importar TXT <input type="file" id="import-chat" class="hidden" accept=".txt">
                         </label>
-                        <button onclick="finalizarChat()" class="bg-red-500 text-white px-2 py-1 rounded text-[10px] font-bold uppercase">Finalizar</button>
+                        <button onclick="finalizarChat()" class="bg-red-500 text-white px-2 py-1 rounded text-[10px] font-bold">Finalizar Chat</button>
                     </div>
                 </div>
-                <div id="chat-box" class="flex-1 p-2 mb-4 bg-gray-50 rounded border-inner overflow-y-auto"></div>
+                <div id="chat-box" class="flex-1 p-2 mb-4 bg-gray-50 rounded"></div>
                 <div class="flex gap-2">
-                    <input id="chat-input" type="text" placeholder="Mensagem..." class="flex-1 border p-2 rounded">
-                    <button onclick="enviarMensagem()" class="bg-blue-600 text-white px-4 py-2 rounded">OK</button>
+                    <input id="chat-input" type="text" placeholder="Digite..." class="flex-1 border p-2 rounded focus:outline-none">
+                    <button onclick="enviarMensagem()" class="bg-blue-600 text-white px-4 py-2 rounded">Enviar</button>
                 </div>
             </div>
         </div>
@@ -196,41 +202,56 @@
         let carrinho = [];
         let totalAcumulado = 0;
         let taxaEntrega = 0;
-        let mensagensAtuais = [];
+        let mensagensAtuais = []; 
         let configLoja = { cep: '', valorKm: 0 };
-        let listaMotoboysCache = []; // ESSENCIAL PARA O SELECT DO ADMIN
+        let motoboysAtivos = [];
 
+        // AUTH
         window.cadastrar = () => {
             const e = document.getElementById('email').value;
             const s = document.getElementById('senha').value;
-            createUserWithEmailAndPassword(auth, e, s).then(() => { alert("Conta criada!"); }).catch(err => { alert(err.message); });
+            createUserWithEmailAndPassword(auth, e, s).then(() => alert("Conta criada!")).catch(err => alert("Erro: " + err.message));
         };
         window.logar = () => {
             const e = document.getElementById('email').value;
             const s = document.getElementById('senha').value;
-            signInWithEmailAndPassword(auth, e, s).catch(err => { alert("Login inválido!"); });
+            signInWithEmailAndPassword(auth, e, s).catch(err => alert("Login inválido!"));
         };
-        window.sair = () => { signOut(auth); };
+        window.sair = () => signOut(auth);
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 document.getElementById('auth-screen').classList.add('hidden');
-                document.getElementById('user-welcome').innerText = user.email;
+                document.getElementById('user-welcome').innerText = `Logado como: ${user.email}`;
+                
                 const isAdmin = user.email.includes('admin');
                 const isMotoboy = user.email.includes('motoboy');
+
                 if(isAdmin) {
                     mostrarTela('admin-view');
-                    ouvirMotoboysAdmin();
                     ouvirPedidosAdmin();
                     ouvirCardapio(true);
+                    ouvirMotoboysAdmin();
                     carregarConfigLoja();
                     document.getElementById('admin-chat-tools').classList.remove('hidden');
                 } else if(isMotoboy) {
                     const docRef = doc(db, "motoboys", user.uid);
                     const docSnap = await getDoc(docRef);
-                    if(!docSnap.exists()) mostrarTela('motoboy-setup');
-                    else if(docSnap.data().status === "Pendente") { alert("Aguarde aprovação!"); signOut(auth); }
-                    else { mostrarTela('motoboy-view'); ouvirEntregasMotoboy(user.email); }
+                    
+                    if(!docSnap.exists()) {
+                        mostrarTela('motoboy-setup');
+                    } else if(docSnap.data().status === "Pendente") {
+                        alert("Seu cadastro ainda está pendente de aprovação pelo Admin.");
+                        signOut(auth);
+                    } else {
+                        mostrarTela('motoboy-view');
+                        // Carregar o status de trabalho atual no select
+                        const mData = docSnap.data();
+                        if (document.getElementById('status-trabalho-motoboy')) {
+                            document.getElementById('status-trabalho-motoboy').value = mData.statusTrabalho || "Em Trabalho";
+                        }
+                        ouvirEntregasMotoboy(user.email);
+                    }
                 } else {
                     mostrarTela('cliente-view');
                     ouvirCardapio(false);
@@ -241,153 +262,361 @@
             } else {
                 document.getElementById('auth-screen').classList.remove('hidden');
                 document.getElementById('main-screen').classList.add('hidden');
+                document.getElementById('motoboy-setup').classList.add('hidden');
             }
         });
 
         function mostrarTela(id) {
-            document.getElementById('main-screen').classList.remove('hidden');
+            document.getElementById('main-screen').classList.add('hidden');
+            document.getElementById('motoboy-setup').classList.add('hidden');
             document.getElementById('cliente-view').classList.add('hidden');
             document.getElementById('admin-view').classList.add('hidden');
             document.getElementById('motoboy-view').classList.add('hidden');
             document.getElementById(id).classList.remove('hidden');
+            if(id !== 'motoboy-setup') document.getElementById('main-screen').classList.remove('hidden');
         }
 
+        // --- MOTOBOY SETUP & STATUS ---
+        window.buscarCEPMotoboy = async () => {
+            const cep = document.getElementById('moto-cep').value.replace(/\D/g, '');
+            if(cep.length !== 8) return;
+            const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+            const data = await res.json();
+            if(!data.erro) document.getElementById('moto-rua').value = `${data.logradouro}, ${data.bairro} - ${data.localidade}`;
+        };
+
+        window.salvarPerfilMotoboy = async () => {
+            const tel = document.getElementById('moto-tel').value;
+            const cep = document.getElementById('moto-cep').value;
+            const rua = document.getElementById('moto-rua').value;
+            const num = document.getElementById('moto-num').value;
+            if(!tel || !cep || !num) return alert("Preencha todos os campos");
+            await setDoc(doc(db, "motoboys", auth.currentUser.uid), {
+                email: auth.currentUser.email,
+                telefone: tel,
+                endereco: `${rua}, Nº ${num}`,
+                cep: cep,
+                status: "Pendente",
+                statusTrabalho: "Em Trabalho", // Status padrão ao criar
+                dataCadastro: serverTimestamp()
+            });
+            alert("Perfil enviado! Aguarde aprovação do Admin.");
+            signOut(auth);
+        };
+
+        window.atualizarStatusTrabalho = async (novoStatus) => {
+            const user = auth.currentUser;
+            if (user) {
+                await updateDoc(doc(db, "motoboys", user.uid), { statusTrabalho: novoStatus });
+                alert("O seu status foi atualizado para: " + novoStatus);
+            }
+        };
+
+        // --- GESTÃO DE MOTOBOYS (ADMIN) ---
         function ouvirMotoboysAdmin() {
             onSnapshot(collection(db, "motoboys"), (snap) => {
                 const listaP = document.getElementById('lista-motoboys-pendentes');
                 const listaA = document.getElementById('lista-motoboys-ativos');
                 listaP.innerHTML = ""; listaA.innerHTML = "";
-                listaMotoboysCache = [];
+                motoboysAtivos = [];
+
                 snap.forEach(d => {
                     const m = d.data();
+                    const id = d.id;
+                    
                     if(m.status === "Pendente") {
-                        listaP.innerHTML += `<div class="p-2 border flex justify-between"><span>${m.email}</span><button onclick="aprovarMotoboy('${d.id}')" class="bg-green-600 text-white px-2 rounded font-bold uppercase text-[10px]">Aprovar</button></div>`;
-                    } else {
-                        listaMotoboysCache.push(m.email);
-                        listaA.innerHTML += `<div class="p-2 border flex justify-between text-xs"><span>${m.email}</span><button onclick="rejeitarMotoboy('${d.id}')" class="text-red-500 font-bold uppercase text-[10px]">Remover</button></div>`;
-                    }
-                });
-            });
-        }
-        window.aprovarMotoboy = async (id) => { await updateDoc(doc(db, "motoboys", id), { status: "Ativo" }); };
-        window.rejeitarMotoboy = async (id) => { await deleteDoc(doc(db, "motoboys", id)); };
-
-        function ouvirPedidosAdmin() {
-            onSnapshot(query(collection(db, "pedidos"), orderBy("data", "desc")), (snap) => {
-                const lista = document.getElementById('lista-pedidos');
-                lista.innerHTML = "";
-                snap.forEach(d => {
-                    const p = d.data();
-                    let selectM = `<select onchange="atribuirMotoboy('${d.id}', this.value)" class="border text-[10px] rounded p-1"><option value="">DESIGNAR MOTOBOY...</option>`;
-                    listaMotoboysCache.forEach(email => {
-                        selectM += `<option value="${email}" ${p.motoboyDesignado === email ? 'selected' : ''}>${email.split('@')[0]}</option>`;
-                    });
-                    selectM += `</select>`;
-
-                    lista.innerHTML += `
-                        <div class="p-3 bg-white border-l-4 border-red-500 rounded shadow-sm mb-2">
-                            <div class="flex justify-between font-bold"><span>${p.cliente.split('@')[0]}</span> <span class="status-${p.status.toLowerCase()}">${p.status}</span></div>
-                            <div class="text-[10px] text-gray-500 italic mt-1">${p.item}</div>
-                            <div class="flex gap-2 mt-2">
-                                <button onclick="mudarStatus('${d.id}', 'Preparando')" class="bg-yellow-500 text-white p-1 rounded text-[10px] font-bold uppercase">PREPARAR</button>
-                                ${selectM}
-                                <button onclick="mudarStatus('${d.id}', 'Entregue')" class="bg-green-600 text-white p-1 rounded text-[10px] font-bold uppercase">OK</button>
+                        listaP.innerHTML += `<div class="p-3 bg-yellow-50 border border-yellow-200 rounded flex justify-between items-center">
+                            <div class="text-xs"><b>${m.email}</b><br>${m.telefone} | ${m.endereco}</div>
+                            <div class="flex gap-2">
+                                <button onclick="aprovarMotoboy('${id}')" class="bg-green-600 text-white px-2 py-1 rounded text-[10px]">APROVAR</button>
+                                <button onclick="rejeitarMotoboy('${id}')" class="bg-red-600 text-white px-2 py-1 rounded text-[10px]">EXCLUIR</button>
                             </div>
                         </div>`;
-                });
-            });
-        }
-
-        function ouvirEntregasMotoboy(email) {
-            onSnapshot(query(collection(db, "pedidos"), where("motoboyDesignado", "==", email)), (snap) => {
-                const lista = document.getElementById('lista-entregas-motoboy');
-                lista.innerHTML = "";
-                snap.forEach(d => {
-                    const p = d.data();
-                    if(p.status !== "Entregue") {
-                        lista.innerHTML += `
-                        <div class="p-4 bg-white border-l-4 border-blue-600 rounded shadow mb-3">
-                            <p class="font-bold">Cliente: ${p.cliente.split('@')[0]}</p>
-                            <p class="text-sm">Endereço: ${p.entrega}</p>
-                            <p class="text-xs text-gray-500 italic mb-3">Itens: ${p.item}</p>
-                            <button onclick="mudarStatus('${d.id}', 'Entregue')" class="w-full bg-green-600 text-white p-2 rounded font-bold uppercase">Pedido Entregue</button>
+                    } else {
+                        motoboysAtivos.push(m);
+                        const corStatus = m.statusTrabalho === "Em Trabalho" ? "text-green-600" : "text-gray-400";
+                        listaA.innerHTML += `<div class="p-2 bg-white border rounded text-xs flex justify-between">
+                            <span><b>${m.email}</b> - ${m.telefone} <i class="${corStatus} font-bold">(${m.statusTrabalho || 'Ativo'})</i></span>
+                            <button onclick="rejeitarMotoboy('${id}')" class="text-red-500 underline">Remover</button>
                         </div>`;
                     }
                 });
             });
         }
 
-        window.atribuirMotoboy = async (pedId, email) => { if(email) await updateDoc(doc(db, "pedidos", pedId), { motoboyDesignado: email, status: "A Caminho" }); };
-        window.mudarStatus = async (id, s) => { await updateDoc(doc(db, "pedidos", id), { status: s }); };
+        window.aprovarMotoboy = async (id) => { await updateDoc(doc(db, "motoboys", id), { status: "Aprovado" }); };
+        window.rejeitarMotoboy = async (id) => { if(confirm("Remover motoboy definitivamente?")) await deleteDoc(doc(db, "motoboys", id)); };
 
-        window.tabAdmin = (t) => {
-            ['pedidos','cardapio','motoboys','config'].forEach(a => {
-                document.getElementById('tab-'+a).classList.add('hidden');
-                document.getElementById('btn-tab-'+a).classList.remove('border-b-2','border-red-600');
-            });
-            document.getElementById('tab-'+t).classList.remove('hidden');
-            document.getElementById('btn-tab-'+t).classList.add('border-b-2','border-red-600');
+        // --- CONFIG LOJA ---
+        window.salvarConfigLoja = async () => {
+            const cep = document.getElementById('config-cep-origem').value;
+            const valor = parseFloat(document.getElementById('config-valor-km').value);
+            await setDoc(doc(db, "config", "loja"), { cep, valorKm: valor });
+            alert("Configurações salvas!");
         };
+        async function carregarConfigLoja() {
+            const d = await getDoc(doc(db, "config", "loja"));
+            if(d.exists()) {
+                configLoja = d.data();
+                if(document.getElementById('config-cep-origem')) {
+                    document.getElementById('config-cep-origem').value = configLoja.cep;
+                    document.getElementById('config-valor-km').value = configLoja.valorKm;
+                }
+            }
+        }
 
-        window.limparEBackupPedidos = async () => {
-            let txt = "BACKUP\n";
-            const snap = await getDocs(collection(db, "pedidos"));
-            snap.forEach(d => { txt += `${d.data().cliente} | ${d.data().total}\n`; });
-            const blob = new Blob([txt], {type: 'text/plain'});
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = "backup.txt"; link.click();
+        async function calcularTaxaEntrega(cepDestino) {
+            if(!configLoja.cep || !configLoja.valorKm) return 0;
+            const dist = Math.floor(Math.random() * 10) + 1; // Simulação de 1 a 10km
+            return dist * configLoja.valorKm;
+        }
+
+        // --- ABAS ADMIN ---
+        window.tabAdmin = (tab) => {
+            const abas = ['pedidos', 'cardapio', 'motoboys', 'config'];
+            abas.forEach(a => {
+                document.getElementById(`tab-${a}`).classList.add('hidden');
+                document.getElementById(`btn-tab-${a}`).classList.remove('border-b-2', 'border-red-600');
+            });
+            document.getElementById(`tab-${tab}`).classList.remove('hidden');
+            document.getElementById(`btn-tab-${tab}`).classList.add('border-b-2', 'border-red-600');
         };
 
         window.buscarCEP = async () => {
-            const cep = document.getElementById('cep').value.replace(/\D/g,'');
+            const cep = document.getElementById('cep').value.replace(/\D/g, '');
             if(cep.length !== 8) return;
             const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
             const data = await res.json();
-            if(!data.erro) { document.getElementById('rua').value = data.logradouro; taxaEntrega = 7.00; atualizarCarrinhoVisual(); }
+            if(!data.erro) {
+                document.getElementById('rua').value = `${data.logradouro}, ${data.bairro}`;
+                taxaEntrega = await calcularTaxaEntrega(cep);
+                atualizarCarrinhoVisual();
+            }
+        };
+        window.toggleEndereco = () => {
+            const div = document.getElementById('campos-endereco');
+            const isEntrega = document.getElementById('opcao-entrega').value === "Sim";
+            div.classList.toggle('hidden', !isEntrega);
+            if(!isEntrega) { taxaEntrega = 0; atualizarCarrinhoVisual(); }
         };
 
-        window.toggleEndereco = () => { document.getElementById('campos-endereco').classList.toggle('hidden', document.getElementById('opcao-entrega').value === "Não"); };
+        // --- ADMIN: DESIGNAR MOTOBOY ---
+        window.atribuirMotoboy = async (pedidoId, motoEmail) => {
+            if(!motoEmail) return;
+            await updateDoc(doc(db, "pedidos", pedidoId), { 
+                motoboyDesignado: motoEmail,
+                status: "A Caminho"
+            });
+            alert("Pedido designado ao motoboy!");
+        };
 
-        function ouvirCardapio(isAdmin) {
-            onSnapshot(collection(db, "produtos"), (snap) => {
-                const listaC = document.getElementById('cardapio-lista');
-                const listaA = document.getElementById('admin-cardapio-lista');
-                if(listaC) listaC.innerHTML = ""; if(listaA) listaA.innerHTML = "";
+        function ouvirEntregasMotoboy(email) {
+            onSnapshot(query(collection(db, "pedidos"), where("motoboyDesignado", "==", email), where("status", "==", "A Caminho")), (snap) => {
+                const lista = document.getElementById('lista-entregas-motoboy');
+                lista.innerHTML = "";
+                if(snap.empty) { lista.innerHTML = "<p class='text-gray-500'>Nenhuma entrega pendente.</p>"; return; }
+        
                 snap.forEach(d => {
                     const p = d.data();
-                    if(listaC && p.ativo) listaC.innerHTML += `<div class="p-2 border rounded flex justify-between"><span>${p.nome}</span><button onclick="addCarrinho('${p.nome}', ${p.preco})" class="bg-red-600 text-white px-2 rounded">+</button></div>`;
-                    if(listaA) listaA.innerHTML += `<div class="p-2 border flex justify-between text-xs"><span>${p.nome}</span><button onclick="excluirProd('${d.id}')" class="text-red-500">X</button></div>`;
+                    lista.innerHTML += `<div class="p-4 bg-blue-50 border border-blue-200 rounded">
+                        <p><b>Cliente:</b> ${p.cliente}</p>
+                        <p><b>Itens:</b> ${p.item}</p>
+                        <p><b>Destino:</b> ${p.entrega}</p>
+                        <button onclick="mudarStatus('${d.id}', 'Entregue')" class="mt-2 w-full bg-green-600 text-white p-2 rounded font-bold">MARCAR COMO ENTREGUE</button>
+                    </div>`;
                 });
             });
         }
 
-        window.addCarrinho = (n, p) => { carrinho.push({nome: n, preco: p}); atualizarCarrinhoVisual(); };
+        window.selecionarItem = (nome, preco, id) => {
+            const qtdInput = document.getElementById(`qtd-${id}`);
+            const qtdAdicionada = parseInt(qtdInput.value);
+            const itemExistente = carrinho.find(item => item.nome === nome);
+            if (itemExistente) { itemExistente.qtd += qtdAdicionada; itemExistente.subtotal = itemExistente.qtd * preco; }
+            else { carrinho.push({ nome, qtd: qtdAdicionada, preco: preco, subtotal: preco * qtdAdicionada }); }
+            qtdInput.value = "1"; atualizarCarrinhoVisual();
+        };
+        window.limparCarrinho = () => { carrinho = []; taxaEntrega = 0; atualizarCarrinhoVisual(); };
         function atualizarCarrinhoVisual() {
-            let sub = 0;
-            document.getElementById('lista-carrinho').innerHTML = carrinho.map(i => { sub+=i.preco; return i.nome; }).join(", ");
-            totalAcumulado = sub + taxaEntrega;
-            document.getElementById('resumo-subtotal').innerText = "R$ " + sub.toFixed(2);
-            document.getElementById('resumo-taxa').innerText = "R$ " + taxaEntrega.toFixed(2);
-            document.getElementById('resumo-carrinho').innerText = "R$ " + totalAcumulado.toFixed(2);
+            const listaDiv = document.getElementById('lista-carrinho');
+            const resumoSub = document.getElementById('resumo-subtotal');
+            const resumoTaxa = document.getElementById('resumo-taxa');
+            const resumoTotal = document.getElementById('resumo-carrinho');
+            if (carrinho.length === 0) {
+                listaDiv.innerHTML = "Seu carrinho está vazio.";
+                resumoSub.innerText = "R$ 0.00"; resumoTaxa.innerText = "R$ 0.00"; resumoTotal.innerText = "R$ 0.00"; 
+                totalAcumulado = 0; return;
+            }
+            listaDiv.innerHTML = "";
+            let subtotal = 0;
+            carrinho.forEach(item => {
+                subtotal += item.subtotal;
+                listaDiv.innerHTML += `<div>• <b>${item.qtd}x</b> ${item.nome} (R$ ${item.subtotal.toFixed(2)})</div>`;
+            });
+            totalAcumulado = subtotal + taxaEntrega;
+            resumoSub.innerText = `R$ ${subtotal.toFixed(2)}`;
+            resumoTaxa.innerText = `R$ ${taxaEntrega.toFixed(2)}`;
+            resumoTotal.innerText = `R$ ${totalAcumulado.toFixed(2)}`;
         }
 
         window.enviarPedidoCompleto = async () => {
+            if(carrinho.length === 0) return alert("Adicione algo!");
+            const entrega = document.getElementById('opcao-entrega').value;
+            let local = entrega === "Sim" ? `${document.getElementById('rua').value}, Nº ${document.getElementById('num').value}` : "Retirada no Local";
+            if(entrega === "Sim" && (!document.getElementById('rua').value)) return alert("Endereço vazio!");
+            
             await addDoc(collection(db, "pedidos"), {
-                cliente: auth.currentUser.email,
-                item: carrinho.map(i => i.nome).join(", "),
-                total: totalAcumulado.toFixed(2),
-                entrega: document.getElementById('rua').value,
-                status: "Pendente",
+                cliente: auth.currentUser.email, 
+                item: carrinho.map(i => `${i.qtd}x ${i.nome}`).join(", "),
+                total: totalAcumulado.toFixed(2), 
+                taxa: taxaEntrega.toFixed(2),
+                entrega: local, 
+                status: "Pendente", 
+                motoboyDesignado: "",
                 data: serverTimestamp()
             });
-            carrinho = []; atualizarCarrinhoVisual();
+            alert("Pedido enviado!"); limparCarrinho();
+        };
+
+        window.mudarStatus = async (id, novoStatus) => { await updateDoc(doc(db, "pedidos", id), { status: novoStatus }); };
+        window.cancelarPedidoAdmin = async (id) => {
+            const motivo = prompt("Digite o motivo do cancelamento:");
+            if (motivo === null || motivo.trim() === "") return alert("Motivo obrigatório.");
+            await updateDoc(doc(db, "pedidos", id), { status: "Cancelado", motivoCancelamento: motivo });
+        };
+        function ouvirPedidosAdmin() {
+            onSnapshot(query(collection(db, "pedidos"), orderBy("data", "desc")), (snap) => {
+                const lista = document.getElementById('lista-pedidos'); lista.innerHTML = "";
+                snap.forEach(d => {
+                    const p = d.data(); const id = d.id; const isCancelado = p.status === "Cancelado";
+                    
+                    // Lógica do Select com filtro de Status de Trabalho (conforme solicitado na imagem) 
+                    let selectMotoboy = `<select onchange="atribuirMotoboy('${id}', this.value)" class="bg-gray-100 text-[10px] p-1 rounded border">
+                        <option value="">DESIGNAR MOTOBOY...</option>`;
+                    motoboysAtivos.forEach(m => {
+                        // APENAS MOSTRA SE ESTIVER "Em Trabalho" OU SE JÁ FOR O MOTOBOY DESIGNADO DO PEDIDO
+                        if (m.statusTrabalho === "Em Trabalho" || p.motoboyDesignado === m.email) {
+                            selectMotoboy += `<option value="${m.email}" ${p.motoboyDesignado === m.email ? 'selected' : ''}>
+                                ${m.email.split('@')[0]} (${m.statusTrabalho})
+                            </option>`;
+                        }
+                    });
+                    selectMotoboy += `</select>`;
+
+                    lista.innerHTML += `<div class="p-3 bg-white border-l-4 ${isCancelado ? 'border-gray-500 opacity-75' : 'border-red-500'} rounded shadow-md mb-2">
+                        <div class="flex justify-between"><span><b>${p.cliente.split('@')[0]}:</b> ${p.item}</span><span class="bg-gray-100 px-2 rounded text-xs font-bold">${p.status}</span></div>
+                        <div class="text-[10px] text-gray-500 italic">Total: R$ ${p.total} (Taxa: ${p.taxa || '0.00'}) | ${p.entrega}</div>
+                        ${p.motoboyDesignado ? `<div class="text-[10px] text-blue-600 font-bold uppercase">Motoboy: ${p.motoboyDesignado}</div>` : ''}
+                        <div class="flex flex-wrap gap-1 mt-2">
+                            <button onclick="mudarStatus('${id}', 'Confirmado')" class="bg-blue-500 text-white p-1 rounded text-[10px]">CONFIRMAR</button>
+                            <button onclick="mudarStatus('${id}', 'Preparando')" class="bg-orange-500 text-white p-1 rounded text-[10px]">PREPARAR</button>
+                            ${selectMotoboy}
+                            <button onclick="mudarStatus('${id}', 'Entregue')" class="bg-green-600 text-white p-1 rounded text-[10px]">CONCLUIR</button>
+                            <button onclick="cancelarPedidoAdmin('${id}')" class="bg-red-800 text-white p-1 rounded text-[10px]">CANCELAR</button>
+                        </div></div>`;
+                });
+            });
+        }
+
+        function ouvirStatusCliente(emailCliente) {
+            const q = query(collection(db, "pedidos"), where("cliente", "==", emailCliente));
+            onSnapshot(q, (snap) => {
+                const box = document.getElementById('meus-pedidos-status'); if(!box) return;
+                box.innerHTML = ""; if(snap.empty) { box.innerHTML = "Nenhum pedido em andamento."; return; }
+                const docs = []; snap.forEach(d => docs.push({id: d.id, ...d.data()}));
+                docs.sort((a, b) => (b.data?.seconds || 0) - (a.data?.seconds || 0));
+                docs.forEach(p => {
+                    let classe = p.status === 'Cancelado' ? 'status-cancelado' : p.status === 'Entregue' ? 'status-entregue' : 'status-pendente';
+                    box.innerHTML += `<div class="border-b pb-2 mb-2 flex justify-between items-start last:border-0">
+                        <div class="flex flex-col"><span class="font-medium">${p.item}</span><span class="text-[10px]">Total: R$ ${p.total}</span></div>
+                        <span class="${classe} text-sm">● ${p.status}</span></div>`;
+                });
+            });
+        }
+
+        window.limparPedidosConcluidos = async () => {
+            if(!confirm("Deseja remover os pedidos Entregues e Cancelados da sua lista?")) return;
+            const q = query(collection(db, "pedidos"), where("cliente", "==", auth.currentUser.email));
+            const snap = await getDocs(q);
+            const batch = writeBatch(db);
+            let cont = 0;
+            snap.forEach(d => {
+                const status = d.data().status;
+                if(status === "Entregue" || status === "Cancelado") { batch.delete(d.ref); cont++; }
+            });
+            if(cont > 0) { await batch.commit(); alert(`${cont} pedido(s) removido(s).`); }
+        };
+        window.limparEBackupPedidos = async () => {
+            if(!confirm("Isso irá baixar um TXT com os pedidos Entregues/Cancelados e apagá-los. Continuar?")) return;
+            const snap = await getDocs(collection(db, "pedidos"));
+            let conteudo = "";
+            const batch = writeBatch(db);
+            let cont = 0;
+            snap.forEach(d => {
+                const p = d.data();
+                if(p.status === "Entregue" || p.status === "Cancelado") {
+                    const dataH = p.data ? new Date(p.data.seconds * 1000).toLocaleString() : "N/A";
+                    conteudo += `PEDIDO|${p.cliente}|${p.item}|${p.total}|${p.status}|${p.entrega}|${dataH}|${p.motivoCancelamento || ''}\n`;
+                    batch.delete(d.ref);
+                    cont++;
+                }
+            });
+            if(cont > 0) {
+                const blob = new Blob([conteudo], { type: 'text/plain' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `backup_pedidos.txt`;
+                link.click();
+                await batch.commit();
+                alert(`${cont} pedidos arquivados.`);
+            }
         };
 
         window.salvarProduto = async () => {
-            await addDoc(collection(db, "produtos"), { nome: document.getElementById('prod-nome').value, preco: parseFloat(document.getElementById('prod-preco').value), ativo: true });
+            const nome = document.getElementById('prod-nome').value;
+            const preco = parseFloat(document.getElementById('prod-preco').value);
+            if(!nome || !preco) return alert("Preencha tudo");
+            await addDoc(collection(db, "produtos"), { nome, preco, ativo: true });
+            document.getElementById('prod-nome').value = ""; document.getElementById('prod-preco').value = "";
         };
 
+        window.toggleProduto = async (id, statusAtual) => { await updateDoc(doc(db, "produtos", id), { ativo: !statusAtual }); };
+        window.excluirProduto = async (id) => { if(confirm("Excluir item?")) await deleteDoc(doc(db, "produtos", id)); };
+        function ouvirCardapio(isAdmin) {
+            onSnapshot(collection(db, "produtos"), (snapshot) => {
+                const listaC = document.getElementById('cardapio-lista');
+                const listaA = document.getElementById('admin-cardapio-lista');
+                if(listaC) listaC.innerHTML = ""; if(listaA) listaA.innerHTML = "";
+                snapshot.forEach(docSnap => {
+                    const p = docSnap.data(); const id = docSnap.id;
+                    if(isAdmin && listaA) {
+                        listaA.innerHTML += `<div class="flex justify-between items-center p-2 border rounded ${p.active ? 'bg-white' : 'bg-gray-200 opacity-60'}">
+                            <span>${p.nome} - <b>R$ ${p.preco.toFixed(2)}</b></span>
+                            <div class="flex gap-2">
+                                <button onclick="toggleProduto('${id}', ${p.ativo})" class="bg-yellow-500 text-white px-2 py-1 rounded text-xs">${p.ativo ? 'Ocultar' : 'Mostrar'}</button>
+                                <button onclick="excluirProduto('${id}')" class="bg-red-500 text-white px-2 py-1 rounded text-xs">Excluir</button>
+                            </div>
+                        </div>`;
+                    }
+                    if(p.ativo && listaC) {
+                        listaC.innerHTML += `<div class="flex flex-col md:flex-row justify-between items-center p-4 border rounded bg-white gap-3 shadow-sm">
+                                <span class="font-bold text-gray-700">${p.nome} - R$ ${p.preco.toFixed(2)}</span>
+                                <div class="flex gap-2 items-center">
+                                    <input type="number" id="qtd-${id}" value="1" min="1" class="border w-14 p-1 rounded text-center">
+                                    <button onclick="selecionarItem('${p.nome}', ${p.preco}, '${id}')" class="bg-red-600 text-white px-4 py-1 rounded font-bold text-sm">ADICIONAR</button>
+                                </div>
+                            </div>`;
+                    }
+                });
+            });
+        }
+
+        window.enviarMensagem = async () => {
+            const input = document.getElementById('chat-input');
+            if(!input.value.trim()) return;
+            await addDoc(collection(db, "mensagens"), { usuario: auth.currentUser.email, texto: input.value, hora: serverTimestamp() });
+            input.value = "";
+        };
         function ouvirChat() {
             onSnapshot(query(collection(db, "mensagens"), orderBy("hora", "asc")), (snap) => {
                 const box = document.getElementById('chat-box'); box.innerHTML = "";
@@ -401,11 +630,6 @@
                 box.scrollTop = box.scrollHeight;
             });
         }
-
-        window.enviarMensagem = async () => {
-            await addDoc(collection(db, "mensagens"), { usuario: auth.currentUser.email, texto: document.getElementById('chat-input').value, hora: serverTimestamp() });
-            document.getElementById('chat-input').value = "";
-        };
 
         window.finalizarChat = async () => {
             const motivo = prompt("Motivo para finalizar o atendimento:");
@@ -422,18 +646,6 @@
             snap.forEach(d => batch.delete(d.ref));
             await batch.commit();
         };
-
-        function ouvirStatusCliente(email) {
-            onSnapshot(query(collection(db, "pedidos"), where("cliente", "==", email)), (snap) => {
-                const div = document.getElementById('meus-pedidos-status'); div.innerHTML = "";
-                snap.forEach(d => { div.innerHTML += `<div class="p-1 border-b text-[10px]">${d.data().status}</div>`; });
-            });
-        }
-
-        async function carregarConfigLoja() {
-            const d = await getDoc(doc(db, "config", "loja"));
-            if(d.exists()) configLoja = d.data();
-        }
     </script>
 </body>
 </html>

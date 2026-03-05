@@ -89,10 +89,10 @@
                     <div class="flex justify-between items-center border-t pt-4 mb-4">
                         <h3 class="text-xl font-bold">Painel de Pedidos</h3>
                         <div class="flex gap-2">
-                            <label class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-[10px] cursor-pointer hover:bg-blue-200 font-bold border border-blue-300">
-                                IMPORTAR HISTÓRICO <input type="file" id="import-pedidos" class="hidden" accept=".txt">
+                            <label class="bg-blue-600 text-white px-2 py-1 rounded text-[10px] cursor-pointer hover:bg-blue-700 font-bold">
+                                IMPORTAR TXT <input type="file" id="import-pedidos" class="hidden" accept=".txt">
                             </label>
-                            <button onclick="limparEBackupPedidos()" class="bg-gray-800 text-white px-2 py-1 rounded text-[10px] font-bold">BACKUP E LIMPAR</button>
+                            <button onclick="limparEBackupPedidos()" class="bg-gray-800 text-white px-2 py-1 rounded text-[10px] font-bold">LIMPAR E SALVAR TXT</button>
                         </div>
                     </div>
                     <div id="lista-pedidos" class="space-y-3 text-sm"></div>
@@ -281,9 +281,10 @@
                 const lista = document.getElementById('lista-pedidos'); lista.innerHTML = "";
                 snap.forEach(d => {
                     const p = d.data(); const id = d.id; const isCancelado = p.status === "Cancelado";
+                    const dataPed = p.data ? new Date(p.data.seconds * 1000).toLocaleString() : "...";
                     lista.innerHTML += `<div class="p-3 bg-white border-l-4 ${isCancelado ? 'border-gray-500 opacity-75' : 'border-red-500'} rounded shadow-md mb-2">
                         <div class="flex justify-between"><span><b>${p.cliente.split('@')[0]}:</b> ${p.item}</span><span class="bg-gray-100 px-2 rounded text-xs font-bold">${p.status}</span></div>
-                        <div class="text-[10px] text-gray-500 italic">Total: R$ ${p.total} | ${p.entrega}</div>
+                        <div class="text-[10px] text-gray-500 italic mt-1">Total: R$ ${p.total} | ${p.entrega} | ${dataPed}</div>
                         ${p.motivoCancelamento ? `<p class="text-[10px] text-red-600"><b>Motivo:</b> ${p.motivoCancelamento}</p>` : ''}
                         <div class="grid grid-cols-2 md:grid-cols-5 gap-1 mt-2">
                             <button onclick="mudarStatus('${id}', 'Confirmado')" class="bg-blue-500 text-white p-1 rounded text-[10px]">CONFIRMAR</button>
@@ -295,6 +296,69 @@
                 });
             });
         }
+
+        // --- FUNÇÃO PARA LIMPAR E GERAR TXT ---
+        window.limparEBackupPedidos = async () => {
+            if(!confirm("Deseja salvar os pedidos Entregues/Cancelados em TXT e limpá-los do painel?")) return;
+            const snap = await getDocs(collection(db, "pedidos"));
+            let conteudo = "";
+            const batch = writeBatch(db);
+            let totalLimpos = 0;
+
+            snap.forEach(d => {
+                const p = d.data();
+                if(p.status === "Entregue" || p.status === "Cancelado") {
+                    const dataH = p.data ? new Date(p.data.seconds * 1000).toLocaleString() : "Data N/A";
+                    // Formato especial para facilitar a importação visual depois
+                    conteudo += `PEDIDO|${p.cliente.split('@')[0]}|${p.item}|${p.status}|${p.total}|${p.entrega}|${dataH}|${p.motivoCancelamento || ''}\n`;
+                    batch.delete(d.ref);
+                    totalLimpos++;
+                }
+            });
+
+            if(totalLimpos > 0) {
+                const blob = new Blob([conteudo], { type: 'text/plain' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `pedidos_backup_${new Date().getTime()}.txt`;
+                link.click();
+                await batch.commit();
+                alert(`${totalLimpos} pedidos arquivados e removidos.`);
+            } else { alert("Nenhum pedido finalizado para limpar."); }
+        };
+
+        // --- IMPORTAR TXT COM VISUAL ORIGINAL ---
+        document.getElementById('import-pedidos').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const texto = e.target.result;
+                const lista = document.getElementById('lista-pedidos');
+                const linhas = texto.split('\n');
+                
+                lista.innerHTML = `<div class="bg-gray-800 text-white p-2 text-center font-bold rounded mb-4">HISTÓRICO IMPORTADO DE: ${file.name}</div>` + lista.innerHTML;
+
+                linhas.forEach(linha => {
+                    if(linha.startsWith("PEDIDO|")) {
+                        const [ptag, cliente, item, status, total, entrega, dataH, motivo] = linha.split('|');
+                        const isCancelado = status === "Cancelado";
+                        
+                        // Reconstrói o HTML exatamente como era antes
+                        lista.innerHTML = `<div class="p-3 bg-gray-50 border-l-4 ${isCancelado ? 'border-gray-400 opacity-60' : 'border-green-400'} rounded shadow mb-2 relative">
+                            <span class="absolute top-1 right-1 bg-gray-200 text-[9px] px-1 rounded">ARQUIVADO</span>
+                            <div class="flex justify-between">
+                                <span><b>${cliente}:</b> ${item}</span>
+                                <span class="bg-gray-200 px-2 rounded text-xs font-bold">${status}</span>
+                            </div>
+                            <div class="text-[10px] text-gray-500 italic mt-1">Total: R$ ${total} | ${entrega} | ${dataH}</div>
+                            ${motivo ? `<p class="text-[10px] text-red-600"><b>Motivo:</b> ${motivo}</p>` : ''}
+                        </div>` + lista.innerHTML;
+                    }
+                });
+            };
+            reader.readAsText(file);
+        });
 
         function ouvirStatusCliente(emailCliente) {
             const q = query(collection(db, "pedidos"), where("cliente", "==", emailCliente));
@@ -314,78 +378,14 @@
         }
 
         window.limparPedidosConcluidos = async () => {
-            if(!confirm("Deseja remover os pedidos Entregues e Cancelados da sua lista?")) return;
+            if(!confirm("Remover Entregues/Cancelados da sua visão?")) return;
             const q = query(collection(db, "pedidos"), where("cliente", "==", auth.currentUser.email));
             const snap = await getDocs(q);
             const batch = writeBatch(db);
             let cont = 0;
-            snap.forEach(d => {
-                const status = d.data().status;
-                if(status === "Entregue" || status === "Cancelado") { batch.delete(d.ref); cont++; }
-            });
-            if(cont > 0) { await batch.commit(); alert(`${cont} pedido(s) removido(s).`); }
-            else { alert("Nenhum pedido finalizado para limpar."); }
+            snap.forEach(d => { if(d.data().status === "Entregue" || d.data().status === "Cancelado") { batch.delete(d.ref); cont++; } });
+            if(cont > 0) await batch.commit();
         };
-
-        // --- NOVA FUNÇÃO: BACKUP E LIMPEZA ADMIN ---
-        window.limparEBackupPedidos = async () => {
-            if(!confirm("Isso irá baixar um TXT com todos os pedidos Entregues/Cancelados e depois apagá-los do sistema. Continuar?")) return;
-            
-            const snap = await getDocs(collection(db, "pedidos"));
-            let conteudo = `RELATÓRIO DE PEDIDOS FINALIZADOS\nData: ${new Date().toLocaleString()}\n-------------------------------------------\n\n`;
-            const batch = writeBatch(db);
-            let cont = 0;
-
-            snap.forEach(d => {
-                const p = d.data();
-                if(p.status === "Entregue" || p.status === "Cancelado") {
-                    const dataFormatada = p.data ? new Date(p.data.seconds * 1000).toLocaleString() : "Data Indefinida";
-                    conteudo += `DATA/HORA: ${dataFormatada}\n`;
-                    conteudo += `CLIENTE: ${p.cliente}\n`;
-                    conteudo += `ITENS: ${p.item}\n`;
-                    conteudo += `TOTAL: R$ ${p.total}\n`;
-                    conteudo += `STATUS: ${p.status}\n`;
-                    if(p.motivoCancelamento) conteudo += `MOTIVO CANCELAMENTO: ${p.motivoCancelamento}\n`;
-                    conteudo += `-------------------------------------------\n`;
-                    
-                    batch.delete(d.ref);
-                    cont++;
-                }
-            });
-
-            if(cont > 0) {
-                const blob = new Blob([conteudo], { type: 'text/plain' });
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
-                link.download = `backup_pedidos_${new Date().getTime()}.txt`;
-                link.click();
-
-                await batch.commit();
-                alert(`${cont} pedidos foram salvos em TXT e removidos do banco.`);
-            } else {
-                alert("Não há pedidos Entregues ou Cancelados para limpar.");
-            }
-        };
-
-        // IMPORTAR PEDIDOS TXT PARA O PAINEL
-        document.getElementById('import-pedidos').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const texto = e.target.result;
-                const lista = document.getElementById('lista-pedidos');
-                lista.innerHTML = `<div class="bg-blue-800 text-white p-2 text-center font-bold rounded mb-4">VISUALIZANDO HISTÓRICO IMPORTADO (Arquivo: ${file.name})</div>` + lista.innerHTML;
-                
-                const blocos = texto.split('-------------------------------------------');
-                blocos.forEach(bloco => {
-                    if(bloco.trim().length > 20) {
-                        lista.innerHTML = `<div class="p-3 bg-gray-100 border-l-4 border-gray-400 rounded shadow mb-2 whitespace-pre-wrap text-[11px]">${bloco.trim()}</div>` + lista.innerHTML;
-                    }
-                });
-            };
-            reader.readAsText(file);
-        });
 
         // CHAT 
         window.enviarMensagem = async () => {
@@ -410,10 +410,10 @@
         }
 
         window.finalizarChat = async () => {
-            const motivo = prompt("Motivo para finalizar o atendimento:");
+            const motivo = prompt("Motivo para finalizar:");
             if(!motivo) return;
-            let conteudo = `ATENDIMENTO FINALIZADO\nMotivo: ${motivo}\nData: ${new Date().toLocaleString()}\n---------------------------\n`;
-            mensagensAtuais.forEach(m => { conteudo += `[${m.usuario}] : ${m.texto}\n`; });
+            let conteudo = `CHAT|${motivo}|${new Date().toLocaleString()}\n`;
+            mensagensAtuais.forEach(m => { conteudo += `${m.usuario}|${m.texto}\n`; });
             const blob = new Blob([conteudo], { type: 'text/plain' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
@@ -423,7 +423,6 @@
             const batch = writeBatch(db);
             snap.forEach(d => batch.delete(d.ref));
             await batch.commit();
-            alert("Chat finalizado e salvo.");
         };
 
         document.getElementById('import-chat').addEventListener('change', function(e) {
@@ -433,11 +432,9 @@
             reader.onload = function(e) {
                 const texto = e.target.result;
                 const box = document.getElementById('chat-box');
-                box.innerHTML = `<div class="bg-yellow-100 p-2 text-[10px] mb-2 border border-yellow-300 rounded">HISTÓRICO IMPORTADO:</div>`;
+                box.innerHTML = `<div class="bg-yellow-100 p-2 text-[10px] mb-2 border border-yellow-300 rounded">HISTÓRICO IMPORTADO</div>`;
                 const linhas = texto.split('\n');
-                linhas.forEach(linha => {
-                    if(linha.trim()){ box.innerHTML += `<div class="text-[11px] border-b border-gray-100 py-1">${linha}</div>`; }
-                });
+                linhas.forEach(linha => { if(linha.trim()) box.innerHTML += `<div class="text-[11px] py-1 border-b">${linha}</div>`; });
             };
             reader.readAsText(file);
         });

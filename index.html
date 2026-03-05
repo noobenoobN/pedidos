@@ -136,15 +136,7 @@
                         <div class="space-y-4 bg-gray-50 p-4 border rounded">
                             <div>
                                 <label class="block text-sm font-bold">CEP da Loja (Origem):</label>
-                                <input id="config-cep-origem" type="text" placeholder="00000-000" onblur="buscarCEPOrigem()" class="border p-2 w-full rounded">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-bold">Rua / Bairro (Automático):</label>
-                                <input id="config-rua-origem" type="text" placeholder="Preenchido pelo CEP" class="border p-2 w-full rounded bg-gray-100" readonly>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-bold">Número do Estabelecimento:</label>
-                                <input id="config-num-origem" type="text" placeholder="Nº" class="border p-2 w-full rounded">
+                                <input id="config-cep-origem" type="text" placeholder="00000-000" class="border p-2 w-full rounded">
                             </div>
                             <div>
                                 <label class="block text-sm font-bold">Valor Taxa por KM (R$):</label>
@@ -211,7 +203,7 @@
         let totalAcumulado = 0;
         let taxaEntrega = 0;
         let mensagensAtuais = []; 
-        let configLoja = { cep: '', valorKm: 0, rua: '', num: '' };
+        let configLoja = { cep: '', valorKm: 0 };
         let motoboysAtivos = [];
 
         // AUTH
@@ -231,6 +223,7 @@
             if (user) {
                 document.getElementById('auth-screen').classList.add('hidden');
                 document.getElementById('user-welcome').innerText = `Logado como: ${user.email}`;
+                
                 const isAdmin = user.email.includes('admin');
                 const isMotoboy = user.email.includes('motoboy');
 
@@ -244,6 +237,7 @@
                 } else if(isMotoboy) {
                     const docRef = doc(db, "motoboys", user.uid);
                     const docSnap = await getDoc(docRef);
+                    
                     if(!docSnap.exists()) {
                         mostrarTela('motoboy-setup');
                     } else if(docSnap.data().status === "Pendente") {
@@ -251,6 +245,7 @@
                         signOut(auth);
                     } else {
                         mostrarTela('motoboy-view');
+                        // Carregar o status de trabalho atual no select
                         const mData = docSnap.data();
                         if (document.getElementById('status-trabalho-motoboy')) {
                             document.getElementById('status-trabalho-motoboy').value = mData.statusTrabalho || "Em Trabalho";
@@ -281,7 +276,7 @@
             if(id !== 'motoboy-setup') document.getElementById('main-screen').classList.remove('hidden');
         }
 
-        // MOTOBOY SETUP
+        // --- MOTOBOY SETUP & STATUS ---
         window.buscarCEPMotoboy = async () => {
             const cep = document.getElementById('moto-cep').value.replace(/\D/g, '');
             if(cep.length !== 8) return;
@@ -302,7 +297,7 @@
                 endereco: `${rua}, Nº ${num}`,
                 cep: cep,
                 status: "Pendente",
-                statusTrabalho: "Em Trabalho",
+                statusTrabalho: "Em Trabalho", // Status padrão ao criar
                 dataCadastro: serverTimestamp()
             });
             alert("Perfil enviado! Aguarde aprovação do Admin.");
@@ -317,16 +312,18 @@
             }
         };
 
-        // ADMIN MOTOBOYS
+        // --- GESTÃO DE MOTOBOYS (ADMIN) ---
         function ouvirMotoboysAdmin() {
             onSnapshot(collection(db, "motoboys"), (snap) => {
                 const listaP = document.getElementById('lista-motoboys-pendentes');
                 const listaA = document.getElementById('lista-motoboys-ativos');
                 listaP.innerHTML = ""; listaA.innerHTML = "";
                 motoboysAtivos = [];
+
                 snap.forEach(d => {
                     const m = d.data();
                     const id = d.id;
+                    
                     if(m.status === "Pendente") {
                         listaP.innerHTML += `<div class="p-3 bg-yellow-50 border border-yellow-200 rounded flex justify-between items-center">
                             <div class="text-xs"><b>${m.email}</b><br>${m.telefone} | ${m.endereco}</div>
@@ -344,65 +341,37 @@
                         </div>`;
                     }
                 });
-                const selects = document.querySelectorAll('.select-motoboy-dinamico');
-                selects.forEach(select => {
-                    const motoboyDesignado = select.getAttribute('data-designado');
-                    let options = `<option value="">DESIGNAR MOTOBOY...</option>`;
-                    motoboysAtivos.forEach(m => {
-                        if (m.statusTrabalho === "Em Trabalho" || motoboyDesignado === m.email) {
-                            options += `<option value="${m.email}" ${motoboyDesignado === m.email ? 'selected' : ''}>
-                                ${m.email.split('@')[0]} (${m.statusTrabalho})
-                            </option>`;
-                        }
-                    });
-                    select.innerHTML = options;
-                });
             });
         }
 
         window.aprovarMotoboy = async (id) => { await updateDoc(doc(db, "motoboys", id), { status: "Aprovado" }); };
         window.rejeitarMotoboy = async (id) => { if(confirm("Remover motoboy definitivamente?")) await deleteDoc(doc(db, "motoboys", id)); };
 
-        // CONFIG LOJA
-        window.buscarCEPOrigem = async () => {
-            const cep = document.getElementById('config-cep-origem').value.replace(/\D/g, '');
-            if(cep.length !== 8) return;
-            const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-            const data = await res.json();
-            if(!data.erro) {
-                document.getElementById('config-rua-origem').value = `${data.logradouro}, ${data.bairro}`;
-            }
-        };
-
+        // --- CONFIG LOJA ---
         window.salvarConfigLoja = async () => {
             const cep = document.getElementById('config-cep-origem').value;
-            const rua = document.getElementById('config-rua-origem').value;
-            const num = document.getElementById('config-num-origem').value;
             const valor = parseFloat(document.getElementById('config-valor-km').value);
-            await setDoc(doc(db, "config", "loja"), { cep, valorKm: valor, rua: rua, num: num });
+            await setDoc(doc(db, "config", "loja"), { cep, valorKm: valor });
             alert("Configurações salvas!");
         };
-
         async function carregarConfigLoja() {
             const d = await getDoc(doc(db, "config", "loja"));
             if(d.exists()) {
                 configLoja = d.data();
                 if(document.getElementById('config-cep-origem')) {
-                    document.getElementById('config-cep-origem').value = configLoja.cep || "";
-                    document.getElementById('config-rua-origem').value = configLoja.rua || "";
-                    document.getElementById('config-num-origem').value = configLoja.num || "";
-                    document.getElementById('config-valor-km').value = configLoja.valorKm || 0;
+                    document.getElementById('config-cep-origem').value = configLoja.cep;
+                    document.getElementById('config-valor-km').value = configLoja.valorKm;
                 }
             }
         }
 
         async function calcularTaxaEntrega(cepDestino) {
             if(!configLoja.cep || !configLoja.valorKm) return 0;
-            const dist = Math.floor(Math.random() * 10) + 1; 
+            const dist = Math.floor(Math.random() * 10) + 1; // Simulação de 1 a 10km
             return dist * configLoja.valorKm;
         }
 
-        // ABAS & CARRINHO
+        // --- ABAS ADMIN ---
         window.tabAdmin = (tab) => {
             const abas = ['pedidos', 'cardapio', 'motoboys', 'config'];
             abas.forEach(a => {
@@ -424,7 +393,6 @@
                 atualizarCarrinhoVisual();
             }
         };
-
         window.toggleEndereco = () => {
             const div = document.getElementById('campos-endereco');
             const isEntrega = document.getElementById('opcao-entrega').value === "Sim";
@@ -432,6 +400,7 @@
             if(!isEntrega) { taxaEntrega = 0; atualizarCarrinhoVisual(); }
         };
 
+        // --- ADMIN: DESIGNAR MOTOBOY ---
         window.atribuirMotoboy = async (pedidoId, motoEmail) => {
             if(!motoEmail) return;
             await updateDoc(doc(db, "pedidos", pedidoId), { 
@@ -442,20 +411,18 @@
         };
 
         function ouvirEntregasMotoboy(email) {
-            onSnapshot(query(collection(db, "pedidos"), where("motoboyDesignado", "==", email), where("status", "in", ["A Caminho", "Saiu para Entrega"])), (snap) => {
+            onSnapshot(query(collection(db, "pedidos"), where("motoboyDesignado", "==", email), where("status", "==", "A Caminho")), (snap) => {
                 const lista = document.getElementById('lista-entregas-motoboy');
                 lista.innerHTML = "";
                 if(snap.empty) { lista.innerHTML = "<p class='text-gray-500'>Nenhuma entrega pendente.</p>"; return; }
+        
                 snap.forEach(d => {
                     const p = d.data();
                     lista.innerHTML += `<div class="p-4 bg-blue-50 border border-blue-200 rounded">
                         <p><b>Cliente:</b> ${p.cliente}</p>
                         <p><b>Itens:</b> ${p.item}</p>
                         <p><b>Destino:</b> ${p.entrega}</p>
-                        <div class="flex gap-2 mt-2">
-                            <button onclick="mudarStatus('${d.id}', 'Saiu para Entrega')" class="w-full bg-blue-500 text-white p-2 rounded font-bold text-xs uppercase">SAIU PARA ENTREGA</button>
-                            <button onclick="mudarStatus('${d.id}', 'Entregue')" class="w-full bg-green-600 text-white p-2 rounded font-bold text-xs uppercase">ENTREGUE</button>
-                        </div>
+                        <button onclick="mudarStatus('${d.id}', 'Entregue')" class="mt-2 w-full bg-green-600 text-white p-2 rounded font-bold">MARCAR COMO ENTREGUE</button>
                     </div>`;
                 });
             });
@@ -469,9 +436,7 @@
             else { carrinho.push({ nome, qtd: qtdAdicionada, preco: preco, subtotal: preco * qtdAdicionada }); }
             qtdInput.value = "1"; atualizarCarrinhoVisual();
         };
-
         window.limparCarrinho = () => { carrinho = []; taxaEntrega = 0; atualizarCarrinhoVisual(); };
-
         function atualizarCarrinhoVisual() {
             const listaDiv = document.getElementById('lista-carrinho');
             const resumoSub = document.getElementById('resumo-subtotal');
@@ -499,6 +464,7 @@
             const entrega = document.getElementById('opcao-entrega').value;
             let local = entrega === "Sim" ? `${document.getElementById('rua').value}, Nº ${document.getElementById('num').value}` : "Retirada no Local";
             if(entrega === "Sim" && (!document.getElementById('rua').value)) return alert("Endereço vazio!");
+            
             await addDoc(collection(db, "pedidos"), {
                 cliente: auth.currentUser.email, 
                 item: carrinho.map(i => `${i.qtd}x ${i.nome}`).join(", "),
@@ -515,18 +481,20 @@
         window.mudarStatus = async (id, novoStatus) => { await updateDoc(doc(db, "pedidos", id), { status: novoStatus }); };
         window.cancelarPedidoAdmin = async (id) => {
             const motivo = prompt("Digite o motivo do cancelamento:");
-            if (!motivo) return alert("Motivo obrigatório.");
+            if (motivo === null || motivo.trim() === "") return alert("Motivo obrigatório.");
             await updateDoc(doc(db, "pedidos", id), { status: "Cancelado", motivoCancelamento: motivo });
         };
-
         function ouvirPedidosAdmin() {
             onSnapshot(query(collection(db, "pedidos"), orderBy("data", "desc")), (snap) => {
                 const lista = document.getElementById('lista-pedidos'); lista.innerHTML = "";
                 snap.forEach(d => {
                     const p = d.data(); const id = d.id; const isCancelado = p.status === "Cancelado";
-                    let selectMotoboy = `<select onchange="atribuirMotoboy('${id}', this.value)" class="bg-gray-100 text-[10px] p-1 rounded border select-motoboy-dinamico" data-designado="${p.motoboyDesignado || ''}">
+                    
+                    // Lógica do Select com filtro de Status de Trabalho (conforme solicitado na imagem) 
+                    let selectMotoboy = `<select onchange="atribuirMotoboy('${id}', this.value)" class="bg-gray-100 text-[10px] p-1 rounded border">
                         <option value="">DESIGNAR MOTOBOY...</option>`;
                     motoboysAtivos.forEach(m => {
+                        // APENAS MOSTRA SE ESTIVER "Em Trabalho" OU SE JÁ FOR O MOTOBOY DESIGNADO DO PEDIDO
                         if (m.statusTrabalho === "Em Trabalho" || p.motoboyDesignado === m.email) {
                             selectMotoboy += `<option value="${m.email}" ${p.motoboyDesignado === m.email ? 'selected' : ''}>
                                 ${m.email.split('@')[0]} (${m.statusTrabalho})
@@ -534,6 +502,7 @@
                         }
                     });
                     selectMotoboy += `</select>`;
+
                     lista.innerHTML += `<div class="p-3 bg-white border-l-4 ${isCancelado ? 'border-gray-500 opacity-75' : 'border-red-500'} rounded shadow-md mb-2">
                         <div class="flex justify-between"><span><b>${p.cliente.split('@')[0]}:</b> ${p.item}</span><span class="bg-gray-100 px-2 rounded text-xs font-bold">${p.status}</span></div>
                         <div class="text-[10px] text-gray-500 italic">Total: R$ ${p.total} (Taxa: ${p.taxa || '0.00'}) | ${p.entrega}</div>
@@ -554,8 +523,9 @@
             onSnapshot(q, (snap) => {
                 const box = document.getElementById('meus-pedidos-status'); if(!box) return;
                 box.innerHTML = ""; if(snap.empty) { box.innerHTML = "Nenhum pedido em andamento."; return; }
-                snap.forEach(d => {
-                    const p = d.data();
+                const docs = []; snap.forEach(d => docs.push({id: d.id, ...d.data()}));
+                docs.sort((a, b) => (b.data?.seconds || 0) - (a.data?.seconds || 0));
+                docs.forEach(p => {
                     let classe = p.status === 'Cancelado' ? 'status-cancelado' : p.status === 'Entregue' ? 'status-entregue' : 'status-pendente';
                     box.innerHTML += `<div class="border-b pb-2 mb-2 flex justify-between items-start last:border-0">
                         <div class="flex flex-col"><span class="font-medium">${p.item}</span><span class="text-[10px]">Total: R$ ${p.total}</span></div>
@@ -576,7 +546,6 @@
             });
             if(cont > 0) { await batch.commit(); alert(`${cont} pedido(s) removido(s).`); }
         };
-
         window.limparEBackupPedidos = async () => {
             if(!confirm("Isso irá baixar um TXT com os pedidos Entregues/Cancelados e apagá-los. Continuar?")) return;
             const snap = await getDocs(collection(db, "pedidos"));
@@ -621,7 +590,7 @@
                 snapshot.forEach(docSnap => {
                     const p = docSnap.data(); const id = docSnap.id;
                     if(isAdmin && listaA) {
-                        listaA.innerHTML += `<div class="flex justify-between items-center p-2 border rounded ${p.ativo ? 'bg-white' : 'bg-gray-200 opacity-60'}">
+                        listaA.innerHTML += `<div class="flex justify-between items-center p-2 border rounded ${p.active ? 'bg-white' : 'bg-gray-200 opacity-60'}">
                             <span>${p.nome} - <b>R$ ${p.preco.toFixed(2)}</b></span>
                             <div class="flex gap-2">
                                 <button onclick="toggleProduto('${id}', ${p.ativo})" class="bg-yellow-500 text-white px-2 py-1 rounded text-xs">${p.ativo ? 'Ocultar' : 'Mostrar'}</button>
@@ -648,7 +617,6 @@
             await addDoc(collection(db, "mensagens"), { usuario: auth.currentUser.email, texto: input.value, hora: serverTimestamp() });
             input.value = "";
         };
-
         function ouvirChat() {
             onSnapshot(query(collection(db, "mensagens"), orderBy("hora", "asc")), (snap) => {
                 const box = document.getElementById('chat-box'); box.innerHTML = "";

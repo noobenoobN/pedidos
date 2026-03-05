@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meu Delivery - Sistema com Motoboy</title>
+    <title>Meu Delivery - Versão Final com Motoboys</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .hidden { display: none; }
@@ -27,17 +27,18 @@
             <input id="senha" type="password" placeholder="Sua senha" class="w-full border p-3 rounded focus:outline-none focus:ring-2 focus:ring-red-500">
             <button onclick="logar()" class="w-full bg-red-600 text-white font-bold p-3 rounded hover:bg-red-700 transition">Entrar</button>
             <button onclick="cadastrar()" class="w-full bg-gray-200 text-gray-700 p-3 rounded hover:bg-gray-300 transition">Criar Nova Conta</button>
+            <p class="text-[10px] text-center text-gray-400">Dica: Use 'admin' no email para gerência ou 'motoboy' para entregadores.</p>
         </div>
     </div>
 
-    <div id="motoboy-setup-screen" class="hidden max-w-md mx-auto mt-20 p-6 bg-white rounded-lg shadow-xl">
-        <h2 class="text-xl font-bold mb-4 text-blue-600">Finalizar Perfil Motoboy</h2>
-        <p class="text-sm text-gray-600 mb-4">Aguardando aprovação do Admin após preencher:</p>
+    <div id="motoboy-setup" class="hidden max-w-md mx-auto mt-20 p-6 bg-white rounded-lg shadow-xl">
+        <h2 class="text-xl font-bold mb-4">Completar Perfil Motoboy</h2>
         <div class="space-y-3">
-            <input id="moto-tel" type="text" placeholder="WhatsApp / Telefone" class="w-full border p-2 rounded">
-            <input id="moto-cep" type="text" placeholder="CEP" onblur="buscarCEPMoto()" class="w-full border p-2 rounded">
-            <input id="moto-rua" type="text" placeholder="Endereço Completo" class="w-full border p-2 rounded bg-gray-50">
-            <button onclick="salvarPerfilMotoboy()" class="w-full bg-blue-600 text-white p-3 rounded font-bold">Enviar para Aprovação</button>
+            <input id="moto-tel" type="text" placeholder="Telefone" class="w-full border p-2 rounded">
+            <input id="moto-cep" type="text" placeholder="Seu CEP" onblur="buscarCEPMotoboy()" class="w-full border p-2 rounded">
+            <input id="moto-rua" type="text" placeholder="Endereço" class="w-full border p-2 rounded bg-gray-50" readonly>
+            <input id="moto-num" type="text" placeholder="Número" class="w-full border p-2 rounded">
+            <button onclick="salvarPerfilMotoboy()" class="w-full bg-blue-600 text-white p-3 rounded font-bold">Solicitar Aprovação</button>
         </div>
     </div>
 
@@ -50,6 +51,7 @@
         <div class="max-w-6xl mx-auto p-4 grid grid-cols-1 lg:grid-cols-3 gap-6">
             
             <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow">
+                
                 <div id="cliente-view" class="hidden">
                     <h3 class="text-xl font-bold mb-4">Cardápio</h3>
                     <div id="cardapio-lista" class="grid grid-cols-1 gap-3 mb-6"></div>
@@ -74,12 +76,14 @@
                             <option value="Não">Vou buscar no local (Não)</option>
                         </select>
                         <div id="campos-endereco" class="space-y-2">
-                            <input id="cep" type="text" placeholder="CEP" onblur="buscarCEP()" class="w-full border p-2 rounded">
+                            <input id="cep" type="text" placeholder="CEP Destino" onblur="buscarCEP()" class="w-full border p-2 rounded">
                             <input id="rua" type="text" placeholder="Rua / Endereço" class="w-full border p-2 rounded bg-gray-50">
                             <input id="num" type="text" placeholder="Número" class="w-full border p-2 rounded">
                         </div>
                         <div class="bg-yellow-50 p-3 rounded border border-yellow-200 text-sm">
-                            <b>Total a Pagar:</b> <span id="resumo-carrinho">R$ 0.00</span>
+                            <div><b>Itens:</b> <span id="resumo-carrinho">R$ 0.00</span></div>
+                            <div id="taxa-entrega-view" class="text-red-600 font-bold hidden">Taxa Entrega: R$ <span id="valor-taxa">0.00</span></div>
+                            <div class="text-lg mt-1 border-t pt-1"><b>Total Geral:</b> <span id="total-geral">R$ 0.00</span></div>
                         </div>
                         <button onclick="enviarPedidoCompleto()" class="w-full bg-green-600 text-white p-3 rounded font-bold uppercase hover:bg-green-700 transition">Confirmar e Enviar</button>
                         <button onclick="limparCarrinho()" class="w-full text-xs text-red-500 underline mt-2">Limpar Carrinho</button>
@@ -87,35 +91,57 @@
                 </div>
 
                 <div id="admin-view" class="hidden">
-                    <h3 class="text-xl font-bold mb-4">Gerenciar Cardápio</h3>
-                    <div class="bg-gray-50 p-4 rounded mb-6 border">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                            <input id="prod-nome" type="text" placeholder="Nome do Produto" class="border p-2 rounded">
-                            <input id="prod-preco" type="number" placeholder="Preço" class="border p-2 rounded">
-                        </div>
-                        <button onclick="salvarProduto()" class="mt-2 w-full bg-green-600 text-white p-2 rounded font-bold">Salvar Produto</button>
+                    <div class="flex gap-4 mb-4 border-b">
+                        <button onclick="tabAdmin('cardapio')" class="pb-2 font-bold border-b-2 border-red-600">Cardápio/Pedidos</button>
+                        <button onclick="tabAdmin('motoboys')" class="pb-2 font-bold">Gerenciar Motoboys</button>
+                        <button onclick="tabAdmin('config')" class="pb-2 font-bold">Configurações</button>
                     </div>
-                    <div id="admin-cardapio-lista" class="space-y-2 mb-8 text-sm"></div>
 
-                    <h3 class="text-xl font-bold border-t pt-4 mb-2">Motoboys para Aprovação</h3>
-                    <div id="lista-motoboys-pendentes" class="space-y-2 mb-6 text-sm"></div>
+                    <div id="tab-pedidos">
+                        <h3 class="text-xl font-bold mb-4">Gerenciar Cardápio</h3>
+                        <div class="bg-gray-50 p-4 rounded mb-6 border">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                <input id="prod-nome" type="text" placeholder="Nome do Produto" class="border p-2 rounded">
+                                <input id="prod-preco" type="number" placeholder="Preço" class="border p-2 rounded">
+                            </div>
+                            <button onclick="salvarProduto()" class="mt-2 w-full bg-green-600 text-white p-2 rounded font-bold">Salvar Produto</button>
+                        </div>
+                        <div id="admin-cardapio-lista" class="space-y-2 mb-8 text-sm"></div>
 
-                    <div class="flex justify-between items-center border-t pt-4 mb-4">
-                        <h3 class="text-xl font-bold">Painel de Pedidos</h3>
-                        <div class="flex gap-2">
-                            <label class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-[10px] cursor-pointer hover:bg-blue-200 font-bold border border-blue-300">
-                                IMPORTAR HISTÓRICO <input type="file" id="import-pedidos" class="hidden" accept=".txt">
-                            </label>
-                            <button onclick="limparEBackupPedidos()" class="bg-gray-800 text-white px-2 py-1 rounded text-[10px] font-bold">BACKUP E LIMPAR</button>
+                        <div class="flex justify-between items-center border-t pt-4 mb-4">
+                            <h3 class="text-xl font-bold">Painel de Pedidos</h3>
+                            <div class="flex gap-2">
+                                <label class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-[10px] cursor-pointer hover:bg-blue-200 font-bold border border-blue-300">
+                                    IMPORTAR HISTÓRICO <input type="file" id="import-pedidos" class="hidden" accept=".txt">
+                                </label>
+                                <button onclick="limparEBackupPedidos()" class="bg-gray-800 text-white px-2 py-1 rounded text-[10px] font-bold">BACKUP E LIMPAR</button>
+                            </div>
+                        </div>
+                        <div id="lista-pedidos" class="space-y-3 text-sm"></div>
+                    </div>
+
+                    <div id="tab-motoboys" class="hidden">
+                        <h3 class="text-xl font-bold mb-4">Motoboys da Loja</h3>
+                        <div id="lista-motoboys" class="space-y-2"></div>
+                    </div>
+
+                    <div id="tab-config" class="hidden">
+                        <h3 class="text-xl font-bold mb-4">Configuração de Entrega</h3>
+                        <div class="bg-white p-4 border rounded">
+                            <label class="block text-sm font-bold">CEP da Loja (Origem):</label>
+                            <input id="cep-origem" type="text" class="border p-2 w-full mb-3" placeholder="00000-000">
+                            <label class="block text-sm font-bold">Valor da Taxa por KM (R$):</label>
+                            <input id="valor-km" type="number" class="border p-2 w-full mb-3" placeholder="Ex: 1.50">
+                            <button onclick="salvarConfig()" class="bg-red-600 text-white p-2 rounded w-full">Salvar Configurações</button>
                         </div>
                     </div>
-                    <div id="lista-pedidos" class="space-y-3 text-sm"></div>
                 </div>
 
                 <div id="motoboy-view" class="hidden">
-                    <h3 class="text-xl font-bold mb-4 text-purple-600">Minhas Entregas</h3>
-                    <div id="lista-entregas-motoboy" class="space-y-3"></div>
+                    <h3 class="text-xl font-bold mb-4">Minhas Entregas</h3>
+                    <div id="lista-entregas-moto" class="space-y-3"></div>
                 </div>
+
             </div>
 
             <div class="bg-white p-6 rounded-lg shadow flex flex-col h-[500px]">
@@ -156,136 +182,287 @@
         const db = getFirestore(app);
 
         let carrinho = [];
-        let totalAcumulado = 0;
-        let mensagensAtuais = []; 
-        let motoboysAtivos = [];
+        let totalItens = 0;
+        let taxaEntrega = 0;
+        let mensagensAtuais = [];
+        let listaDeMotoboys = [];
 
-        // AUTH
+        // --- AUTH ---
         window.cadastrar = () => {
             const e = document.getElementById('email').value;
             const s = document.getElementById('senha').value;
-            createUserWithEmailAndPassword(auth, e, s).then(async (cred) => {
-                if(e.includes('motoboy')) {
-                    await setDoc(doc(db, "usuarios", e), { email: e, tipo: 'motoboy', aprovado: false });
-                }
-                alert("Conta criada!");
-            }).catch(err => alert("Erro: " + err.message));
+            createUserWithEmailAndPassword(auth, e, s).then(() => alert("Conta criada!")).catch(err => alert("Erro: " + err.message));
         };
-
         window.logar = () => {
             const e = document.getElementById('email').value;
             const s = document.getElementById('senha').value;
             signInWithEmailAndPassword(auth, e, s).catch(err => alert("Login inválido!"));
         };
-
         window.sair = () => signOut(auth);
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                const isAdmin = user.email.includes('admin');
-                const isMotoboy = user.email.includes('motoboy');
-
                 document.getElementById('auth-screen').classList.add('hidden');
                 document.getElementById('user-welcome').innerText = `Logado como: ${user.email}`;
+                
+                const isAdmin = user.email.includes('admin');
+                const isMotoboy = user.email.includes('motoboy');
 
                 if(isAdmin) {
                     mostrarTela('admin-view');
                     document.getElementById('admin-chat-tools').classList.remove('hidden');
                     carregarPedidosAdmin();
                     ouvirCardapio(true);
-                    ouvirMotoboysPendentes();
+                    ouvirMotoboys();
                 } else if(isMotoboy) {
-                    const docRef = doc(db, "usuarios", user.email);
-                    const docSnap = await getDoc(docRef);
-                    
-                    if(docSnap.exists() && docSnap.data().aprovado) {
+                    // Verifica se já tem perfil
+                    const docM = await getDoc(doc(db, "motoboys", user.uid));
+                    if(!docM.exists()) {
+                        mostrarTela('motoboy-setup');
+                    } else if(!docM.data().aprovado) {
+                        document.getElementById('user-welcome').innerText = "AGUARDANDO APROVAÇÃO DO ADMIN";
+                        mostrarTela(null);
+                        alert("Seu cadastro de motoboy ainda não foi aprovado pelo administrador.");
+                    } else {
                         mostrarTela('motoboy-view');
                         ouvirEntregasMotoboy(user.email);
-                    } else {
-                        mostrarTela('motoboy-setup-screen');
                     }
                 } else {
                     mostrarTela('cliente-view');
                     ouvirCardapio(false);
-                    ouvirStatusCliente(user.email); 
+                    ouvirStatusCliente(user.email);
                 }
                 ouvirChat();
             } else {
                 document.getElementById('auth-screen').classList.remove('hidden');
                 document.getElementById('main-screen').classList.add('hidden');
-                document.getElementById('motoboy-setup-screen').classList.add('hidden');
+                document.getElementById('motoboy-setup').classList.add('hidden');
             }
         });
 
         function mostrarTela(id) {
             document.getElementById('main-screen').classList.remove('hidden');
-            document.getElementById('cliente-view').classList.add('hidden');
-            document.getElementById('admin-view').classList.add('hidden');
-            document.getElementById('motoboy-view').classList.add('hidden');
-            document.getElementById('motoboy-setup-screen').classList.add('hidden');
-            if(id !== 'motoboy-setup-screen') document.getElementById(id).classList.remove('hidden');
-            else {
-                document.getElementById('main-screen').classList.add('hidden');
-                document.getElementById(id).classList.remove('hidden');
-            }
+            ['cliente-view', 'admin-view', 'motoboy-view', 'motoboy-setup'].forEach(div => {
+                const el = document.getElementById(div);
+                if(el) el.classList.add('hidden');
+            });
+            if(id) document.getElementById(id).classList.remove('hidden');
         }
 
         // --- LÓGICA MOTOBOY ---
-        window.buscarCEPMoto = async () => {
+        window.buscarCEPMotoboy = async () => {
             const cep = document.getElementById('moto-cep').value.replace(/\D/g, '');
             if(cep.length !== 8) return;
             const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
             const data = await res.json();
-            if(!data.erro) document.getElementById('moto-rua').value = `${data.logradouro}, ${data.bairro} - ${data.localidade}`;
+            if(!data.erro) document.getElementById('moto-rua').value = `${data.logradouro}, ${data.bairro}`;
         };
 
         window.salvarPerfilMotoboy = async () => {
             const tel = document.getElementById('moto-tel').value;
-            const end = document.getElementById('moto-rua').value;
-            if(!tel || !end) return alert("Preencha telefone e endereço.");
-            await updateDoc(doc(db, "usuarios", auth.currentUser.email), {
-                telefone: tel, endereco: end, solicitado: true
+            const cep = document.getElementById('moto-cep').value;
+            const rua = document.getElementById('moto-rua').value;
+            const num = document.getElementById('moto-num').value;
+            if(!tel || !cep || !num) return alert("Preencha todos os dados");
+
+            await setDoc(doc(db, "motoboys", auth.currentUser.uid), {
+                email: auth.currentUser.email,
+                telefone: tel,
+                endereco: `${rua}, ${num}`,
+                cep: cep,
+                aprovado: false,
+                dataCadastro: serverTimestamp()
             });
-            alert("Dados enviados! Aguarde o Admin aprovar seu acesso.");
+            alert("Solicitação enviada! Aguarde o Admin aprovar.");
+            signOut(auth);
         };
 
-        function ouvirMotoboysPendentes() {
-            onSnapshot(query(collection(db, "usuarios"), where("tipo", "==", "motoboy")), (snap) => {
-                const lista = document.getElementById('lista-motoboys-pendentes');
+        function ouvirMotoboys() {
+            onSnapshot(collection(db, "motoboys"), (snap) => {
+                const lista = document.getElementById('lista-motoboys');
                 lista.innerHTML = "";
-                motoboysAtivos = [];
+                listaDeMotoboys = [];
                 snap.forEach(d => {
-                    const u = d.data();
-                    if(!u.aprovado) {
-                        lista.innerHTML += `<div class="p-2 bg-blue-50 border rounded flex justify-between items-center">
-                            <span><b>${u.email}</b><br><small>${u.telefone || 'Sem tel'} - ${u.endereco || 'Sem end'}</small></span>
-                            <div class="flex gap-1">
-                                <button onclick="aprovarMotoboy('${u.email}')" class="bg-green-600 text-white px-2 py-1 rounded text-xs">APROVAR</button>
-                                <button onclick="excluirUsuario('${u.email}')" class="bg-red-600 text-white px-2 py-1 rounded text-xs">EXCLUIR</button>
+                    const m = d.data();
+                    const id = d.id;
+                    if(m.aprovado) listaDeMotoboys.push({id, ...m});
+                    lista.innerHTML += `
+                        <div class="p-3 bg-white border rounded flex justify-between items-center">
+                            <div>
+                                <p class="font-bold">${m.email}</p>
+                                <p class="text-xs text-gray-500">${m.telefone} | ${m.endereco}</p>
+                                <span class="text-[10px] ${m.aprovado ? 'text-green-600' : 'text-orange-500'} font-bold">
+                                    ${m.aprovado ? 'APROVADO' : 'PENDENTE'}
+                                </span>
                             </div>
-                        </div>`;
-                    } else {
-                        motoboysAtivos.push(u);
-                    }
+                            <div class="flex gap-2">
+                                ${!m.aprovado ? `<button onclick="aprovarMoto('${id}')" class="bg-green-600 text-white px-2 py-1 rounded text-xs">APROVAR</button>` : ''}
+                                <button onclick="excluirMoto('${id}')" class="bg-red-600 text-white px-2 py-1 rounded text-xs">EXCLUIR</button>
+                            </div>
+                        </div>
+                    `;
                 });
             });
         }
 
-        window.aprovarMotoboy = async (email) => { await updateDoc(doc(db, "usuarios", email), { aprovado: true }); };
-        window.excluirUsuario = async (email) => { if(confirm("Remover este usuário definitivamente?")) await deleteDoc(doc(db, "usuarios", email)); };
+        window.aprovarMoto = async (id) => { await updateDoc(doc(db, "motoboys", id), { aprovado: true }); };
+        window.excluirMoto = async (id) => { if(confirm("Remover entregador?")) await deleteDoc(doc(db, "motoboys", id)); };
 
-        // --- CEP e Cardápio ---
+        // --- FRETE E CONFIG ---
+        window.salvarConfig = async () => {
+            const cep = document.getElementById('cep-origem').value;
+            const valor = document.getElementById('valor-km').value;
+            await setDoc(doc(db, "config", "geral"), { cepOrigem: cep, valorKm: parseFloat(valor) });
+            alert("Configurações salvas!");
+        };
+
+        async function calcularFrete(cepDestino) {
+            const configDoc = await getDoc(doc(db, "config", "geral"));
+            if(!configDoc.exists()) return 0;
+            const { cepOrigem, valorKm } = configDoc.data();
+            
+            // Simulação de cálculo de distância (em um sistema real usaria Google Distance Matrix)
+            // Aqui vamos usar a diferença entre os primeiros dígitos dos CEPs para simular KM
+            const d1 = parseInt(cepOrigem.substring(0,2));
+            const d2 = parseInt(cepDestino.substring(0,2));
+            const kmSimulado = Math.abs(d1 - d2) + 2; // Mínimo de 2km
+            
+            return kmSimulado * valorKm;
+        }
+
+        // --- REAPROVEITANDO E ADAPTANDO FUNÇÕES ORIGINAIS ---
         window.toggleEndereco = () => {
             const div = document.getElementById('campos-endereco');
-            div.classList.toggle('hidden', document.getElementById('opcao-entrega').value === "Não");
+            const isEntrega = document.getElementById('opcao-entrega').value === "Sim";
+            div.classList.toggle('hidden', !isEntrega);
+            if(!isEntrega) {
+                taxaEntrega = 0;
+                document.getElementById('taxa-entrega-view').classList.add('hidden');
+                atualizarCarrinhoVisual();
+            }
         };
+
         window.buscarCEP = async () => {
             const cep = document.getElementById('cep').value.replace(/\D/g, '');
             if(cep.length !== 8) return;
             const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
             const data = await res.json();
-            if(!data.erro) document.getElementById('rua').value = `${data.logradouro}, ${data.bairro}`;
+            if(!data.erro) {
+                document.getElementById('rua').value = `${data.logradouro}, ${data.bairro}`;
+                taxaEntrega = await calcularFrete(cep);
+                document.getElementById('taxa-entrega-view').classList.remove('hidden');
+                document.getElementById('valor-taxa').innerText = taxaEntrega.toFixed(2);
+                atualizarCarrinhoVisual();
+            }
         };
+
+        function atualizarCarrinhoVisual() {
+            const listaDiv = document.getElementById('lista-carrinho');
+            const resumoDiv = document.getElementById('resumo-carrinho');
+            const totalGeralDiv = document.getElementById('total-geral');
+            
+            if (carrinho.length === 0) {
+                listaDiv.innerHTML = "Seu carrinho está vazio."; 
+                resumoDiv.innerText = "R$ 0.00"; 
+                totalGeralDiv.innerText = "R$ 0.00";
+                totalItens = 0; return;
+            }
+            listaDiv.innerHTML = ""; totalItens = 0;
+            carrinho.forEach(item => {
+                totalItens += item.subtotal;
+                listaDiv.innerHTML += `<div>• <b>${item.qtd}x</b> ${item.nome} (R$ ${item.subtotal.toFixed(2)})</div>`;
+            });
+            resumoDiv.innerText = `R$ ${totalItens.toFixed(2)}`;
+            totalGeralDiv.innerText = `R$ ${(totalItens + taxaEntrega).toFixed(2)}`;
+        }
+
+        window.enviarPedidoCompleto = async () => {
+            if(carrinho.length === 0) return alert("Adicione algo!");
+            const entrega = document.getElementById('opcao-entrega').value;
+            let local = entrega === "Sim" ? `${document.getElementById('rua').value}, Nº ${document.getElementById('num').value}` : "Retirada no Local";
+            if(entrega === "Sim" && (!document.getElementById('rua').value)) return alert("Endereço vazio!");
+            
+            await addDoc(collection(db, "pedidos"), {
+                cliente: auth.currentUser.email, 
+                item: carrinho.map(i => `${i.qtd}x ${i.nome}`).join(", "),
+                subtotal: totalItens.toFixed(2),
+                taxa: taxaEntrega.toFixed(2),
+                total: (totalItens + taxaEntrega).toFixed(2), 
+                entrega: local, 
+                status: "Pendente", 
+                motoboy: "",
+                data: serverTimestamp()
+            });
+            alert("Pedido enviado!"); 
+            limparCarrinho();
+        };
+
+        // --- GESTÃO ADMIN ATUALIZADA COM MOTOBOY ---
+        window.atribuirMotoboy = async (idPedido, emailMoto) => {
+            await updateDoc(doc(db, "pedidos", idPedido), { 
+                motoboy: emailMoto,
+                status: "A Caminho" 
+            });
+            alert("Motoboy atribuído!");
+        };
+
+        function carregarPedidosAdmin() {
+            onSnapshot(query(collection(db, "pedidos"), orderBy("data", "desc")), (snap) => {
+                const lista = document.getElementById('lista-pedidos'); lista.innerHTML = "";
+                snap.forEach(d => {
+                    const p = d.data(); const id = d.id; const isCancelado = p.status === "Cancelado";
+                    
+                    let selectMotoboy = `<select onchange="atribuirMotoboy('${id}', this.value)" class="bg-gray-700 text-white text-[10px] p-1 rounded">
+                        <option value="">Delegar Motoboy...</option>`;
+                    listaDeMotoboys.forEach(m => {
+                        selectMotoboy += `<option value="${m.email}" ${p.motoboy === m.email ? 'selected' : ''}>${m.email.split('@')[0]}</option>`;
+                    });
+                    selectMotoboy += `</select>`;
+
+                    lista.innerHTML += `<div class="p-3 bg-white border-l-4 ${isCancelado ? 'border-gray-500 opacity-75' : 'border-red-500'} rounded shadow-md mb-2">
+                        <div class="flex justify-between"><span><b>${p.cliente.split('@')[0]}:</b> ${p.item}</span><span class="bg-gray-100 px-2 rounded text-xs font-bold">${p.status}</span></div>
+                        <div class="text-[10px] text-gray-500 italic">Total: R$ ${p.total} (Taxa: ${p.taxa}) | ${p.entrega}</div>
+                        ${p.motoboy ? `<p class="text-[10px] text-blue-600 font-bold">Entregador: ${p.motoboy}</p>` : ''}
+                        <div class="grid grid-cols-2 md:grid-cols-6 gap-1 mt-2">
+                            <button onclick="mudarStatus('${id}', 'Confirmado')" class="bg-blue-500 text-white p-1 rounded text-[10px]">CONFIRMAR</button>
+                            <button onclick="mudarStatus('${id}', 'Preparando')" class="bg-orange-500 text-white p-1 rounded text-[10px]">PREPARAR</button>
+                            ${selectMotoboy}
+                            <button onclick="mudarStatus('${id}', 'Entregue')" class="bg-green-600 text-white p-1 rounded text-[10px]">CONCLUIR</button>
+                            <button onclick="cancelarPedidoAdmin('${id}')" class="bg-red-800 text-white p-1 rounded text-[10px]">CANCELAR</button>
+                        </div></div>`;
+                });
+            });
+        }
+
+        // --- VIEW MOTOBOY ---
+        function ouvirEntregasMotoboy(emailMoto) {
+            const q = query(collection(db, "pedidos"), where("motoboy", "==", emailMoto));
+            onSnapshot(q, (snap) => {
+                const lista = document.getElementById('lista-entregas-moto');
+                lista.innerHTML = "";
+                snap.forEach(d => {
+                    const p = d.data();
+                    lista.innerHTML += `
+                        <div class="bg-white p-4 border-l-4 border-purple-600 shadow rounded">
+                            <p><b>Cliente:</b> ${p.cliente}</p>
+                            <p><b>Endereço:</b> ${p.entrega}</p>
+                            <p class="text-sm"><b>Itens:</b> ${p.item}</p>
+                            <div class="mt-2 flex justify-between items-center">
+                                <span class="font-bold text-blue-600">${p.status}</span>
+                                <button onclick="mudarStatus('${d.id}', 'Entregue')" class="bg-green-600 text-white px-3 py-1 rounded text-sm font-bold">MARCAR COMO ENTREGUE</button>
+                            </div>
+                        </div>
+                    `;
+                });
+            });
+        }
+
+        window.tabAdmin = (tab) => {
+            ['tab-pedidos', 'tab-motoboys', 'tab-config'].forEach(t => document.getElementById(t).classList.add('hidden'));
+            document.getElementById(`tab-${tab}`).classList.remove('hidden');
+        };
+
+        // --- MANTENDO FUNÇÕES ORIGINAIS DE CARDÁPIO E CHAT ---
         window.salvarProduto = async () => {
             const nome = document.getElementById('prod-nome').value;
             const preco = parseFloat(document.getElementById('prod-preco').value);
@@ -294,6 +471,7 @@
             document.getElementById('prod-nome').value = "";
             document.getElementById('prod-preco').value = "";
         };
+
         window.toggleProduto = async (id, statusAtual) => { await updateDoc(doc(db, "produtos", id), { ativo: !statusAtual }); };
         window.excluirProduto = async (id) => { if(confirm("Excluir item?")) await deleteDoc(doc(db, "produtos", id)); };
 
@@ -335,105 +513,15 @@
             qtdInput.value = "1"; atualizarCarrinhoVisual();
         };
 
-        window.limparCarrinho = () => { carrinho = []; atualizarCarrinhoVisual(); };
+        window.limparCarrinho = () => { carrinho = []; taxaEntrega = 0; atualizarCarrinhoVisual(); };
 
-        function atualizarCarrinhoVisual() {
-            const listaDiv = document.getElementById('lista-carrinho');
-            const resumoDiv = document.getElementById('resumo-carrinho');
-            if (carrinho.length === 0) {
-                listaDiv.innerHTML = "Seu carrinho está vazio."; resumoDiv.innerText = "R$ 0.00"; totalAcumulado = 0; return;
-            }
-            listaDiv.innerHTML = ""; totalAcumulado = 0;
-            carrinho.forEach(item => {
-                totalAcumulado += item.subtotal;
-                listaDiv.innerHTML += `<div>• <b>${item.qtd}x</b> ${item.nome} (R$ ${item.subtotal.toFixed(2)})</div>`;
-            });
-            resumoDiv.innerText = `R$ ${totalAcumulado.toFixed(2)}`;
-        }
-
-        window.enviarPedidoCompleto = async () => {
-            if(carrinho.length === 0) return alert("Adicione algo!");
-            const entrega = document.getElementById('opcao-entrega').value;
-            let local = entrega === "Sim" ? `${document.getElementById('rua').value}, Nº ${document.getElementById('num').value}` : "Retirada no Local";
-            if(entrega === "Sim" && (!document.getElementById('rua').value)) return alert("Endereço vazio!");
-            await addDoc(collection(db, "pedidos"), {
-                cliente: auth.currentUser.email, item: carrinho.map(i => `${i.qtd}x ${i.nome}`).join(", "),
-                total: totalAcumulado.toFixed(2), entrega: local, status: "Pendente", data: serverTimestamp()
-            });
-            alert("Pedido enviado!"); limparCarrinho();
-        };
-
-        window.mudarStatus = async (id, novoStatus) => { 
-            let dados = { status: novoStatus };
-            if(novoStatus === "A Caminho") {
-                const motoEmail = document.getElementById(`moto-sel-${id}`).value;
-                const taxa = document.getElementById(`taxa-${id}`).value;
-                if(!motoEmail) return alert("Selecione um motoboy para enviar!");
-                dados.motoboyResponsavel = motoEmail;
-                dados.taxaEntrega = taxa || "0";
-            }
-            await updateDoc(doc(db, "pedidos", id), dados); 
-        };
+        window.mudarStatus = async (id, novoStatus) => { await updateDoc(doc(db, "pedidos", id), { status: novoStatus }); };
 
         window.cancelarPedidoAdmin = async (id) => {
             const motivo = prompt("Digite o motivo do cancelamento:");
             if (motivo === null || motivo.trim() === "") return alert("Motivo obrigatório.");
             await updateDoc(doc(db, "pedidos", id), { status: "Cancelado", motivoCancelamento: motivo });
         };
-
-        function carregarPedidosAdmin() {
-            onSnapshot(query(collection(db, "pedidos"), orderBy("data", "desc")), (snap) => {
-                const lista = document.getElementById('lista-pedidos'); lista.innerHTML = "";
-                snap.forEach(d => {
-                    const p = d.data(); const id = d.id; const isCancelado = p.status === "Cancelado";
-                    
-                    let selectMotoboys = `<select id="moto-sel-${id}" class="border text-[10px] p-1 rounded"><option value="">Selecionar Motoboy</option>`;
-                    motoboysAtivos.forEach(m => { selectMotoboys += `<option value="${m.email}">${m.email.split('@')[0]}</option>`; });
-                    selectMotoboys += `</select>`;
-
-                    lista.innerHTML += `<div class="p-3 bg-white border-l-4 ${isCancelado ? 'border-gray-500 opacity-75' : 'border-red-500'} rounded shadow-md mb-2">
-                        <div class="flex justify-between"><span><b>${p.cliente.split('@')[0]}:</b> ${p.item}</span><span class="bg-gray-100 px-2 rounded text-xs font-bold">${p.status}</span></div>
-                        <div class="text-[10px] text-gray-500 italic">Total: R$ ${p.total} | ${p.entrega}</div>
-                        ${p.motoboyResponsavel ? `<p class="text-[10px] text-blue-600 font-bold">Entregador: ${p.motoboyResponsavel.split('@')[0]} (Taxa: R$ ${p.taxaEntrega})</p>` : ''}
-                        ${p.motivoCancelamento ? `<p class="text-[10px] text-red-600"><b>Motivo:</b> ${p.motivoCancelamento}</p>` : ''}
-                        
-                        <div class="bg-gray-50 p-2 mt-2 rounded border space-y-2">
-                            <div class="flex gap-2 items-center">
-                                ${selectMotoboys}
-                                <input id="taxa-${id}" type="number" placeholder="Taxa KM" class="border text-[10px] p-1 rounded w-16">
-                            </div>
-                            <div class="grid grid-cols-2 md:grid-cols-5 gap-1">
-                                <button onclick="mudarStatus('${id}', 'Confirmado')" class="bg-blue-500 text-white p-1 rounded text-[10px]">CONFIRMAR</button>
-                                <button onclick="mudarStatus('${id}', 'Preparando')" class="bg-orange-500 text-white p-1 rounded text-[10px]">PREPARAR</button>
-                                <button onclick="mudarStatus('${id}', 'A Caminho')" class="bg-purple-500 text-white p-1 rounded text-[10px]">ENVIAR/MOTO</button>
-                                <button onclick="mudarStatus('${id}', 'Entregue')" class="bg-green-600 text-white p-1 rounded text-[10px]">CONCLUIR</button>
-                                <button onclick="cancelarPedidoAdmin('${id}')" class="bg-red-800 text-white p-1 rounded text-[10px]">CANCELAR</button>
-                            </div>
-                        </div></div>`;
-                });
-            });
-        }
-
-        // --- VIEW MOTOBOY: OUVIR ENTREGAS ---
-        function ouvirEntregasMotoboy(emailMoto) {
-            const q = query(collection(db, "pedidos"), where("motoboyResponsavel", "==", emailMoto));
-            onSnapshot(q, (snap) => {
-                const box = document.getElementById('lista-entregas-motoboy');
-                box.innerHTML = "";
-                if(snap.empty) { box.innerHTML = "<p class='text-sm italic'>Nenhuma entrega atribuída a você.</p>"; return; }
-                snap.forEach(d => {
-                    const p = d.data();
-                    box.innerHTML += `<div class="p-4 bg-white border rounded shadow-sm">
-                        <p class="font-bold">${p.entrega}</p>
-                        <p class="text-sm text-gray-600">Cliente: ${p.cliente}</p>
-                        <p class="text-sm">Total Pedido: R$ ${p.total}</p>
-                        <p class="text-blue-600 font-bold">Sua Taxa: R$ ${p.taxaEntrega}</p>
-                        <p class="text-xs uppercase font-black mt-1 ${p.status === 'Entregue' ? 'text-green-600' : 'text-orange-500'}">Status: ${p.status}</p>
-                        ${p.status !== 'Entregue' ? `<button onclick="mudarStatus('${d.id}', 'Entregue')" class="mt-2 w-full bg-green-600 text-white p-2 rounded text-xs font-bold">MARCAR COMO ENTREGUE</button>` : ''}
-                    </div>`;
-                });
-            });
-        }
 
         function ouvirStatusCliente(emailCliente) {
             const q = query(collection(db, "pedidos"), where("cliente", "==", emailCliente));
@@ -463,10 +551,30 @@
                 if(status === "Entregue" || status === "Cancelado") { batch.delete(d.ref); cont++; }
             });
             if(cont > 0) { await batch.commit(); alert(`${cont} pedido(s) removido(s).`); }
-            else { alert("Nenhum pedido finalizado para limpar."); }
         };
 
-        // --- BACKUP E LIMPEZA ADMIN ---
+        window.enviarMensagem = async () => {
+            const input = document.getElementById('chat-input');
+            if(!input.value.trim()) return;
+            await addDoc(collection(db, "mensagens"), { usuario: auth.currentUser.email, texto: input.value, hora: serverTimestamp() });
+            input.value = "";
+        };
+
+        function ouvirChat() {
+            onSnapshot(query(collection(db, "mensagens"), orderBy("hora", "asc")), (snap) => {
+                const box = document.getElementById('chat-box'); box.innerHTML = "";
+                mensagensAtuais = [];
+                snap.forEach(d => {
+                    const m = d.data();
+                    mensagensAtuais.push(m);
+                    const classe = m.usuario.includes('admin') ? 'msg-admin' : (m.usuario.includes('motoboy') ? 'msg-admin bg-purple-100' : 'msg-cliente');
+                    box.innerHTML += `<div class="msg ${classe}"><p class="text-[10px] font-bold opacity-50">${m.usuario.split('@')[0]}</p><p>${m.texto}</p></div>`;
+                });
+                box.scrollTop = box.scrollHeight;
+            });
+        }
+        
+        // --- FUNÇÕES DE BACKUP ORIGINAIS ---
         window.limparEBackupPedidos = async () => {
             if(!confirm("Isso irá baixar um TXT com os pedidos Entregues/Cancelados e apagá-los. Continuar?")) return;
             const snap = await getDocs(collection(db, "pedidos"));
@@ -490,10 +598,9 @@
                 link.click();
                 await batch.commit();
                 alert(`${cont} pedidos arquivados.`);
-            } else { alert("Sem pedidos para limpar."); }
+            }
         };
 
-        // --- IMPORTAR HISTÓRICO ---
         document.getElementById('import-pedidos').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -519,28 +626,6 @@
             reader.readAsText(file);
         });
 
-        // CHAT 
-        window.enviarMensagem = async () => {
-            const input = document.getElementById('chat-input');
-            if(!input.value.trim()) return;
-            await addDoc(collection(db, "mensagens"), { usuario: auth.currentUser.email, texto: input.value, hora: serverTimestamp() });
-            input.value = "";
-        };
-
-        function ouvirChat() {
-            onSnapshot(query(collection(db, "mensagens"), orderBy("hora", "asc")), (snap) => {
-                const box = document.getElementById('chat-box'); box.innerHTML = "";
-                mensagensAtuais = [];
-                snap.forEach(d => {
-                    const m = d.data();
-                    mensagensAtuais.push(m);
-                    const classe = m.usuario.includes('admin') ? 'msg-admin' : 'msg-cliente';
-                    box.innerHTML += `<div class="msg ${classe}"><p class="text-[10px] font-bold opacity-50">${m.usuario.split('@')[0]}</p><p>${m.texto}</p></div>`;
-                });
-                box.scrollTop = box.scrollHeight;
-            });
-        }
-
         window.finalizarChat = async () => {
             const motivo = prompt("Motivo para finalizar o atendimento:");
             if(!motivo) return;
@@ -555,7 +640,6 @@
             const batch = writeBatch(db);
             snap.forEach(d => batch.delete(d.ref));
             await batch.commit();
-            alert("Chat finalizado e salvo.");
         };
 
         document.getElementById('import-chat').addEventListener('change', function(e) {
@@ -573,6 +657,7 @@
             };
             reader.readAsText(file);
         });
+
     </script>
 </body>
 </html>

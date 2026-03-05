@@ -327,27 +327,21 @@
             else { alert("Nenhum pedido finalizado para limpar."); }
         };
 
-        // --- NOVA FUNÇÃO: BACKUP E LIMPEZA ADMIN ---
+        // --- BACKUP E LIMPEZA ADMIN (ALTERADO PARA SALVAR FORMATADO) ---
         window.limparEBackupPedidos = async () => {
-            if(!confirm("Isso irá baixar um TXT com todos os pedidos Entregues/Cancelados e depois apagá-los do sistema. Continuar?")) return;
+            if(!confirm("Isso irá baixar um TXT com os pedidos Entregues/Cancelados e apagá-los. Continuar?")) return;
             
             const snap = await getDocs(collection(db, "pedidos"));
-            let conteudo = `RELATÓRIO DE PEDIDOS FINALIZADOS\nData: ${new Date().toLocaleString()}\n-------------------------------------------\n\n`;
+            let conteudo = "";
             const batch = writeBatch(db);
             let cont = 0;
 
             snap.forEach(d => {
                 const p = d.data();
                 if(p.status === "Entregue" || p.status === "Cancelado") {
-                    const dataFormatada = p.data ? new Date(p.data.seconds * 1000).toLocaleString() : "Data Indefinida";
-                    conteudo += `DATA/HORA: ${dataFormatada}\n`;
-                    conteudo += `CLIENTE: ${p.cliente}\n`;
-                    conteudo += `ITENS: ${p.item}\n`;
-                    conteudo += `TOTAL: R$ ${p.total}\n`;
-                    conteudo += `STATUS: ${p.status}\n`;
-                    if(p.motivoCancelamento) conteudo += `MOTIVO CANCELAMENTO: ${p.motivoCancelamento}\n`;
-                    conteudo += `-------------------------------------------\n`;
-                    
+                    const dataH = p.data ? new Date(p.data.seconds * 1000).toLocaleString() : "N/A";
+                    // Salvamos em formato de "Banco de dados" (separado por | )
+                    conteudo += `PEDIDO|${p.cliente}|${p.item}|${p.total}|${p.status}|${p.entrega}|${dataH}|${p.motivoCancelamento || ''}\n`;
                     batch.delete(d.ref);
                     cont++;
                 }
@@ -357,17 +351,14 @@
                 const blob = new Blob([conteudo], { type: 'text/plain' });
                 const link = document.createElement('a');
                 link.href = URL.createObjectURL(blob);
-                link.download = `backup_pedidos_${new Date().getTime()}.txt`;
+                link.download = `backup_pedidos.txt`;
                 link.click();
-
                 await batch.commit();
-                alert(`${cont} pedidos foram salvos em TXT e removidos do banco.`);
-            } else {
-                alert("Não há pedidos Entregues ou Cancelados para limpar.");
-            }
+                alert(`${cont} pedidos arquivados.`);
+            } else { alert("Sem pedidos para limpar."); }
         };
 
-        // IMPORTAR PEDIDOS TXT PARA O PAINEL
+        // --- IMPORTAR E RECONSTRUIR OS CARDS (ALTERADO PARA VOLTAR COM O VISUAL) ---
         document.getElementById('import-pedidos').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -375,12 +366,26 @@
             reader.onload = function(e) {
                 const texto = e.target.result;
                 const lista = document.getElementById('lista-pedidos');
-                lista.innerHTML = `<div class="bg-blue-800 text-white p-2 text-center font-bold rounded mb-4">VISUALIZANDO HISTÓRICO IMPORTADO (Arquivo: ${file.name})</div>` + lista.innerHTML;
+                const linhas = texto.split('\n');
                 
-                const blocos = texto.split('-------------------------------------------');
-                blocos.forEach(bloco => {
-                    if(bloco.trim().length > 20) {
-                        lista.innerHTML = `<div class="p-3 bg-gray-100 border-l-4 border-gray-400 rounded shadow mb-2 whitespace-pre-wrap text-[11px]">${bloco.trim()}</div>` + lista.innerHTML;
+                lista.innerHTML = `<div class="bg-blue-800 text-white p-2 text-center font-bold rounded mb-4 uppercase text-[10px]">Arquivo Importado: ${file.name}</div>` + lista.innerHTML;
+
+                linhas.forEach(linha => {
+                    if(linha.startsWith("PEDIDO|")) {
+                        const [tag, cliente, item, total, status, entrega, data, motivo] = linha.split('|');
+                        const isCancelado = status === "Cancelado";
+                        
+                        // Reconstrói o CARD EXATAMENTE como ele era no sistema original
+                        lista.innerHTML = `
+                        <div class="p-3 bg-gray-50 border-l-4 ${isCancelado ? 'border-gray-400 opacity-60' : 'border-green-500'} rounded shadow mb-2 relative">
+                            <span class="absolute top-1 right-1 bg-gray-200 text-[8px] px-1 rounded font-bold">HISTÓRICO</span>
+                            <div class="flex justify-between">
+                                <span><b>${cliente.split('@')[0]}:</b> ${item}</span>
+                                <span class="bg-gray-100 px-2 rounded text-xs font-bold uppercase">${status}</span>
+                            </div>
+                            <div class="text-[10px] text-gray-500 italic mt-1">Total: R$ ${total} | ${entrega} | ${data}</div>
+                            ${motivo ? `<p class="text-[10px] text-red-600"><b>Motivo:</b> ${motivo}</p>` : ''}
+                        </div>` + lista.innerHTML;
                     }
                 });
             };

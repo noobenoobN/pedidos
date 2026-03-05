@@ -229,9 +229,10 @@
 
                 if(isAdmin) {
                     mostrarTela('admin-view');
+                    // SOLUÇÃO: Carregar motoboys IMEDIATAMENTE junto com os pedidos para preencher a lista motoboysAtivos
+                    ouvirMotoboysAdmin();
                     ouvirPedidosAdmin();
                     ouvirCardapio(true);
-                    ouvirMotoboysAdmin();
                     carregarConfigLoja();
                     document.getElementById('admin-chat-tools').classList.remove('hidden');
                 } else if(isMotoboy) {
@@ -245,7 +246,6 @@
                         signOut(auth);
                     } else {
                         mostrarTela('motoboy-view');
-                        // Carregar o status de trabalho atual no select
                         const mData = docSnap.data();
                         if (document.getElementById('status-trabalho-motoboy')) {
                             document.getElementById('status-trabalho-motoboy').value = mData.statusTrabalho || "Em Trabalho";
@@ -276,7 +276,6 @@
             if(id !== 'motoboy-setup') document.getElementById('main-screen').classList.remove('hidden');
         }
 
-        // --- MOTOBOY SETUP & STATUS ---
         window.buscarCEPMotoboy = async () => {
             const cep = document.getElementById('moto-cep').value.replace(/\D/g, '');
             if(cep.length !== 8) return;
@@ -297,7 +296,7 @@
                 endereco: `${rua}, Nº ${num}`,
                 cep: cep,
                 status: "Pendente",
-                statusTrabalho: "Em Trabalho", // Status padrão ao criar
+                statusTrabalho: "Em Trabalho",
                 dataCadastro: serverTimestamp()
             });
             alert("Perfil enviado! Aguarde aprovação do Admin.");
@@ -312,7 +311,6 @@
             }
         };
 
-        // --- GESTÃO DE MOTOBOYS (ADMIN) ---
         function ouvirMotoboysAdmin() {
             onSnapshot(collection(db, "motoboys"), (snap) => {
                 const listaP = document.getElementById('lista-motoboys-pendentes');
@@ -333,6 +331,7 @@
                             </div>
                         </div>`;
                     } else {
+                        // Importante: motoboysAtivos agora é preenchido sempre que houver mudança no banco
                         motoboysAtivos.push(m);
                         const corStatus = m.statusTrabalho === "Em Trabalho" ? "text-green-600" : "text-gray-400";
                         listaA.innerHTML += `<div class="p-2 bg-white border rounded text-xs flex justify-between">
@@ -347,7 +346,6 @@
         window.aprovarMotoboy = async (id) => { await updateDoc(doc(db, "motoboys", id), { status: "Aprovado" }); };
         window.rejeitarMotoboy = async (id) => { if(confirm("Remover motoboy definitivamente?")) await deleteDoc(doc(db, "motoboys", id)); };
 
-        // --- CONFIG LOJA ---
         window.salvarConfigLoja = async () => {
             const cep = document.getElementById('config-cep-origem').value;
             const valor = parseFloat(document.getElementById('config-valor-km').value);
@@ -367,11 +365,10 @@
 
         async function calcularTaxaEntrega(cepDestino) {
             if(!configLoja.cep || !configLoja.valorKm) return 0;
-            const dist = Math.floor(Math.random() * 10) + 1; // Simulação de 1 a 10km
+            const dist = Math.floor(Math.random() * 10) + 1;
             return dist * configLoja.valorKm;
         }
 
-        // --- ABAS ADMIN ---
         window.tabAdmin = (tab) => {
             const abas = ['pedidos', 'cardapio', 'motoboys', 'config'];
             abas.forEach(a => {
@@ -400,7 +397,6 @@
             if(!isEntrega) { taxaEntrega = 0; atualizarCarrinhoVisual(); }
         };
 
-        // --- ADMIN: DESIGNAR MOTOBOY ---
         window.atribuirMotoboy = async (pedidoId, motoEmail) => {
             if(!motoEmail) return;
             await updateDoc(doc(db, "pedidos", pedidoId), { 
@@ -490,11 +486,11 @@
                 snap.forEach(d => {
                     const p = d.data(); const id = d.id; const isCancelado = p.status === "Cancelado";
                     
-                    // Lógica do Select com filtro de Status de Trabalho (conforme solicitado na imagem) 
                     let selectMotoboy = `<select onchange="atribuirMotoboy('${id}', this.value)" class="bg-gray-100 text-[10px] p-1 rounded border">
                         <option value="">DESIGNAR MOTOBOY...</option>`;
+                    
+                    // AQUI ESTÁ A LÓGICA: motoboysAtivos agora estará preenchido pois ouvirMotoboysAdmin() foi chamada no início
                     motoboysAtivos.forEach(m => {
-                        // APENAS MOSTRA SE ESTIVER "Em Trabalho" OU SE JÁ FOR O MOTOBOY DESIGNADO DO PEDIDO
                         if (m.statusTrabalho === "Em Trabalho" || p.motoboyDesignado === m.email) {
                             selectMotoboy += `<option value="${m.email}" ${p.motoboyDesignado === m.email ? 'selected' : ''}>
                                 ${m.email.split('@')[0]} (${m.statusTrabalho})

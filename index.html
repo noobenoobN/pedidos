@@ -44,7 +44,10 @@
                     <div id="cardapio-lista" class="grid grid-cols-1 gap-3 mb-6"></div>
                     
                     <div class="border-t pt-4 space-y-3">
-                        <h3 class="font-bold text-lg text-red-600 italic">Meus Pedidos Ativos</h3>
+                        <div class="flex justify-between items-center">
+                            <h3 class="font-bold text-lg text-red-600 italic">Meus Pedidos Ativos</h3>
+                            <button onclick="limparPedidosConcluidos()" class="text-[10px] bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded uppercase font-bold text-gray-600">Limpar Finalizados</button>
+                        </div>
                         <div id="meus-pedidos-status" class="bg-white border rounded p-3 text-sm space-y-2 mb-4 shadow-inner min-h-[50px]">
                             Nenhum pedido em andamento.
                         </div>
@@ -127,7 +130,7 @@
 
         let carrinho = [];
         let totalAcumulado = 0;
-        let mensagensAtuais = []; // Para exportação
+        let mensagensAtuais = []; 
 
         // AUTH
         window.cadastrar = () => {
@@ -168,7 +171,7 @@
             }
         });
 
-        // CEP e Cardápio (Mantidos conforme original)
+        // CEP e Cardápio 
         window.toggleEndereco = () => {
             const div = document.getElementById('campos-endereco');
             div.classList.toggle('hidden', document.getElementById('opcao-entrega').value === "Não");
@@ -292,7 +295,8 @@
                 const docs = []; snap.forEach(d => docs.push({id: d.id, ...d.data()}));
                 docs.sort((a, b) => (b.data?.seconds || 0) - (a.data?.seconds || 0));
                 docs.forEach(p => {
-                    let classe = p.status === 'Cancelado' ? 'status-cancelado' : 'status-pendente';
+                    let classe = p.status === 'Cancelado' ? 'status-cancelado' : 
+                                p.status === 'Entregue' ? 'status-entregue' : 'status-pendente';
                     box.innerHTML += `<div class="border-b pb-2 mb-2 flex justify-between items-start last:border-0">
                         <div class="flex flex-col"><span class="font-medium">${p.item}</span><span class="text-[10px]">Total: R$ ${p.total}</span></div>
                         <span class="${classe} text-sm">● ${p.status}</span></div>`;
@@ -300,7 +304,34 @@
             });
         }
 
-        // CHAT COM FUNÇÕES DE FINALIZAÇÃO E EXPORTAÇÃO
+        // --- NOVA FUNÇÃO PARA LIMPAR PEDIDOS FINALIZADOS DO CLIENTE ---
+        window.limparPedidosConcluidos = async () => {
+            if(!confirm("Deseja remover os pedidos Entregues e Cancelados da sua lista?")) return;
+            const q = query(collection(db, "pedidos"), 
+                where("cliente", "==", auth.currentUser.email)
+            );
+            
+            const snap = await getDocs(q);
+            const batch = writeBatch(db);
+            let cont = 0;
+
+            snap.forEach(d => {
+                const status = d.data().status;
+                if(status === "Entregue" || status === "Cancelado") {
+                    batch.delete(d.ref);
+                    cont++;
+                }
+            });
+
+            if(cont > 0) {
+                await batch.commit();
+                alert(`${cont} pedido(s) removido(s) do histórico.`);
+            } else {
+                alert("Nenhum pedido finalizado para limpar.");
+            }
+        };
+
+        // CHAT 
         window.enviarMensagem = async () => {
             const input = document.getElementById('chat-input');
             if(!input.value.trim()) return;
@@ -325,21 +356,13 @@
         window.finalizarChat = async () => {
             const motivo = prompt("Motivo para finalizar o atendimento:");
             if(!motivo) return;
-
-            // 1. Criar texto do arquivo
             let conteudo = `ATENDIMENTO FINALIZADO\nMotivo: ${motivo}\nData: ${new Date().toLocaleString()}\n---------------------------\n`;
-            mensagensAtuais.forEach(m => {
-                conteudo += `[${m.usuario}] : ${m.texto}\n`;
-            });
-
-            // 2. Download do TXT
+            mensagensAtuais.forEach(m => { conteudo += `[${m.usuario}] : ${m.texto}\n`; });
             const blob = new Blob([conteudo], { type: 'text/plain' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
             link.download = `chat_${new Date().getTime()}.txt`;
             link.click();
-
-            // 3. Limpar Firebase
             const snap = await getDocs(collection(db, "mensagens"));
             const batch = writeBatch(db);
             snap.forEach(d => batch.delete(d.ref));
@@ -347,7 +370,6 @@
             alert("Chat finalizado, histórico salvo e conversas limpas.");
         };
 
-        // Importação de TXT
         document.getElementById('import-chat').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -358,14 +380,11 @@
                 box.innerHTML = `<div class="bg-yellow-100 p-2 text-[10px] mb-2 border border-yellow-300 rounded">HISTÓRICO IMPORTADO:</div>`;
                 const linhas = texto.split('\n');
                 linhas.forEach(linha => {
-                    if(linha.trim()){
-                        box.innerHTML += `<div class="text-[11px] border-b border-gray-100 py-1">${linha}</div>`;
-                    }
+                    if(linha.trim()){ box.innerHTML += `<div class="text-[11px] border-b border-gray-100 py-1">${linha}</div>`; }
                 });
             };
             reader.readAsText(file);
         });
-
     </script>
 </body>
 </html>

@@ -26,20 +26,20 @@
             
             <div id="extra-cadastro-motoboy" class="hidden space-y-2 border-t pt-2">
                 <input id="moto-telefone" type="text" placeholder="Telefone" class="w-full border p-2 rounded text-sm">
-                <input id="moto-cep" type="text" placeholder="Seu CEP (Auto)" onblur="buscarCEPMotoboy()" class="w-full border p-2 rounded text-sm">
+                <input id="moto-cep" type="text" placeholder="Seu CEP (Auto)" onblur="window.buscarCEPMotoboy()" class="w-full border p-2 rounded text-sm">
                 <input id="moto-end" type="text" placeholder="Endereço Completo" class="w-full border p-2 rounded text-sm bg-gray-50">
             </div>
 
-            <button onclick="logar()" class="w-full bg-red-600 text-white font-bold p-3 rounded hover:bg-red-700">Entrar</button>
-            <button onclick="cadastrar()" class="w-full bg-gray-200 text-gray-700 p-3 rounded">Criar Conta Cliente</button>
-            <button onclick="mostrarCadastroMotoboy()" class="w-full text-blue-600 text-sm underline">Quero ser Motoboy da Loja</button>
+            <button onclick="window.logar()" class="w-full bg-red-600 text-white font-bold p-3 rounded hover:bg-red-700">Entrar</button>
+            <button onclick="window.cadastrar()" class="w-full bg-gray-200 text-gray-700 p-3 rounded">Criar Conta Cliente</button>
+            <button onclick="window.mostrarCadastroMotoboy()" class="w-full text-blue-600 text-sm underline">Quero ser Motoboy da Loja</button>
         </div>
     </div>
 
     <div id="main-screen" class="hidden min-h-screen">
         <nav class="bg-red-600 text-white p-4 flex justify-between items-center shadow-md">
             <span id="user-welcome" class="font-medium">Carregando...</span>
-            <button onclick="sair()" class="bg-red-800 px-3 py-1 rounded text-sm">Sair</button>
+            <button onclick="window.sair()" class="bg-red-800 px-3 py-1 rounded text-sm">Sair</button>
         </nav>
 
         <div class="max-w-6xl mx-auto p-4 grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -53,18 +53,18 @@
                     <h3 class="font-bold text-lg">Carrinho</h3>
                     <div id="lista-carrinho" class="text-sm italic mb-2">Vazio</div>
                     <div class="space-y-2">
-                        <select id="opcao-entrega" onchange="toggleEndereco()" class="w-full border p-2 rounded">
+                        <select id="opcao-entrega" onchange="window.toggleEndereco()" class="w-full border p-2 rounded">
                             <option value="Sim">Entrega</option>
                             <option value="Não">Retirada</option>
                         </select>
                         <div id="campos-endereco" class="space-y-2">
-                            <input id="cep" type="text" placeholder="CEP" onblur="buscarCEP()" class="w-full border p-2 rounded">
+                            <input id="cep" type="text" placeholder="CEP" onblur="window.buscarCEP()" class="w-full border p-2 rounded">
                             <input id="rua" type="text" placeholder="Endereço" class="w-full border p-2 rounded">
                             <input id="num" type="text" placeholder="Nº" class="w-full border p-1 rounded">
                             <input id="distancia-simulada" type="number" placeholder="KM até a loja (Simulação)" class="w-full border p-2 rounded text-xs bg-yellow-50">
                         </div>
                         <div class="p-3 bg-yellow-100 font-bold">Total: <span id="resumo-carrinho">R$ 0.00</span></div>
-                        <button onclick="enviarPedidoCompleto()" class="w-full bg-green-600 text-white p-3 rounded font-bold">ENVIAR PEDIDO</button>
+                        <button onclick="window.enviarPedidoCompleto()" class="w-full bg-green-600 text-white p-3 rounded font-bold">ENVIAR PEDIDO</button>
                     </div>
                 </div>
 
@@ -73,7 +73,7 @@
                         <h4 class="font-bold text-red-700 mb-2">Configurações de Entrega</h4>
                         <div class="flex gap-2">
                             <input id="taxa-km" type="number" placeholder="Valor por KM (R$)" class="border p-2 rounded w-full">
-                            <button onclick="salvarTaxa()" class="bg-red-600 text-white px-4 rounded text-xs">Salvar</button>
+                            <button onclick="window.salvarTaxa()" class="bg-red-600 text-white px-4 rounded text-xs">Salvar</button>
                         </div>
                     </div>
 
@@ -99,7 +99,7 @@
                 <div id="chat-box" class="flex-1 p-2 mb-4 bg-gray-50 rounded"></div>
                 <div class="flex gap-2">
                     <input id="chat-input" type="text" placeholder="Digite..." class="flex-1 border p-2 rounded">
-                    <button onclick="enviarMensagem()" class="bg-blue-600 text-white px-4 py-2 rounded">Enviar</button>
+                    <button onclick="window.enviarMensagem()" class="bg-blue-600 text-white px-4 py-2 rounded">Enviar</button>
                 </div>
             </div>
         </div>
@@ -108,7 +108,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, doc, updateDoc, deleteDoc, where, getDocs, writeBatch, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, doc, updateDoc, deleteDoc, where, getDocs, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBgqjGYaV7rmgLMPB-Y4DcvgVkg82GFt0I",
@@ -153,7 +153,7 @@
         window.logar = () => {
             const e = document.getElementById('email').value;
             const s = document.getElementById('senha').value;
-            signInWithEmailAndPassword(auth, e, s).catch(err => alert("Erro no login"));
+            signInWithEmailAndPassword(auth, e, s).catch(err => alert("Erro no login: " + err.message));
         };
 
         window.sair = () => signOut(auth);
@@ -210,8 +210,8 @@
                     <div class="flex justify-between items-center p-2 border rounded bg-white text-xs">
                         <span><b>${m.email.split('@')[0]}</b> - ${m.aprovado ? '✅ Ativo' : '⏳ Pendente'}<br>${m.telefone}</span>
                         <div class="flex gap-1">
-                            ${!m.aprovado ? `<button onclick="aprovarMoto('${d.id}')" class="bg-green-500 text-white px-2 py-1 rounded">Aprovar</button>` : ''}
-                            <button onclick="removerMoto('${d.id}')" class="bg-red-500 text-white px-2 py-1 rounded">Excluir</button>
+                            ${!m.aprovado ? `<button onclick="window.aprovarMoto('${d.id}')" class="bg-green-500 text-white px-2 py-1 rounded">Aprovar</button>` : ''}
+                            <button onclick="window.removerMoto('${d.id}')" class="bg-red-500 text-white px-2 py-1 rounded">Excluir</button>
                         </div>
                     </div>`;
                 });
@@ -222,14 +222,19 @@
         window.removerMoto = async (id) => { if(confirm("Remover motoboy definitivamente?")) await deleteDoc(doc(db, "motoboys", id)); };
 
         // --- ADMIN: TAXA E PEDIDOS ---
-        window.salvarTaxa = () => { valorKM = parseFloat(document.getElementById('taxa-km').value); alert("Taxa atualizada!"); };
+        window.salvarTaxa = () => { 
+            const novaTaxa = parseFloat(document.getElementById('taxa-km').value);
+            if(!isNaN(novaTaxa)) {
+                valorKM = novaTaxa;
+                alert("Taxa atualizada!"); 
+            }
+        };
 
         function ouvirPedidosAdmin() {
             onSnapshot(query(collection(db, "pedidos"), orderBy("data", "desc")), async (snap) => {
                 const lista = document.getElementById('lista-pedidos');
                 lista.innerHTML = "";
                 
-                // Pegar motoboys para o select
                 const motosSnap = await getDocs(query(collection(db, "motoboys"), where("aprovado", "==", true)));
                 let optionsMotos = `<option value="">Escolha o Motoboy...</option>`;
                 motosSnap.forEach(m => optionsMotos += `<option value="${m.id}">${m.id.split('@')[0]}</option>`);
@@ -242,10 +247,10 @@
                         <p class="text-xs">${p.item}</p>
                         <p class="text-[10px] text-gray-500 italic">Total c/ Taxa: R$ ${p.total} | Destino: ${p.entrega}</p>
                         <div class="mt-2 flex gap-2">
-                            <select onchange="atribuirMotoboy('${d.id}', this.value)" class="border text-[10px] p-1 rounded">
+                            <select onchange="window.atribuirMotoboy('${d.id}', this.value)" class="border text-[10px] p-1 rounded">
                                 ${optionsMotos}
                             </select>
-                            <button onclick="mudarStatus('${d.id}', 'Entregue')" class="bg-green-600 text-white px-2 py-1 rounded text-[10px]">CONCLUIR</button>
+                            <button onclick="window.mudarStatus('${d.id}', 'Entregue')" class="bg-green-600 text-white px-2 py-1 rounded text-[10px]">CONCLUIR</button>
                         </div>
                         ${p.entregador ? `<p class="text-[10px] text-blue-600 font-bold">Entregador: ${p.entregador.split('@')[0]}</p>` : ''}
                     </div>`;
@@ -283,15 +288,16 @@
                             <p><b>Cliente:</b> ${p.cliente}</p>
                             <p><b>Endereço:</b> ${p.entrega}</p>
                             <p><b>Pedido:</b> ${p.item}</p>
-                            <button onclick="mudarStatus('${d.id}', 'Entregue')" class="mt-2 w-full bg-green-600 text-white p-2 rounded font-bold">MARCAR COMO ENTREGUE</button>
+                            <button onclick="window.mudarStatus('${d.id}', 'Entregue')" class="mt-2 w-full bg-green-600 text-white p-2 rounded font-bold">MARCAR COMO ENTREGUE</button>
                         </div>`;
                     }
                 });
             });
         }
 
-        // --- CLIENTE E LOGICA GERAL (COMO NO ORIGINAL COM ADIÇÕES) ---
+        // --- CLIENTE E LOGICA GERAL ---
         window.enviarPedidoCompleto = async () => {
+            if(carrinho.length === 0) return alert("Carrinho vazio!");
             const km = parseFloat(document.getElementById('distancia-simulada').value) || 0;
             const taxa = km * valorKM;
             const totalFinal = (totalProdutos + taxa).toFixed(2);
@@ -310,12 +316,12 @@
             });
             alert("Pedido enviado com taxa de R$ " + taxa.toFixed(2));
             carrinho = [];
+            totalProdutos = 0;
             atualizarCarrinhoVisual();
         };
 
         window.mudarStatus = async (id, s) => await updateDoc(doc(db, "pedidos", id), { status: s });
         
-        // (As funções de cardápio, carrinho e chat permanecem idênticas ao seu original para manter a compatibilidade)
         window.enviarMensagem = async () => {
             const input = document.getElementById('chat-input');
             if(!input.value.trim()) return;
@@ -328,8 +334,10 @@
                 const box = document.getElementById('chat-box'); box.innerHTML = "";
                 snap.forEach(d => {
                     const m = d.data();
-                    const classe = m.usuario.includes('admin') ? 'msg-admin' : 'msg-cliente';
-                    box.innerHTML += `<div class="msg ${classe}"><p class="text-[10px] font-bold opacity-50">${m.usuario.split('@')[0]}</p><p>${m.texto}</p></div>`;
+                    if(m.hora) {
+                        const classe = m.usuario.includes('admin') ? 'msg-admin' : 'msg-cliente';
+                        box.innerHTML += `<div class="msg ${classe}"><p class="text-[10px] font-bold opacity-50">${m.usuario.split('@')[0]}</p><p>${m.texto}</p></div>`;
+                    }
                 });
                 box.scrollTop = box.scrollHeight;
             });
@@ -340,11 +348,11 @@
                 const listaC = document.getElementById('cardapio-lista');
                 listaC.innerHTML = "";
                 snapshot.forEach(docSnap => {
-                    const p = docSnap.data(); const id = docSnap.id;
+                    const p = docSnap.data();
                     if(p.ativo) {
                         listaC.innerHTML += `<div class="flex justify-between p-3 border rounded bg-white">
                             <span>${p.nome} - R$ ${p.preco}</span>
-                            <button onclick="selecionarItem('${p.nome}', ${p.preco})" class="bg-red-600 text-white px-2 rounded text-xs">ADD</button>
+                            <button onclick="window.selecionarItem('${p.nome}', ${p.preco})" class="bg-red-600 text-white px-2 rounded text-xs">ADD</button>
                         </div>`;
                     }
                 });
@@ -359,7 +367,7 @@
 
         function atualizarCarrinhoVisual() {
             const lista = document.getElementById('lista-carrinho');
-            lista.innerHTML = carrinho.map(i => `• ${i.nome}`).join('<br>');
+            lista.innerHTML = carrinho.length > 0 ? carrinho.map(i => `• ${i.nome}`).join('<br>') : "Vazio";
             document.getElementById('resumo-carrinho').innerText = `R$ ${totalProdutos.toFixed(2)}`;
         }
 
@@ -370,9 +378,11 @@
         window.buscarCEP = async () => {
             const cep = document.getElementById('cep').value.replace(/\D/g, '');
             if(cep.length !== 8) return;
-            const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-            const data = await res.json();
-            if(!data.erro) document.getElementById('rua').value = data.logradouro;
+            try {
+                const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+                const data = await res.json();
+                if(!data.erro) document.getElementById('rua').value = data.logradouro;
+            } catch (e) { console.error("Erro CEP"); }
         };
     </script>
 </body>

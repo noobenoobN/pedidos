@@ -104,8 +104,8 @@
                             <h3 class="text-xl font-bold">Painel de Pedidos</h3>
                             <div class="flex gap-2">
                                 <label class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-[10px] cursor-pointer hover:bg-blue-200 font-bold border border-blue-300">
-                                    IMPORTAR HISTÓRICO <input type="file" id="import-pedidos" class="hidden" accept=".txt">
-                                 </label>
+                                    IMPORTAR HISTÓRICO <input type="file" id="import-pedidos" class="hidden" accept=".txt" onchange="importarPedidos(event)">
+                                </label>
                                 <button onclick="limparEBackupPedidos()" class="bg-gray-800 text-white px-2 py-1 rounded text-[10px] font-bold">BACKUP E LIMPAR</button>
                             </div>
                         </div>
@@ -142,7 +142,7 @@
                                 <label class="block text-sm font-bold">Valor Taxa por KM (R$):</label>
                                 <input id="config-valor-km" type="number" placeholder="Ex: 2.50" class="border p-2 w-full rounded">
                             </div>
-                             <button onclick="salvarConfigLoja()" class="bg-red-600 text-white p-3 w-full rounded font-bold">Salvar Configurações</button>
+                            <button onclick="salvarConfigLoja()" class="bg-red-600 text-white p-3 w-full rounded font-bold">Salvar Configurações</button>
                         </div>
                     </div>
                 </div>
@@ -151,10 +151,10 @@
                     <div class="bg-white p-4 rounded shadow mb-4 border-l-4 border-blue-600">
                         <h4 class="font-bold mb-2">Meu Status Atual:</h4>
                         <select id="status-trabalho-motoboy" onchange="atualizarStatusTrabalho(this.value)" class="w-full border p-2 rounded font-bold">
-                             <option value="Em Trabalho">🟢 Em Trabalho (Disponível)</option>
+                            <option value="Em Trabalho">🟢 Em Trabalho (Disponível)</option>
                             <option value="Folga">🟡 Folga</option>
                             <option value="Férias">🔴 Férias</option>
-                         </select>
+                        </select>
                     </div>
                     <h3 class="text-xl font-bold mb-4">Minhas Entregas Designadas</h3>
                     <div id="lista-entregas-motoboy" class="space-y-3"></div>
@@ -166,7 +166,7 @@
                 <div class="flex justify-between items-center mb-4 border-b pb-2">
                     <h3 class="text-xl font-bold text-blue-600">Suporte / Chat</h3>
                     <div id="admin-chat-tools" class="hidden flex gap-2">
-                         <label class="bg-gray-200 px-2 py-1 rounded text-[10px] cursor-pointer hover:bg-gray-300">
+                        <label class="bg-gray-200 px-2 py-1 rounded text-[10px] cursor-pointer hover:bg-gray-300">
                             Importar TXT <input type="file" id="import-chat" class="hidden" accept=".txt" onchange="importarChat(event)">
                         </label>
                         <button onclick="finalizarChat()" class="bg-red-500 text-white px-2 py-1 rounded text-[10px] font-bold">Finalizar Chat</button>
@@ -174,7 +174,7 @@
                 </div>
                 <div id="chat-box" class="flex-1 p-2 mb-4 bg-gray-50 rounded"></div>
                 <div class="flex gap-2">
-                     <input id="chat-input" type="text" placeholder="Digite..." class="flex-1 border p-2 rounded focus:outline-none">
+                    <input id="chat-input" type="text" placeholder="Digite..." class="flex-1 border p-2 rounded focus:outline-none">
                     <button onclick="enviarMensagem()" class="bg-blue-600 text-white px-4 py-2 rounded">Enviar</button>
                 </div>
             </div>
@@ -316,6 +316,7 @@
             onSnapshot(collection(db, "motoboys"), (snap) => {
                 const listaP = document.getElementById('lista-motoboys-pendentes');
                 const listaA = document.getElementById('lista-motoboys-ativos');
+                if(!listaP || !listaA) return;
                 listaP.innerHTML = ""; listaA.innerHTML = "";
                 
                 motoboysAtivos = [];
@@ -340,20 +341,6 @@
                             <button onclick="rejeitarMotoboy('${id}')" class="text-red-500 underline">Remover</button>
                         </div>`;
                     }
-                });
-                
-                const selects = document.querySelectorAll('.select-motoboy-dinamico');
-                selects.forEach(select => {
-                    const motoboyDesignado = select.getAttribute('data-designado');
-                    let options = `<option value="">DESIGNAR MOTOBOY...</option>`;
-                    motoboysAtivos.forEach(m => {
-                        if (m.statusTrabalho === "Em Trabalho" || motoboyDesignado === m.email) {
-                            options += `<option value="${m.email}" ${motoboyDesignado === m.email ? 'selected' : ''}>
-                                ${m.email.split('@')[0]} (${m.statusTrabalho})
-                            </option>`;
-                        }
-                    });
-                    select.innerHTML = options;
                 });
             });
         }
@@ -427,8 +414,9 @@
         };
 
         function ouvirEntregasMotoboy(email) {
-            onSnapshot(query(collection(db, "pedidos"), where("motoboyDesignado", "==", email), where("status", "in", ["A Caminho", "Saiu para Entrega"])), (snap) => {
+            onSnapshot(query(collection(db, "pedidos"), where("motoboyDesignado", "==", email), where("status", "==", "A Caminho")), (snap) => {
                 const lista = document.getElementById('lista-entregas-motoboy');
+                if(!lista) return;
                 lista.innerHTML = "";
                 if(snap.empty) { lista.innerHTML = "<p class='text-gray-500'>Nenhuma entrega pendente.</p>"; return; }
         
@@ -438,10 +426,7 @@
                         <p><b>Cliente:</b> ${p.cliente}</p>
                         <p><b>Itens:</b> ${p.item}</p>
                         <p><b>Destino:</b> ${p.entrega}</p>
-                        <div class="flex gap-2 mt-2">
-                            <button onclick="mudarStatus('${d.id}', 'Saiu para Entrega')" class="w-full bg-blue-500 text-white p-2 rounded font-bold text-xs uppercase">SAIU PARA ENTREGA</button>
-                            <button onclick="mudarStatus('${d.id}', 'Entregue')" class="w-full bg-green-600 text-white p-2 rounded font-bold text-xs uppercase">ENTREGUE</button>
-                        </div>
+                        <button onclick="mudarStatus('${d.id}', 'Entregue')" class="mt-2 w-full bg-green-600 text-white p-2 rounded font-bold">MARCAR COMO ENTREGUE</button>
                     </div>`;
                 });
             });
@@ -514,11 +499,13 @@
         
         function ouvirPedidosAdmin() {
             onSnapshot(query(collection(db, "pedidos"), orderBy("data", "desc")), (snap) => {
-                const lista = document.getElementById('lista-pedidos'); lista.innerHTML = "";
+                const lista = document.getElementById('lista-pedidos'); 
+                if(!lista) return;
+                lista.innerHTML = "";
                 snap.forEach(d => {
                     const p = d.data(); const id = d.id; const isCancelado = p.status === "Cancelado";
                     
-                    let selectMotoboy = `<select onchange="atribuirMotoboy('${id}', this.value)" class="bg-gray-100 text-[10px] p-1 rounded border select-motoboy-dinamico" data-designado="${p.motoboyDesignado || ''}">
+                    let selectMotoboy = `<select onchange="atribuirMotoboy('${id}', this.value)" class="bg-gray-100 text-[10px] p-1 rounded border">
                         <option value="">DESIGNAR MOTOBOY...</option>`;
                         
                     motoboysAtivos.forEach(m => {
@@ -576,12 +563,17 @@
             if(cont > 0) { await batch.commit(); alert(`${cont} pedido(s) removido(s).`); }
         };
         
+        // --- CORREÇÃO: BACKUP COM DATA E HORA DA LIMPEZA ---
         window.limparEBackupPedidos = async () => {
             if(!confirm("Isso irá baixar um TXT com os pedidos Entregues/Cancelados e apagá-los. Continuar?")) return;
             const snap = await getDocs(collection(db, "pedidos"));
             let conteudo = "";
             const batch = writeBatch(db);
             let cont = 0;
+            
+            const agora = new Date();
+            const dataHoraLimpeza = agora.toLocaleString().replace(/[\/: ]/g, '-');
+
             snap.forEach(d => {
                 const p = d.data();
                 if(p.status === "Entregue" || p.status === "Cancelado") {
@@ -595,11 +587,45 @@
                 const blob = new Blob([conteudo], { type: 'text/plain' });
                 const link = document.createElement('a');
                 link.href = URL.createObjectURL(blob);
-                link.download = `backup_pedidos.txt`;
+                link.download = `backup_pedidos_${dataHoraLimpeza}.txt`;
                 link.click();
                 await batch.commit();
                 alert(`${cont} pedidos arquivados.`);
+            } else {
+                alert("Nenhum pedido concluído para limpar.");
             }
+        };
+
+        // --- CORREÇÃO: IMPORTAR HISTÓRICO DE PEDIDOS ---
+        window.importarPedidos = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const linhas = e.target.result.split('\n');
+                let importados = 0;
+
+                for (let linha of linhas) {
+                    if (linha.trim() === "" || !linha.startsWith("PEDIDO|")) continue;
+                    
+                    const partes = linha.split('|');
+                    // Estrutura: PEDIDO | cliente | item | total | status | entrega | dataH | motivo
+                    await addDoc(collection(db, "pedidos"), {
+                        cliente: partes[1] || "",
+                        item: partes[2] || "",
+                        total: partes[3] || "0.00",
+                        status: partes[4] || "Entregue",
+                        entrega: partes[5] || "",
+                        motivoCancelamento: partes[7] || "",
+                        data: serverTimestamp() // Define a data de hoje como data da importação
+                    });
+                    importados++;
+                }
+                alert(`${importados} pedidos importados com sucesso!`);
+                event.target.value = ''; 
+            };
+            reader.readAsText(file);
         };
 
         window.salvarProduto = async () => {
@@ -652,7 +678,9 @@
         
         function ouvirChat() {
             onSnapshot(query(collection(db, "mensagens"), orderBy("hora", "asc")), (snap) => {
-                const box = document.getElementById('chat-box'); box.innerHTML = "";
+                const box = document.getElementById('chat-box'); 
+                if(!box) return;
+                box.innerHTML = "";
                 mensagensAtuais = [];
                 snap.forEach(d => {
                     const m = d.data();
@@ -669,6 +697,7 @@
             if(!motivo) return;
             let conteudo = `ATENDIMENTO FINALIZADO\nMotivo: ${motivo}\nData: ${new Date().toLocaleString()}\n---------------------------\n`;
             mensagensAtuais.forEach(m => { conteudo += `[${m.usuario}] : ${m.texto}\n`; });
+            
             const blob = new Blob([conteudo], { type: 'text/plain' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);

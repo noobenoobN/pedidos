@@ -215,7 +215,6 @@
                     ouvirCardapio(true);
                     ouvirMotoboys();
                 } else if(isMotoboy) {
-                    // Verifica se já tem perfil
                     const docM = await getDoc(doc(db, "motoboys", user.uid));
                     if(!docM.exists()) {
                         mostrarTela('motoboy-setup');
@@ -249,7 +248,7 @@
             if(id) document.getElementById(id).classList.remove('hidden');
         }
 
-        // --- LÓGICA MOTOBOY ---
+        // --- MOTOBOY ---
         window.buscarCEPMotoboy = async () => {
             const cep = document.getElementById('moto-cep').value.replace(/\D/g, '');
             if(cep.length !== 8) return;
@@ -320,17 +319,12 @@
             const configDoc = await getDoc(doc(db, "config", "geral"));
             if(!configDoc.exists()) return 0;
             const { cepOrigem, valorKm } = configDoc.data();
-            
-            // Simulação de cálculo de distância (em um sistema real usaria Google Distance Matrix)
-            // Aqui vamos usar a diferença entre os primeiros dígitos dos CEPs para simular KM
             const d1 = parseInt(cepOrigem.substring(0,2));
             const d2 = parseInt(cepDestino.substring(0,2));
-            const kmSimulado = Math.abs(d1 - d2) + 2; // Mínimo de 2km
-            
+            const kmSimulado = Math.abs(d1 - d2) + 2;
             return kmSimulado * valorKm;
         }
 
-        // --- REAPROVEITANDO E ADAPTANDO FUNÇÕES ORIGINAIS ---
         window.toggleEndereco = () => {
             const div = document.getElementById('campos-endereco');
             const isEntrega = document.getElementById('opcao-entrega').value === "Sim";
@@ -397,7 +391,6 @@
             limparCarrinho();
         };
 
-        // --- GESTÃO ADMIN ATUALIZADA COM MOTOBOY ---
         window.atribuirMotoboy = async (idPedido, emailMoto) => {
             await updateDoc(doc(db, "pedidos", idPedido), { 
                 motoboy: emailMoto,
@@ -434,7 +427,6 @@
             });
         }
 
-        // --- VIEW MOTOBOY ---
         function ouvirEntregasMotoboy(emailMoto) {
             const q = query(collection(db, "pedidos"), where("motoboy", "==", emailMoto));
             onSnapshot(q, (snap) => {
@@ -462,7 +454,6 @@
             document.getElementById(`tab-${tab}`).classList.remove('hidden');
         };
 
-        // --- MANTENDO FUNÇÕES ORIGINAIS DE CARDÁPIO E CHAT ---
         window.salvarProduto = async () => {
             const nome = document.getElementById('prod-nome').value;
             const preco = parseFloat(document.getElementById('prod-preco').value);
@@ -514,7 +505,6 @@
         };
 
         window.limparCarrinho = () => { carrinho = []; taxaEntrega = 0; atualizarCarrinhoVisual(); };
-
         window.mudarStatus = async (id, novoStatus) => { await updateDoc(doc(db, "pedidos", id), { status: novoStatus }); };
 
         window.cancelarPedidoAdmin = async (id) => {
@@ -534,130 +524,41 @@
                     let classe = p.status === 'Cancelado' ? 'status-cancelado' : 
                                 p.status === 'Entregue' ? 'status-entregue' : 'status-pendente';
                     box.innerHTML += `<div class="border-b pb-2 mb-2 flex justify-between items-start last:border-0">
-                        <div class="flex flex-col"><span class="font-medium">${p.item}</span><span class="text-[10px]">Total: R$ ${p.total}</span></div>
-                        <span class="${classe} text-sm">● ${p.status}</span></div>`;
+                        <div class="flex flex-col"><span class="${classe}">${p.status}</span><span class="text-[10px] text-gray-500">${p.item}</span></div>
+                    </div>`;
                 });
             });
         }
 
-        window.limparPedidosConcluidos = async () => {
-            if(!confirm("Deseja remover os pedidos Entregues e Cancelados da sua lista?")) return;
-            const q = query(collection(db, "pedidos"), where("cliente", "==", auth.currentUser.email));
-            const snap = await getDocs(q);
-            const batch = writeBatch(db);
-            let cont = 0;
-            snap.forEach(d => {
-                const status = d.data().status;
-                if(status === "Entregue" || status === "Cancelado") { batch.delete(d.ref); cont++; }
-            });
-            if(cont > 0) { await batch.commit(); alert(`${cont} pedido(s) removido(s).`); }
-        };
-
         window.enviarMensagem = async () => {
-            const input = document.getElementById('chat-input');
-            if(!input.value.trim()) return;
-            await addDoc(collection(db, "mensagens"), { usuario: auth.currentUser.email, texto: input.value, hora: serverTimestamp() });
-            input.value = "";
+            const msg = document.getElementById('chat-input').value;
+            if(!msg) return;
+            const isAdmin = auth.currentUser.email.includes('admin');
+            await addDoc(collection(db, "mensagens"), {
+                texto: msg,
+                usuario: auth.currentUser.email,
+                tipo: isAdmin ? 'admin' : 'cliente',
+                data: serverTimestamp()
+            });
+            document.getElementById('chat-input').value = "";
         };
 
         function ouvirChat() {
-            onSnapshot(query(collection(db, "mensagens"), orderBy("hora", "asc")), (snap) => {
-                const box = document.getElementById('chat-box'); box.innerHTML = "";
-                mensagensAtuais = [];
-                snap.forEach(d => {
+            const q = query(collection(db, "mensagens"), orderBy("data", "asc"));
+            onSnapshot(q, (snapshot) => {
+                const box = document.getElementById('chat-box');
+                box.innerHTML = "";
+                snapshot.forEach(d => {
                     const m = d.data();
-                    mensagensAtuais.push(m);
-                    const classe = m.usuario.includes('admin') ? 'msg-admin' : (m.usuario.includes('motoboy') ? 'msg-admin bg-purple-100' : 'msg-cliente');
-                    box.innerHTML += `<div class="msg ${classe}"><p class="text-[10px] font-bold opacity-50">${m.usuario.split('@')[0]}</p><p>${m.texto}</p></div>`;
+                    const classe = m.tipo === 'admin' ? 'msg-admin' : 'msg-cliente';
+                    box.innerHTML += `<div class="msg ${classe}">
+                        <p class="text-[10px] font-bold opacity-50">${m.usuario.split('@')[0]}</p>
+                        <p>${m.texto}</p>
+                    </div>`;
                 });
                 box.scrollTop = box.scrollHeight;
             });
         }
-        
-        // --- FUNÇÕES DE BACKUP ORIGINAIS ---
-        window.limparEBackupPedidos = async () => {
-            if(!confirm("Isso irá baixar um TXT com os pedidos Entregues/Cancelados e apagá-los. Continuar?")) return;
-            const snap = await getDocs(collection(db, "pedidos"));
-            let conteudo = "";
-            const batch = writeBatch(db);
-            let cont = 0;
-            snap.forEach(d => {
-                const p = d.data();
-                if(p.status === "Entregue" || p.status === "Cancelado") {
-                    const dataH = p.data ? new Date(p.data.seconds * 1000).toLocaleString() : "N/A";
-                    conteudo += `PEDIDO|${p.cliente}|${p.item}|${p.total}|${p.status}|${p.entrega}|${dataH}|${p.motivoCancelamento || ''}\n`;
-                    batch.delete(d.ref);
-                    cont++;
-                }
-            });
-            if(cont > 0) {
-                const blob = new Blob([conteudo], { type: 'text/plain' });
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
-                link.download = `backup_pedidos.txt`;
-                link.click();
-                await batch.commit();
-                alert(`${cont} pedidos arquivados.`);
-            }
-        };
-
-        document.getElementById('import-pedidos').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const texto = e.target.result;
-                const lista = document.getElementById('lista-pedidos');
-                const linhas = texto.split('\n');
-                lista.innerHTML = `<div class="bg-blue-800 text-white p-2 text-center font-bold rounded mb-4 uppercase text-[10px]">Arquivo Importado: ${file.name}</div>` + lista.innerHTML;
-                linhas.forEach(linha => {
-                    if(linha.startsWith("PEDIDO|")) {
-                        const [tag, cliente, item, total, status, entrega, data, motivo] = linha.split('|');
-                        const isCancelado = status === "Cancelado";
-                        lista.innerHTML = `<div class="p-3 bg-gray-50 border-l-4 ${isCancelado ? 'border-gray-400 opacity-60' : 'border-green-500'} rounded shadow mb-2 relative">
-                            <span class="absolute top-1 right-1 bg-gray-200 text-[8px] px-1 rounded font-bold">HISTÓRICO</span>
-                            <div class="flex justify-between"><span><b>${cliente.split('@')[0]}:</b> ${item}</span><span class="bg-gray-100 px-2 rounded text-xs font-bold uppercase">${status}</span></div>
-                            <div class="text-[10px] text-gray-500 italic mt-1">Total: R$ ${total} | ${entrega} | ${data}</div>
-                            ${motivo ? `<p class="text-[10px] text-red-600"><b>Motivo:</b> ${motivo}</p>` : ''}
-                        </div>` + lista.innerHTML;
-                    }
-                });
-            };
-            reader.readAsText(file);
-        });
-
-        window.finalizarChat = async () => {
-            const motivo = prompt("Motivo para finalizar o atendimento:");
-            if(!motivo) return;
-            let conteudo = `ATENDIMENTO FINALIZADO\nMotivo: ${motivo}\nData: ${new Date().toLocaleString()}\n---------------------------\n`;
-            mensagensAtuais.forEach(m => { conteudo += `[${m.usuario}] : ${m.texto}\n`; });
-            const blob = new Blob([conteudo], { type: 'text/plain' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `chat_${new Date().getTime()}.txt`;
-            link.click();
-            const snap = await getDocs(collection(db, "mensagens"));
-            const batch = writeBatch(db);
-            snap.forEach(d => batch.delete(d.ref));
-            await batch.commit();
-        };
-
-        document.getElementById('import-chat').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const texto = e.target.result;
-                const box = document.getElementById('chat-box');
-                box.innerHTML = `<div class="bg-yellow-100 p-2 text-[10px] mb-2 border border-yellow-300 rounded">HISTÓRICO IMPORTADO:</div>`;
-                const linhas = texto.split('\n');
-                linhas.forEach(linha => {
-                    if(linha.trim()){ box.innerHTML += `<div class="text-[11px] border-b border-gray-100 py-1">${linha}</div>`; }
-                });
-            };
-            reader.readAsText(file);
-        });
-
     </script>
 </body>
 </html>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meu Delivery - Versão Final com Status Motoboy</title>
+    <title>Meu Delivery - Versão Responsiva e Mini Impressora</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .hidden { display: none; }
@@ -17,35 +17,50 @@
         .status-entregue { color: #16a34a; font-weight: bold; }
         .status-cancelado { color: #4b5563; font-weight: bold; text-decoration: line-through; }
 
-        /* SCROLL BAR ESCONDIDA PARA ABAS NO CELULAR */
+        /* Abas com rolagem horizontal no celular */
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* CONFIGURAÇÃO DE IMPRESSÃO CORRIGIDA PARA CELULAR */
+        /* MODO DE IMPRESSÃO - OTIMIZADO PARA MINI IMPRESSORAS (TÉRMICAS) */
         @media print {
-            @page { margin: 0; }
-            body { background: white !important; }
-            body * { visibility: hidden; }
-            
-            .imprimir-este, .imprimir-este * { 
-                visibility: visible !important; 
-                color: black !important; /* Força cor preta (corrige o bug do papel branco no modo escuro) */
+            @page {
+                margin: 0;
+                padding: 0;
+            }
+            body { 
+                background: white !important; 
+                margin: 0; 
+                padding: 0; 
+                visibility: hidden; /* Esconde o site todo */
             }
             
             .imprimir-este { 
-                position: fixed !important; /* Fixed funciona melhor que absolute no Chrome/Safari mobile */
+                visibility: visible !important;
+                position: absolute; 
                 left: 0; 
                 top: 0; 
                 width: 100% !important; 
-                max-width: 80mm !important; 
-                font-family: 'Courier New', Courier, monospace; 
-                font-size: 14px !important; /* Fonte ligeiramente maior para ficar nítido */
-                padding: 10px !important; 
+                max-width: 80mm !important; /* Tamanho exato para impressoras térmicas */
+                font-family: 'Courier New', Courier, monospace !important; /* Fonte de cupom */
+                font-size: 14px !important;
+                line-height: 1.4 !important;
+                padding: 5mm !important; 
                 background: white !important; 
-                box-sizing: border-box;
-                z-index: 9999;
+                color: black !important;
+                box-shadow: none !important;
+                border: none !important;
             }
-            button, select, nav { display: none !important; }
+            
+            .imprimir-este * {
+                visibility: visible !important;
+                color: black !important; /* Força tudo a ser preto na impressora */
+            }
+
+            /* Remove os botões e selects na hora de imprimir */
+            .imprimir-este button, 
+            .imprimir-este select { 
+                display: none !important; 
+            }
         }
     </style>
 </head>
@@ -76,83 +91,83 @@
     <div id="main-screen" class="hidden min-h-screen">
         <nav class="bg-red-600 text-white p-4 flex justify-between items-center shadow-md">
             <span id="user-welcome" class="font-medium text-sm md:text-base">Carregando...</span>
-            <button onclick="sair()" class="bg-red-800 px-3 py-1 rounded text-sm whitespace-nowrap ml-2">Sair</button>
+            <button onclick="sair()" class="bg-red-800 px-4 py-2 rounded text-sm font-bold whitespace-nowrap ml-2">Sair</button>
         </nav>
 
         <div class="max-w-6xl mx-auto p-4 grid grid-cols-1 lg:grid-cols-3 gap-6">
             
-            <div class="lg:col-span-2 bg-white p-4 md:p-6 rounded-lg shadow overflow-hidden">
+            <div class="lg:col-span-2 bg-white p-4 md:p-6 rounded-lg shadow overflow-hidden w-full">
                 
                 <div id="cliente-view" class="hidden">
                     <h3 class="text-xl font-bold mb-4">Cardápio</h3>
-                    <div id="cardapio-lista" class="grid grid-cols-1 gap-3 mb-6"></div>
+                    <div id="cardapio-lista" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6"></div>
                     
                     <div class="border-t pt-4 space-y-3">
-                        <div class="flex justify-between items-center">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                             <h3 class="font-bold text-lg text-red-600 italic">Meus Pedidos Ativos</h3>
-                            <button onclick="limparPedidosConcluidos()" class="text-[10px] bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded uppercase font-bold text-gray-600 whitespace-nowrap">Limpar Finalizados</button>
+                            <button onclick="limparPedidosConcluidos()" class="text-xs bg-gray-200 hover:bg-gray-300 px-3 py-2 rounded uppercase font-bold text-gray-600 w-full sm:w-auto">Limpar Finalizados</button>
                         </div>
                         <div id="meus-pedidos-status" class="bg-white border rounded p-3 text-sm space-y-2 mb-4 shadow-inner min-h-[50px]">
                             Nenhum pedido em andamento.
                         </div>
 
-                        <h3 class="font-bold text-lg">Finalizar Novo Pedido</h3>
+                        <h3 class="font-bold text-lg mt-6">Finalizar Novo Pedido</h3>
                         <div class="bg-gray-50 p-3 rounded border text-sm mb-2">
                             <p class="font-bold mb-1 border-b pb-1">Carrinho:</p>
                             <div id="lista-carrinho" class="space-y-1 mb-2 italic text-gray-600">Seu carrinho está vazio.</div>
                         </div>
 
-                        <select id="opcao-entrega" onchange="toggleEndereco()" class="w-full border p-2 rounded">
+                        <select id="opcao-entrega" onchange="toggleEndereco()" class="w-full border p-3 rounded bg-white">
                             <option value="Sim">Preciso de Entrega (Sim)</option>
                             <option value="Não">Vou buscar no local (Não)</option>
                         </select>
-                        <div id="campos-endereco" class="space-y-2">
-                            <input id="cep" type="text" placeholder="CEP" onblur="buscarCEP()" class="w-full border p-2 rounded">
-                            <input id="rua" type="text" placeholder="Rua / Endereço" class="w-full border p-2 rounded bg-gray-50">
-                            <input id="num" type="text" placeholder="Número" onblur="recalcularFrete()" class="w-full border p-2 rounded">
+                        <div id="campos-endereco" class="space-y-2 mt-2">
+                            <input id="cep" type="text" placeholder="CEP" onblur="buscarCEP()" class="w-full border p-3 rounded">
+                            <input id="rua" type="text" placeholder="Rua / Endereço" class="w-full border p-3 rounded bg-gray-50">
+                            <input id="num" type="text" placeholder="Número" onblur="recalcularFrete()" class="w-full border p-3 rounded">
                         </div>
-                        <div class="bg-yellow-50 p-3 rounded border border-yellow-200 text-sm">
+                        <div class="bg-yellow-50 p-3 rounded border border-yellow-200 text-sm mt-3">
                             <div class="flex justify-between"><span>Subtotal:</span> <span id="resumo-subtotal">R$ 0.00</span></div>
                             <div class="flex justify-between text-blue-600"><span>Taxa de Entrega:</span> <span id="resumo-taxa">R$ 0.00</span></div>
-                            <hr class="my-1 border-yellow-300">
+                            <hr class="my-2 border-yellow-300">
                             <div class="flex justify-between font-bold text-lg mt-1"><span>Total:</span> <span id="resumo-carrinho">R$ 0.00</span></div>
                         </div>
-                        <button onclick="enviarPedidoCompleto()" class="w-full bg-green-600 text-white p-3 rounded font-bold uppercase hover:bg-green-700 transition">Confirmar e Enviar</button>
-                        <button onclick="limparCarrinho()" class="w-full text-xs text-red-500 underline mt-2 py-2">Limpar Carrinho</button>
+                        <button onclick="enviarPedidoCompleto()" class="w-full bg-green-600 text-white p-4 rounded font-bold uppercase hover:bg-green-700 transition mt-3">Confirmar e Enviar</button>
+                        <button onclick="limparCarrinho()" class="w-full text-sm text-red-500 underline mt-2 py-2">Limpar Carrinho</button>
                     </div>
                 </div>
 
                 <div id="admin-view" class="hidden">
-                    <div class="flex gap-4 mb-4 border-b overflow-x-auto scrollbar-hide whitespace-nowrap pb-1">
-                        <button onclick="tabAdmin('pedidos')" id="btn-tab-pedidos" class="pb-2 font-bold border-b-2 border-red-600 px-1">Pedidos</button>
-                        <button onclick="tabAdmin('cardapio')" id="btn-tab-cardapio" class="pb-2 font-bold px-1">Cardápio</button>
-                        <button onclick="tabAdmin('motoboys')" id="btn-tab-motoboys" class="pb-2 font-bold px-1">Gerenciar Motoboys</button>
-                        <button onclick="tabAdmin('config')" id="btn-tab-config" class="pb-2 font-bold px-1">Configurações</button>
+                    <div class="flex gap-2 mb-4 border-b overflow-x-auto scrollbar-hide whitespace-nowrap pb-2">
+                        <button onclick="tabAdmin('pedidos')" id="btn-tab-pedidos" class="px-3 py-1 font-bold border-b-2 border-red-600 text-sm md:text-base">Pedidos</button>
+                        <button onclick="tabAdmin('cardapio')" id="btn-tab-cardapio" class="px-3 py-1 font-bold text-sm md:text-base text-gray-600">Cardápio</button>
+                        <button onclick="tabAdmin('motoboys')" id="btn-tab-motoboys" class="px-3 py-1 font-bold text-sm md:text-base text-gray-600">Motoboys</button>
+                        <button onclick="tabAdmin('config')" id="btn-tab-config" class="px-3 py-1 font-bold text-sm md:text-base text-gray-600">Config</button>
                     </div>
 
                     <div id="tab-pedidos">
-                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-2">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3">
                             <h3 class="text-xl font-bold">Painel de Pedidos</h3>
-                            <div class="flex gap-2 flex-wrap">
-                                <label class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-[10px] cursor-pointer hover:bg-blue-200 font-bold border border-blue-300">
-                                    IMPORTAR TXT <input type="file" id="import-pedidos" class="hidden" accept=".txt" onchange="importarPedidos(event)">
+                            <div class="flex flex-wrap gap-2 w-full md:w-auto">
+                                <label class="flex-1 text-center bg-blue-100 text-blue-700 px-3 py-2 rounded text-xs cursor-pointer hover:bg-blue-200 font-bold border border-blue-300">
+                                    IMPORTAR <input type="file" id="import-pedidos" class="hidden" accept=".txt" onchange="importarPedidos(event)">
                                 </label>
-                                <button onclick="limparEBackupPedidos()" class="bg-gray-800 text-white px-2 py-1 rounded text-[10px] font-bold">BACKUP / LIMPAR</button>
+                                <button onclick="limparEBackupPedidos()" class="flex-1 bg-gray-800 text-white px-3 py-2 rounded text-xs font-bold">BACKUP/LIMPAR</button>
                             </div>
                         </div>
-                        <div id="lista-pedidos" class="space-y-3 text-sm"></div>
+                        <div id="lista-pedidos" class="space-y-4 text-sm w-full"></div>
                     </div>
 
                     <div id="tab-cardapio" class="hidden">
                         <h3 class="text-xl font-bold mb-4">Gerenciar Cardápio</h3>
-                        <div class="bg-gray-50 p-4 rounded mb-6 border">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                <input id="prod-nome" type="text" placeholder="Nome do Produto" class="border p-2 rounded w-full">
-                                <input id="prod-preco" type="number" placeholder="Preço" class="border p-2 rounded w-full">
+                        <div class="bg-gray-50 p-4 rounded mb-6 border w-full">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <input id="prod-nome" type="text" placeholder="Nome do Produto" class="border p-3 rounded w-full">
+                                <input id="prod-preco" type="number" placeholder="Preço" class="border p-3 rounded w-full">
                             </div>
-                            <button onclick="salvarProduto()" class="mt-3 w-full bg-green-600 text-white p-3 rounded font-bold">Salvar Produto</button>
+                            <button onclick="salvarProduto()" class="mt-4 w-full bg-green-600 text-white p-3 rounded font-bold">Salvar Produto</button>
                         </div>
-                        <div id="admin-cardapio-lista" class="space-y-2 mb-8 text-sm"></div>
+                        <div id="admin-cardapio-lista" class="space-y-3 mb-8 text-sm"></div>
                     </div>
 
                     <div id="tab-motoboys" class="hidden">
@@ -166,16 +181,16 @@
                         <h3 class="text-xl font-bold mb-4">Configuração de Entrega</h3>
                         <div class="space-y-4 bg-gray-50 p-4 border rounded">
                             <div>
-                                <label class="block text-sm font-bold">CEP da Loja (Origem):</label>
-                                <input id="config-cep-origem" type="text" placeholder="00000-000" onblur="buscarCEPLoja()" class="border p-2 w-full rounded">
-                                <input id="config-rua-origem" type="text" placeholder="Endereço da Loja" class="border p-2 w-full rounded mt-2 bg-gray-50" readonly>
-                                <input id="config-num-origem" type="text" placeholder="Número" class="border p-2 w-full rounded mt-2">
+                                <label class="block text-sm font-bold mb-1">CEP da Loja (Origem):</label>
+                                <input id="config-cep-origem" type="text" placeholder="00000-000" onblur="buscarCEPLoja()" class="border p-3 w-full rounded">
+                                <input id="config-rua-origem" type="text" placeholder="Endereço da Loja" class="border p-3 w-full rounded mt-2 bg-gray-100" readonly>
+                                <input id="config-num-origem" type="text" placeholder="Número" class="border p-3 w-full rounded mt-2">
                             </div>
                             <div>
-                                <label class="block text-sm font-bold">Valor Taxa por KM (R$):</label>
-                                <input id="config-valor-km" type="number" placeholder="Ex: 2.50" class="border p-2 w-full rounded">
+                                <label class="block text-sm font-bold mb-1">Valor Taxa por KM (R$):</label>
+                                <input id="config-valor-km" type="number" placeholder="Ex: 2.50" class="border p-3 w-full rounded">
                             </div>
-                            <button onclick="salvarConfigLoja()" class="bg-red-600 text-white p-3 w-full rounded font-bold">Salvar Configurações</button>
+                            <button onclick="salvarConfigLoja()" class="bg-red-600 text-white p-4 w-full rounded font-bold mt-2">Salvar Configurações</button>
                         </div>
                     </div>
                 </div>
@@ -194,20 +209,20 @@
                 </div>
             </div>
 
-            <div class="bg-white p-4 md:p-6 rounded-lg shadow flex flex-col h-[500px]">
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b pb-2 gap-2">
+            <div class="bg-white p-4 md:p-6 rounded-lg shadow flex flex-col h-[400px] md:h-[500px]">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 border-b pb-2 gap-2">
                     <h3 class="text-xl font-bold text-blue-600">Suporte / Chat</h3>
-                    <div id="admin-chat-tools" class="hidden flex gap-2 flex-wrap">
-                        <label class="bg-gray-200 px-2 py-1 rounded text-[10px] cursor-pointer hover:bg-gray-300 font-bold border">
-                            Importar TXT <input type="file" id="import-chat" class="hidden" accept=".txt" onchange="importarChat(event)">
+                    <div id="admin-chat-tools" class="hidden flex flex-wrap gap-2 w-full sm:w-auto">
+                        <label class="flex-1 text-center bg-gray-200 px-3 py-1 rounded text-[10px] cursor-pointer hover:bg-gray-300 font-bold border">
+                            IMPORTAR <input type="file" id="import-chat" class="hidden" accept=".txt" onchange="importarChat(event)">
                         </label>
-                        <button onclick="finalizarChat()" class="bg-red-500 text-white px-2 py-1 rounded text-[10px] font-bold">Finalizar Chat</button>
+                        <button onclick="finalizarChat()" class="flex-1 bg-red-500 text-white px-3 py-1 rounded text-[10px] font-bold">FINALIZAR</button>
                     </div>
                 </div>
-                <div id="chat-box" class="flex-1 p-2 mb-4 bg-gray-50 rounded border"></div>
+                <div id="chat-box" class="flex-1 p-2 mb-4 bg-gray-50 rounded border overflow-y-auto"></div>
                 <div class="flex gap-2">
-                    <input id="chat-input" type="text" placeholder="Digite..." class="flex-1 border p-3 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">
-                    <button onclick="enviarMensagem()" class="bg-blue-600 text-white px-5 py-3 rounded font-bold">Enviar</button>
+                    <input id="chat-input" type="text" placeholder="Digite..." class="flex-1 border p-3 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full">
+                    <button onclick="enviarMensagem()" class="bg-blue-600 text-white px-4 py-3 rounded font-bold">Enviar</button>
                 </div>
             </div>
         </div>
@@ -258,7 +273,7 @@
 
             if (user) {
                 document.getElementById('auth-screen').classList.add('hidden');
-                document.getElementById('user-welcome').innerText = `Logado como: ${user.email}`;
+                document.getElementById('user-welcome').innerText = `${user.email}`;
                 
                 const isAdmin = user.email.includes('admin');
                 const isMotoboy = user.email.includes('motoboy');
@@ -356,11 +371,11 @@
                     const m = d.data();
                     const id = d.id;
                     if(m.status === "Pendente") {
-                        listaP.innerHTML += `<div class="p-3 bg-yellow-50 border border-yellow-200 rounded flex justify-between items-center"><div class="text-xs"><b>${m.email}</b><br>${m.telefone} | ${m.endereco}</div><div class="flex gap-2"><button onclick="aprovarMotoboy('${id}')" class="bg-green-600 text-white px-2 py-1 rounded text-[10px]">APROVAR</button><button onclick="rejeitarMotoboy('${id}')" class="bg-red-600 text-white px-2 py-1 rounded text-[10px]">EXCLUIR</button></div></div>`;
+                        listaP.innerHTML += `<div class="p-3 bg-yellow-50 border border-yellow-200 rounded flex flex-col gap-2"><div class="text-sm"><b>${m.email}</b><br>${m.telefone} | ${m.endereco}</div><div class="flex gap-2"><button onclick="aprovarMotoboy('${id}')" class="flex-1 bg-green-600 text-white px-3 py-2 rounded text-xs font-bold">APROVAR</button><button onclick="rejeitarMotoboy('${id}')" class="flex-1 bg-red-600 text-white px-3 py-2 rounded text-xs font-bold">EXCLUIR</button></div></div>`;
                     } else {
                         motoboysAtivos.push(m);
                         const corStatus = m.statusTrabalho === "Em Trabalho" ? "text-green-600" : "text-gray-400";
-                        listaA.innerHTML += `<div class="p-2 bg-white border rounded text-xs flex justify-between"><span><b>${m.email}</b> - ${m.telefone} <i class="${corStatus} font-bold">(${m.statusTrabalho || 'Ativo'})</i></span><button onclick="rejeitarMotoboy('${id}')" class="text-red-500 underline py-1 px-2">Remover</button></div>`;
+                        listaA.innerHTML += `<div class="p-3 bg-white border rounded text-sm flex flex-col sm:flex-row justify-between sm:items-center gap-2"><span><b>${m.email}</b> - ${m.telefone} <i class="${corStatus} font-bold">(${m.statusTrabalho || 'Ativo'})</i></span><button onclick="rejeitarMotoboy('${id}')" class="text-red-500 font-bold bg-red-50 py-1 px-3 rounded w-full sm:w-auto">Remover</button></div>`;
                     }
                 });
                 ouvirPedidosAdmin(); 
@@ -426,10 +441,12 @@
             const abas = ['pedidos', 'cardapio', 'motoboys', 'config'];
             abas.forEach(a => {
                 document.getElementById(`tab-${a}`).classList.add('hidden');
-                document.getElementById(`btn-tab-${a}`).classList.remove('border-b-2', 'border-red-600');
+                document.getElementById(`btn-tab-${a}`).classList.remove('border-b-2', 'border-red-600', 'text-black');
+                document.getElementById(`btn-tab-${a}`).classList.add('text-gray-600');
             });
             document.getElementById(`tab-${tab}`).classList.remove('hidden');
-            document.getElementById(`btn-tab-${tab}`).classList.add('border-b-2', 'border-red-600');
+            document.getElementById(`btn-tab-${tab}`).classList.remove('text-gray-600');
+            document.getElementById(`btn-tab-${tab}`).classList.add('border-b-2', 'border-red-600', 'text-black');
         };
 
         window.buscarCEP = async () => {
@@ -467,7 +484,7 @@
                     const p = d.data();
                     if(p.motoboyDesignado === email && p.status === "A Caminho") {
                         temEntrega = true;
-                        lista.innerHTML += `<div class="p-4 bg-blue-50 border border-blue-200 rounded"> <p><b>Cliente:</b> ${p.cliente}</p><p class="my-1"><b>Itens:</b> ${p.item}</p><p class="mb-3"><b>Destino:</b> ${p.entrega}</p><button onclick="mudarStatus('${d.id}', 'Entregue')" class="w-full bg-green-600 text-white p-3 rounded font-bold">MARCAR COMO ENTREGUE</button></div>`;
+                        lista.innerHTML += `<div class="p-4 bg-blue-50 border border-blue-200 rounded"> <p class="mb-1"><b>Cliente:</b> ${p.cliente}</p><p class="mb-1"><b>Itens:</b> ${p.item}</p><p class="mb-3"><b>Destino:</b> ${p.entrega}</p><button onclick="mudarStatus('${d.id}', 'Entregue')" class="w-full bg-green-600 text-white p-4 rounded font-bold">MARCAR COMO ENTREGUE</button></div>`;
                     }
                 });
                 if(!temEntrega) {
@@ -544,13 +561,18 @@
             await updateDoc(doc(db, "pedidos", id), { status: novoStatus });
         };
 
-        // --- NOVA FUNÇÃO DE IMPRESSÃO ---
+        // --- FUNÇÃO DE IMPRESSÃO CORRIGIDA PARA MINI IMPRESSORAS ---
         window.imprimirPedido = (id) => {
             const card = document.getElementById(`card-pedido-${id}`);
             if (card) {
+                // Adiciona a classe que o CSS intercepta
                 card.classList.add('imprimir-este');
                 window.print();
-                card.classList.remove('imprimir-este');
+                
+                // Remove a classe logo depois para o celular voltar a tela normal
+                setTimeout(() => {
+                    card.classList.remove('imprimir-este');
+                }, 1000); 
             }
         };
 
@@ -571,7 +593,7 @@
                 docs.forEach(p => {
                     const id = p.id;
                     const isCancelado = p.status === "Cancelado";
-                    let selectMotoboy = `<select onchange="atribuirMotoboy('${id}', this.value)" class="bg-gray-100 text-xs p-2 rounded border w-full md:w-auto mt-2 md:mt-0"> <option value="">DESIGNAR MOTOBOY...</option>`;
+                    let selectMotoboy = `<select onchange="atribuirMotoboy('${id}', this.value)" class="bg-gray-100 p-2 rounded border w-full mt-2 text-sm font-bold"> <option value="">🛵 DESIGNAR MOTOBOY...</option>`;
                     motoboysAtivos.forEach(m => {
                         if (m.statusTrabalho === "Em Trabalho" || p.motoboyDesignado === m.email) {
                             selectMotoboy += `<option value="${m.email}" ${p.motoboyDesignado === m.email ? 'selected' : ''}> ${m.email.split('@')[0]} (${m.statusTrabalho}) </option>`;
@@ -579,21 +601,24 @@
                     });
                     selectMotoboy += `</select>`;
                     
-                    /* CLASSES ALTERADAS AQUI (flex-wrap e gap) PARA BOTÕES NÃO CORTAREM NO CELULAR */
+                    /* CLASSES ALTERADAS PARA BOTÕES FICAREM RESPONSIVOS E NÃO CORTAREM NA TELA (flex-wrap e gap-2) */
                     lista.innerHTML += `
-                    <div id="card-pedido-${id}" class="p-3 bg-white border-l-4 ${isCancelado ? 'border-gray-500 opacity-75' : 'border-red-500'} rounded shadow-md mb-3"> 
-                        <div class="flex justify-between items-start">
-                            <span class="pr-2"><b>${p.cliente.split('@')[0]}:</b> ${p.item}</span>
-                            <span class="bg-gray-200 text-xs px-2 py-1 rounded font-bold whitespace-nowrap">R$ ${p.total}</span>
+                    <div id="card-pedido-${id}" class="p-4 bg-white border-l-4 ${isCancelado ? 'border-gray-500 opacity-75' : 'border-red-500'} rounded shadow-md mb-4 w-full"> 
+                        <div class="flex flex-col sm:flex-row justify-between items-start mb-2 gap-2">
+                            <span class="text-base break-words w-full"><b>${p.cliente.split('@')[0]}:</b> ${p.item}</span>
+                            <span class="bg-gray-200 px-3 py-1 rounded font-bold whitespace-nowrap self-start">R$ ${p.total}</span>
                         </div>
-                        <p class="text-xs text-gray-500 my-2"><span class="font-bold text-gray-700">Status: ${p.status}</span> | ${p.entrega}</p>
-                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mt-2 border-t pt-2 gap-2">
-                            <div class="flex flex-wrap gap-2 w-full md:w-auto">
-                                <button onclick="mudarStatus('${id}', 'Preparando'); imprimirPedido('${id}')" class="bg-yellow-500 text-white px-3 py-2 md:py-1 rounded text-xs font-bold flex-1 md:flex-none">PREPARAR</button>
-                                <button onclick="mudarStatus('${id}', 'Pronto')" class="bg-blue-500 text-white px-3 py-2 md:py-1 rounded text-xs font-bold flex-1 md:flex-none">PRONTO</button>
-                                <button onclick="cancelarPedidoAdmin('${id}')" class="bg-red-600 text-white px-3 py-2 md:py-1 rounded text-xs font-bold flex-1 md:flex-none">CANCELAR</button>
+                        <div class="text-sm text-gray-600 mb-3 border-b pb-2">
+                            <span class="font-bold text-gray-800 block mb-1">Status: ${p.status}</span>
+                            <span class="block">Endereço: ${p.entrega}</span>
+                        </div>
+                        <div class="flex flex-col space-y-3">
+                            <div class="flex flex-wrap gap-2 w-full">
+                                <button onclick="mudarStatus('${id}', 'Preparando'); imprimirPedido('${id}')" class="bg-yellow-500 text-white px-3 py-2 rounded text-xs font-bold flex-1 text-center min-w-[100px]">IMPRIMIR & PREPARAR</button>
+                                <button onclick="mudarStatus('${id}', 'Pronto')" class="bg-blue-500 text-white px-3 py-2 rounded text-xs font-bold flex-1 text-center min-w-[80px]">PRONTO</button>
+                                <button onclick="cancelarPedidoAdmin('${id}')" class="bg-red-600 text-white px-3 py-2 rounded text-xs font-bold flex-1 text-center min-w-[80px]">CANCELAR</button>
                             </div>
-                            ${!isCancelado ? selectMotoboy : `<span class="text-xs text-red-500 font-bold w-full md:w-auto text-center">${p.motivoCancelamento || ''}</span>`}
+                            ${!isCancelado ? selectMotoboy : `<div class="bg-red-50 text-red-600 p-2 rounded text-sm font-bold text-center mt-2">Motivo: ${p.motivoCancelamento || ''}</div>`}
                         </div>
                     </div>`;
                 });
@@ -627,10 +652,10 @@
                     const p = docSnap.data();
                     const id = docSnap.id;
                     if(isAdmin && listaA) {
-                        listaA.innerHTML += `<div class="flex justify-between items-center p-3 border rounded ${p.ativo ? 'bg-white' : 'bg-gray-200 opacity-60'}"> <span>${p.nome} - <b>R$ ${p.preco.toFixed(2)}</b></span> <div class="flex gap-2"> <button onclick="toggleProduto('${id}', ${p.ativo})" class="bg-yellow-500 text-white px-3 py-1 rounded text-xs font-bold">${p.ativo ? 'Ocultar' : 'Mostrar'}</button> <button onclick="excluirProduto('${id}')" class="bg-red-500 text-white px-3 py-1 rounded text-xs font-bold">Excluir</button> </div> </div>`;
+                        listaA.innerHTML += `<div class="flex flex-col sm:flex-row justify-between sm:items-center p-3 border rounded gap-2 ${p.ativo ? 'bg-white' : 'bg-gray-200 opacity-60'}"> <span class="text-base">${p.nome} - <b>R$ ${p.preco.toFixed(2)}</b></span> <div class="flex gap-2"> <button onclick="toggleProduto('${id}', ${p.ativo})" class="flex-1 sm:flex-none bg-yellow-500 text-white px-4 py-2 rounded text-sm font-bold">${p.ativo ? 'Ocultar' : 'Mostrar'}</button> <button onclick="excluirProduto('${id}')" class="flex-1 sm:flex-none bg-red-500 text-white px-4 py-2 rounded text-sm font-bold">Excluir</button> </div> </div>`;
                     }
                     if(p.ativo && listaC) {
-                        listaC.innerHTML += `<div class="p-3 bg-gray-50 border rounded flex justify-between items-center shadow-sm hover:shadow transition"><div><span class="font-bold">${p.nome}</span><br><span class="text-sm text-green-700 font-bold">R$ ${p.preco.toFixed(2)}</span></div><div class="flex items-center gap-2"><input type="number" id="qtd-${id}" value="1" min="1" class="w-12 border p-2 rounded text-center"><button onclick="selecionarItem('${p.nome}', ${p.preco}, '${id}')" class="bg-red-600 text-white px-4 py-2 rounded text-sm font-bold hover:bg-red-700">+</button></div></div>`;
+                        listaC.innerHTML += `<div class="p-3 bg-gray-50 border rounded flex justify-between items-center shadow-sm hover:shadow transition"><div><span class="font-bold text-base">${p.nome}</span><br><span class="text-sm text-green-700 font-bold">R$ ${p.preco.toFixed(2)}</span></div><div class="flex items-center gap-2"><input type="number" id="qtd-${id}" value="1" min="1" class="w-16 border p-2 rounded text-center text-lg"><button onclick="selecionarItem('${p.nome}', ${p.preco}, '${id}')" class="bg-red-600 text-white px-5 py-2 rounded text-lg font-bold hover:bg-red-700">+</button></div></div>`;
                     }
                 });
             });
@@ -648,7 +673,7 @@
                 if (docs.length === 0) { box.innerHTML = "Nenhum pedido em andamento."; return; }
                 docs.forEach(p => {
                     let classe = p.status === 'Cancelado' ? 'status-cancelado' : p.status === 'Entregue' ? 'status-entregue' : p.status === 'A Caminho' ? 'status-caminho' : 'status-pendente';
-                    box.innerHTML += `<div class="border-b pb-2 mb-2 flex justify-between items-start last:border-0 gap-2"> <div class="flex flex-col"><span class="font-medium text-sm">${p.item}</span><span class="text-xs text-gray-500">Total: R$ ${p.total}</span></div> <span class="${classe} text-xs whitespace-nowrap mt-1">● ${p.status}</span></div>`;
+                    box.innerHTML += `<div class="border-b pb-3 mb-3 flex flex-col sm:flex-row justify-between items-start last:border-0 gap-2"> <div class="flex flex-col"><span class="font-medium text-base">${p.item}</span><span class="text-sm text-gray-500 mt-1">Total: R$ ${p.total}</span></div> <span class="${classe} text-sm whitespace-nowrap mt-1 bg-gray-50 px-2 py-1 rounded border">● ${p.status}</span></div>`;
                 });
             });
         }

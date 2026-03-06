@@ -77,7 +77,7 @@ Criar Nova Conta
 </div>
 </div>
 
-    <div id="main-screen" class="hidden min-h-screen">
+<div id="main-screen" class="hidden min-h-screen">
 
 <nav class="bg-red-600 text-white p-4 flex justify-between items-center shadow-md">
 <span id="user-welcome">Carregando...</span>
@@ -128,13 +128,8 @@ Seu carrinho está vazio.
 <select id="opcao-entrega" onchange="toggleEndereco()"
 class="w-full border p-2 rounded">
 
-<option value="Sim">
-Preciso de Entrega (Sim)
-</option>
-
-<option value="Não">
-Vou buscar no local (Não)
-</option>
+<option value="Sim">Preciso de Entrega (Sim)</option>
+<option value="Não">Vou buscar no local (Não)</option>
 
 </select>
 
@@ -158,6 +153,7 @@ Confirmar e Enviar
 
 </div>
 </div>
+
 <script type="module">
 
 import { initializeApp }
@@ -200,7 +196,6 @@ appId:"1:812273915392:web:9fc70d67ac717a11ca6ae5"
 const app = initializeApp(firebaseConfig);
 
 const auth = getAuth(app);
-
 const db = getFirestore(app);
 
 window.cadastrar = () => {
@@ -226,27 +221,22 @@ signInWithEmailAndPassword(auth,email,senha)
 
 window.sair = () => signOut(auth);
 
-    onAuthStateChanged(auth,(user)=>{
+onAuthStateChanged(auth,(user)=>{
 
 if(user){
 
 document.getElementById("auth-screen").classList.add("hidden");
-
 document.getElementById("main-screen").classList.remove("hidden");
-
 document.getElementById("user-welcome").innerText =
 "Logado como: " + user.email;
 
 ouvirCardapio();
-
 ouvirStatusCliente(user.email);
-
 ouvirChat();
 
 }else{
 
 document.getElementById("auth-screen").classList.remove("hidden");
-
 document.getElementById("main-screen").classList.add("hidden");
 
 }
@@ -258,7 +248,6 @@ function ouvirCardapio(){
 onSnapshot(collection(db,"produtos"),(snapshot)=>{
 
 const lista = document.getElementById("cardapio-lista");
-
 lista.innerHTML="";
 
 snapshot.forEach(docSnap=>{
@@ -267,7 +256,6 @@ const p = docSnap.data();
 
 lista.innerHTML += `
 <div class="p-3 border rounded flex justify-between">
-
 <div>
 <b>${p.nome}</b>
 <br>
@@ -312,10 +300,60 @@ ${m.usuario}: ${m.texto}
 
 }
 
+/* =============================
+   IMPLEMENTAÇÃO NOVA (ADICIONADA)
+   ============================= */
+
+window.imprimirPedido = async (id)=>{
+
+const pedidoRef = doc(db,"pedidos",id);
+const snap = await getDoc(pedidoRef);
+
+if(!snap.exists()) return;
+
+const p = snap.data();
+
+const texto = `
+PEDIDO DELIVERY
+
+Cliente: ${p.cliente}
+Telefone: ${p.telefone}
+
+Endereço: ${p.rua}
+
+Itens:
+${p.itens}
+
+Total: R$ ${p.total}
+
+Status: ${p.status}
+
+${new Date().toLocaleString()}
+`;
+
+const janela = window.open("","","width=400,height=600");
+
+janela.document.write("<pre>"+texto+"</pre>");
+
+janela.document.close();
+
+janela.print();
+
+salvarPedidoLocal(texto);
+
+};
+
+function salvarPedidoLocal(texto){
+
+let pedidos = JSON.parse(localStorage.getItem("pedidosSalvos")) || [];
+
+pedidos.push(texto);
+
+localStorage.setItem("pedidosSalvos",JSON.stringify(pedidos));
+
+}
+
 </script>
 
 </body>
 </html>
-
-    
-    

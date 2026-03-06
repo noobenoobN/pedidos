@@ -18,18 +18,16 @@
         .status-cancelado { color: #4b5563; font-weight: bold; text-decoration: line-through; }
 
         /* CONFIGURAÇÃO DE IMPRESSÃO - IMPRIME APENAS O PEDIDO SELECIONADO */
-        @media print {
+@media print {
+            @page { margin: 0; }
             body * { visibility: hidden; }
-            .imprimir-este, .imprimir-este * { visibility: visible; }
+            .imprimir-este, .imprimir-este * { visibility: visible !important; }
             .imprimir-este { 
-                position: absolute; 
-                left: 0; 
-                top: 0; 
-                width: 100%; 
-                border: 1px solid #000; 
-                padding: 10px;
+                position: absolute; left: 0; top: 0; width: 80mm; 
+                font-family: 'Courier New', Courier, monospace; font-size: 12px;
+                padding: 10px; background: white !important;
             }
-            button, select { display: none !important; } /* Esconde botões na impressão */
+            button, select, nav { display: none !important; }
         }
     </style>
 </head>

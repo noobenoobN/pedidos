@@ -2,168 +2,827 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-    <title>Meu Delivery - Mobile Friendly</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meu Delivery - Versão Responsiva e Mini Impressora</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Ajustes para o site não parecer estático */
         .hidden { display: none; }
-        
-        /* Chat adaptável */
-        #chat-box { 
-            height: 300px; 
-            overflow-y: auto; 
-            display: flex; 
-            flex-direction: column; 
-        }
-
-        /* Menu de abas deslizante no celular */
-        .tab-container {
-            display: flex;
-            overflow-x: auto;
-            white-space: nowrap;
-            -webkit-overflow-scrolling: touch;
-            border-bottom: 2px solid #e5e7eb;
-        }
-        .tab-container::-webkit-scrollbar { display: none; } /* Esconde barra no Chrome/Safari */
-
-        /* Estilos de Status */
+        #chat-box { height: 250px; overflow-y: auto; display: flex; flex-direction: column; }
+        .msg { margin-bottom: 8px; padding: 6px 12px; border-radius: 8px; max-width: 80%; }
+        .msg-admin { background: #fee2e2; align-self: flex-start; border: 1px solid #fecaca; }
+        .msg-cliente { background: #dbeafe; align-self: flex-end; border: 1px solid #bfdbfe; }
         .status-pendente { color: #dc2626; font-weight: bold; }
         .status-preparando { color: #d97706; font-weight: bold; }
         .status-caminho { color: #2563eb; font-weight: bold; }
         .status-entregue { color: #16a34a; font-weight: bold; }
         .status-cancelado { color: #4b5563; font-weight: bold; text-decoration: line-through; }
 
-        /* MODO DE IMPRESSÃO - OTIMIZADO PARA MINI IMPRESSORAS (58mm/80mm) */
-        @media print {
-            body * { visibility: hidden; }
-            .imprimir-este, .imprimir-este * { visibility: visible !important; }
-            .imprimir-este { 
-                position: absolute; left: 0; top: 0; width: 100%; 
-                font-family: monospace; font-size: 12px; color: black !important;
-            }
-            .no-print { display: none !important; }
-        }
+        /* Abas com rolagem horizontal no celular */
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* Ajuste de botões para não quebrarem layout */
-        .btn-group {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        .btn-group button {
-            flex: 1 1 auto; /* Faz o botão crescer ou diminuir conforme o espaço */
-            min-width: 120px;
+        /* MODO DE IMPRESSÃO - OTIMIZADO PARA MINI IMPRESSORAS (TÉRMICAS) */
+        @media print {
+            @page {
+                margin: 0;
+                padding: 0;
+            }
+            body { 
+                background: white !important; 
+                margin: 0; 
+                padding: 0; 
+                visibility: hidden; /* Esconde o site todo */
+            }
+            
+            .imprimir-este { 
+                visibility: visible !important;
+                position: absolute; 
+                left: 0; 
+                top: 0; 
+                width: 100% !important; 
+                max-width: 80mm !important; /* Tamanho exato para impressoras térmicas */
+                font-family: 'Courier New', Courier, monospace !important; /* Fonte de cupom */
+                font-size: 14px !important;
+                line-height: 1.4 !important;
+                padding: 5mm !important; 
+                background: white !important; 
+                color: black !important;
+                box-shadow: none !important;
+                border: none !important;
+            }
+            
+            .imprimir-este * {
+                visibility: visible !important;
+                color: black !important; /* Força tudo a ser preto na impressora */
+            }
+
+            /* Remove os botões e selects na hora de imprimir */
+            .imprimir-este button, 
+            .imprimir-este select { 
+                display: none !important; 
+            }
         }
     </style>
 </head>
-<body class="bg-gray-100 font-sans antialiased">
+<body class="bg-gray-100 font-sans">
 
-    <div id="auth-screen" class="min-h-screen flex items-center justify-center p-4">
-        <div class="w-full max-w-md bg-white p-8 rounded-2xl shadow-2xl">
-            <h2 class="text-3xl font-extrabold mb-8 text-center text-red-600">Delivery App</h2>
-            <div class="space-y-4">
-                <input id="email" type="email" placeholder="E-mail" class="w-full border-2 p-4 rounded-xl focus:border-red-500 outline-none transition">
-                <input id="senha" type="password" placeholder="Senha" class="w-full border-2 p-4 rounded-xl focus:border-red-500 outline-none transition">
-                <button onclick="logar()" class="w-full bg-red-600 text-white font-bold p-4 rounded-xl hover:bg-red-700 active:scale-95 transition">Entrar</button>
-                <button onclick="cadastrar()" class="w-full text-gray-500 text-sm hover:underline">Criar Nova Conta</button>
+    <div id="auth-screen" class="max-w-md mx-auto mt-10 md:mt-20 p-6 bg-white rounded-lg shadow-xl mx-4 md:mx-auto">
+        <h2 class="text-2xl font-bold mb-6 text-center text-red-600">Delivery Login</h2>
+        <div class="space-y-4">
+            <input id="email" type="email" placeholder="Seu e-mail" class="w-full border p-3 rounded focus:outline-none focus:ring-2 focus:ring-red-500">
+            <input id="senha" type="password" placeholder="Sua senha" class="w-full border p-3 rounded focus:outline-none focus:ring-2 focus:ring-red-500">
+            <button onclick="logar()" class="w-full bg-red-600 text-white font-bold p-3 rounded hover:bg-red-700 transition">Entrar</button>
+            <button onclick="cadastrar()" class="w-full bg-gray-200 text-gray-700 p-3 rounded hover:bg-gray-300 transition">Criar Nova Conta</button>
+        </div>
+    </div>
+
+    <div id="motoboy-setup" class="hidden max-w-md mx-auto mt-10 md:mt-20 p-6 bg-white rounded-lg shadow-xl mx-4 md:mx-auto">
+        <h2 class="text-xl font-bold mb-4">Completar Perfil Motoboy</h2>
+        <p class="text-sm mb-4 text-gray-600">Seu acesso será liberado após o administrador aprovar seu cadastro.</p>
+        <div class="space-y-3">
+            <input id="moto-tel" type="text" placeholder="Telefone de Contato" class="w-full border p-2 rounded">
+            <input id="moto-cep" type="text" placeholder="Seu CEP" onblur="buscarCEPMotoboy()" class="w-full border p-2 rounded">
+            <input id="moto-rua" type="text" placeholder="Endereço" class="w-full border p-2 rounded bg-gray-50" readonly>
+            <input id="moto-num" type="text" placeholder="Número" class="w-full border p-2 rounded">
+            <button onclick="salvarPerfilMotoboy()" class="w-full bg-blue-600 text-white p-3 rounded font-bold">Solicitar Aprovação</button>
+        </div>
+    </div>
+
+    <div id="main-screen" class="hidden min-h-screen">
+        <nav class="bg-red-600 text-white p-4 flex justify-between items-center shadow-md">
+            <span id="user-welcome" class="font-medium text-sm md:text-base">Carregando...</span>
+            <button onclick="sair()" class="bg-red-800 px-4 py-2 rounded text-sm font-bold whitespace-nowrap ml-2">Sair</button>
+        </nav>
+
+        <div class="max-w-6xl mx-auto p-4 grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <div class="lg:col-span-2 bg-white p-4 md:p-6 rounded-lg shadow overflow-hidden w-full">
+                
+                <div id="cliente-view" class="hidden">
+                    <h3 class="text-xl font-bold mb-4">Cardápio</h3>
+                    <div id="cardapio-lista" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6"></div>
+                    
+                    <div class="border-t pt-4 space-y-3">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                            <h3 class="font-bold text-lg text-red-600 italic">Meus Pedidos Ativos</h3>
+                            <button onclick="limparPedidosConcluidos()" class="text-xs bg-gray-200 hover:bg-gray-300 px-3 py-2 rounded uppercase font-bold text-gray-600 w-full sm:w-auto">Limpar Finalizados</button>
+                        </div>
+                        <div id="meus-pedidos-status" class="bg-white border rounded p-3 text-sm space-y-2 mb-4 shadow-inner min-h-[50px]">
+                            Nenhum pedido em andamento.
+                        </div>
+
+                        <h3 class="font-bold text-lg mt-6">Finalizar Novo Pedido</h3>
+                        <div class="bg-gray-50 p-3 rounded border text-sm mb-2">
+                            <p class="font-bold mb-1 border-b pb-1">Carrinho:</p>
+                            <div id="lista-carrinho" class="space-y-1 mb-2 italic text-gray-600">Seu carrinho está vazio.</div>
+                        </div>
+
+                        <select id="opcao-entrega" onchange="toggleEndereco()" class="w-full border p-3 rounded bg-white">
+                            <option value="Sim">Preciso de Entrega (Sim)</option>
+                            <option value="Não">Vou buscar no local (Não)</option>
+                        </select>
+                        <div id="campos-endereco" class="space-y-2 mt-2">
+                            <input id="cep" type="text" placeholder="CEP" onblur="buscarCEP()" class="w-full border p-3 rounded">
+                            <input id="rua" type="text" placeholder="Rua / Endereço" class="w-full border p-3 rounded bg-gray-50">
+                            <input id="num" type="text" placeholder="Número" onblur="recalcularFrete()" class="w-full border p-3 rounded">
+                        </div>
+                        <div class="bg-yellow-50 p-3 rounded border border-yellow-200 text-sm mt-3">
+                            <div class="flex justify-between"><span>Subtotal:</span> <span id="resumo-subtotal">R$ 0.00</span></div>
+                            <div class="flex justify-between text-blue-600"><span>Taxa de Entrega:</span> <span id="resumo-taxa">R$ 0.00</span></div>
+                            <hr class="my-2 border-yellow-300">
+                            <div class="flex justify-between font-bold text-lg mt-1"><span>Total:</span> <span id="resumo-carrinho">R$ 0.00</span></div>
+                        </div>
+                        <button onclick="enviarPedidoCompleto()" class="w-full bg-green-600 text-white p-4 rounded font-bold uppercase hover:bg-green-700 transition mt-3">Confirmar e Enviar</button>
+                        <button onclick="limparCarrinho()" class="w-full text-sm text-red-500 underline mt-2 py-2">Limpar Carrinho</button>
+                    </div>
+                </div>
+
+                <div id="admin-view" class="hidden">
+                    <div class="flex gap-2 mb-4 border-b overflow-x-auto scrollbar-hide whitespace-nowrap pb-2">
+                        <button onclick="tabAdmin('pedidos')" id="btn-tab-pedidos" class="px-3 py-1 font-bold border-b-2 border-red-600 text-sm md:text-base">Pedidos</button>
+                        <button onclick="tabAdmin('cardapio')" id="btn-tab-cardapio" class="px-3 py-1 font-bold text-sm md:text-base text-gray-600">Cardápio</button>
+                        <button onclick="tabAdmin('motoboys')" id="btn-tab-motoboys" class="px-3 py-1 font-bold text-sm md:text-base text-gray-600">Motoboys</button>
+                        <button onclick="tabAdmin('config')" id="btn-tab-config" class="px-3 py-1 font-bold text-sm md:text-base text-gray-600">Config</button>
+                    </div>
+
+                    <div id="tab-pedidos">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3">
+                            <h3 class="text-xl font-bold">Painel de Pedidos</h3>
+                            <div class="flex flex-wrap gap-2 w-full md:w-auto">
+                                <label class="flex-1 text-center bg-blue-100 text-blue-700 px-3 py-2 rounded text-xs cursor-pointer hover:bg-blue-200 font-bold border border-blue-300">
+                                    IMPORTAR <input type="file" id="import-pedidos" class="hidden" accept=".txt" onchange="importarPedidos(event)">
+                                </label>
+                                <button onclick="limparEBackupPedidos()" class="flex-1 bg-gray-800 text-white px-3 py-2 rounded text-xs font-bold">BACKUP/LIMPAR</button>
+                            </div>
+                        </div>
+                        <div id="lista-pedidos" class="space-y-4 text-sm w-full"></div>
+                    </div>
+
+                    <div id="tab-cardapio" class="hidden">
+                        <h3 class="text-xl font-bold mb-4">Gerenciar Cardápio</h3>
+                        <div class="bg-gray-50 p-4 rounded mb-6 border w-full">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <input id="prod-nome" type="text" placeholder="Nome do Produto" class="border p-3 rounded w-full">
+                                <input id="prod-preco" type="number" placeholder="Preço" class="border p-3 rounded w-full">
+                            </div>
+                            <button onclick="salvarProduto()" class="mt-4 w-full bg-green-600 text-white p-3 rounded font-bold">Salvar Produto</button>
+                        </div>
+                        <div id="admin-cardapio-lista" class="space-y-3 mb-8 text-sm"></div>
+                    </div>
+
+                    <div id="tab-motoboys" class="hidden">
+                        <h3 class="text-xl font-bold mb-4">Aprovação de Motoboys</h3>
+                        <div id="lista-motoboys-pendentes" class="space-y-3"></div>
+                        <h3 class="text-xl font-bold mt-8 mb-4">Motoboys Ativos</h3>
+                        <div id="lista-motoboys-ativos" class="space-y-2"></div>
+                    </div>
+
+                    <div id="tab-config" class="hidden">
+                        <h3 class="text-xl font-bold mb-4">Configuração de Entrega</h3>
+                        <div class="space-y-4 bg-gray-50 p-4 border rounded">
+                            <div>
+                                <label class="block text-sm font-bold mb-1">CEP da Loja (Origem):</label>
+                                <input id="config-cep-origem" type="text" placeholder="00000-000" onblur="buscarCEPLoja()" class="border p-3 w-full rounded">
+                                <input id="config-rua-origem" type="text" placeholder="Endereço da Loja" class="border p-3 w-full rounded mt-2 bg-gray-100" readonly>
+                                <input id="config-num-origem" type="text" placeholder="Número" class="border p-3 w-full rounded mt-2">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold mb-1">Valor Taxa por KM (R$):</label>
+                                <input id="config-valor-km" type="number" placeholder="Ex: 2.50" class="border p-3 w-full rounded">
+                            </div>
+                            <button onclick="salvarConfigLoja()" class="bg-red-600 text-white p-4 w-full rounded font-bold mt-2">Salvar Configurações</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="motoboy-view" class="hidden">
+                    <div class="bg-white p-4 rounded shadow mb-4 border-l-4 border-blue-600">
+                        <h4 class="font-bold mb-2">Meu Status Atual:</h4>
+                        <select id="status-trabalho-motoboy" onchange="atualizarStatusTrabalho(this.value)" class="w-full border p-3 rounded font-bold bg-gray-50">
+                            <option value="Em Trabalho">🟢 Em Trabalho (Disponível)</option>
+                            <option value="Folga">🟡 Folga</option>
+                            <option value="Férias">🔴 Férias</option>
+                        </select>
+                    </div>
+                    <h3 class="text-xl font-bold mb-4">Minhas Entregas Designadas</h3>
+                    <div id="lista-entregas-motoboy" class="space-y-3"></div>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 md:p-6 rounded-lg shadow flex flex-col h-[400px] md:h-[500px]">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 border-b pb-2 gap-2">
+                    <h3 class="text-xl font-bold text-blue-600">Suporte / Chat</h3>
+                    <div id="admin-chat-tools" class="hidden flex flex-wrap gap-2 w-full sm:w-auto">
+                        <label class="flex-1 text-center bg-gray-200 px-3 py-1 rounded text-[10px] cursor-pointer hover:bg-gray-300 font-bold border">
+                            IMPORTAR <input type="file" id="import-chat" class="hidden" accept=".txt" onchange="importarChat(event)">
+                        </label>
+                        <button onclick="finalizarChat()" class="flex-1 bg-red-500 text-white px-3 py-1 rounded text-[10px] font-bold">FINALIZAR</button>
+                    </div>
+                </div>
+                <div id="chat-box" class="flex-1 p-2 mb-4 bg-gray-50 rounded border overflow-y-auto"></div>
+                <div class="flex gap-2">
+                    <input id="chat-input" type="text" placeholder="Digite..." class="flex-1 border p-3 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full">
+                    <button onclick="enviarMensagem()" class="bg-blue-600 text-white px-4 py-3 rounded font-bold">Enviar</button>
+                </div>
             </div>
         </div>
     </div>
 
-    <div id="main-screen" class="hidden min-h-screen flex flex-col">
-        <nav class="bg-red-600 text-white p-4 sticky top-0 z-50 shadow-lg flex justify-between items-center">
-            <h1 class="font-bold text-lg truncate pr-2" id="user-welcome">Painel</h1>
-            <button onclick="sair()" class="bg-red-800 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider">Sair</button>
-        </nav>
-
-        <main class="max-w-7xl mx-auto w-full p-4 grid grid-cols-1 lg:grid-cols-12 gap-6">
-            
-            <div class="lg:col-span-8 space-y-6">
-                
-                <div id="cliente-view" class="hidden bg-white p-4 md:p-6 rounded-2xl shadow-sm">
-                    <h3 class="text-2xl font-bold mb-6 text-gray-800 border-b pb-2">Nosso Cardápio</h3>
-                    <div id="cardapio-lista" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
-                    
-                    <div class="mt-8 bg-gray-50 p-4 rounded-2xl border-2 border-dashed border-gray-200">
-                        <h4 class="font-bold mb-4 flex items-center gap-2">🛒 Seu Carrinho</h4>
-                        <div id="lista-carrinho" class="text-sm text-gray-600 space-y-2 mb-4"></div>
-                        
-                        <div class="space-y-3">
-                            <select id="opcao-entrega" onchange="toggleEndereco()" class="w-full p-3 rounded-lg border bg-white">
-                                <option value="Sim">Vou precisar de Entrega</option>
-                                <option value="Não">Vou buscar no local</option>
-                            </select>
-                            
-                            <div id="campos-endereco" class="grid grid-cols-1 gap-2">
-                                <input id="cep" type="text" placeholder="CEP" onblur="buscarCEP()" class="w-full p-3 border rounded-lg">
-                                <div class="flex gap-2">
-                                    <input id="rua" type="text" placeholder="Endereço" class="flex-1 p-3 border rounded-lg bg-gray-100" readonly>
-                                    <input id="num" type="text" placeholder="Nº" onblur="recalcularFrete()" class="w-20 p-3 border rounded-lg">
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="mt-4 p-4 bg-white rounded-xl shadow-inner text-right">
-                            <p class="text-xs text-gray-400">Subtotal: <span id="resumo-subtotal">R$ 0.00</span></p>
-                            <p class="text-xs text-blue-500">Taxa: <span id="resumo-taxa">R$ 0.00</span></p>
-                            <p class="text-xl font-black text-red-600">Total: <span id="resumo-carrinho">R$ 0.00</span></p>
-                        </div>
-                        <button onclick="enviarPedidoCompleto()" class="w-full mt-4 bg-green-600 text-white p-4 rounded-xl font-black text-lg shadow-lg active:scale-95 transition">FINALIZAR PEDIDO</button>
-                    </div>
-                </div>
-
-                <div id="admin-view" class="hidden bg-white p-4 rounded-2xl shadow-sm">
-                    <div class="tab-container mb-6">
-                        <button onclick="tabAdmin('pedidos')" id="btn-tab-pedidos" class="px-6 py-3 font-bold border-b-4 border-red-600 text-red-600">Pedidos</button>
-                        <button onclick="tabAdmin('cardapio')" id="btn-tab-cardapio" class="px-6 py-3 font-bold text-gray-400">Cardápio</button>
-                        <button onclick="tabAdmin('motoboys')" id="btn-tab-motoboys" class="px-6 py-3 font-bold text-gray-400">Motoboys</button>
-                        <button onclick="tabAdmin('config')" id="btn-tab-config" class="px-6 py-3 font-bold text-gray-400">Config</button>
-                    </div>
-
-                    <div id="tab-pedidos" class="space-y-4">
-                        <div id="lista-pedidos" class="grid grid-cols-1 gap-4"></div>
-                    </div>
-                    
-                    <div id="tab-cardapio" class="hidden">
-                         <div class="bg-gray-50 p-4 rounded-xl mb-6 flex flex-col gap-3">
-                             <input id="prod-nome" type="text" placeholder="Nome do Produto" class="p-3 border rounded-lg">
-                             <input id="prod-preco" type="number" placeholder="Preço R$" class="p-3 border rounded-lg">
-                             <button onclick="salvarProduto()" class="bg-green-600 text-white p-3 rounded-lg font-bold">Adicionar ao Cardápio</button>
-                         </div>
-                         <div id="admin-cardapio-lista" class="space-y-2"></div>
-                    </div>
-                    </div>
-            </div>
-
-            <div class="lg:col-span-4 space-y-6">
-                <div id="status-cliente-container" class="bg-white p-4 rounded-2xl shadow-sm">
-                    <h4 class="font-bold text-gray-700 mb-4 flex justify-between">
-                        Acompanhar Pedido
-                        <button onclick="limparPedidosConcluidos()" class="text-[10px] text-gray-400 underline">Limpar</button>
-                    </h4>
-                    <div id="meus-pedidos-status" class="text-sm space-y-3"></div>
-                </div>
-
-                <div class="bg-white p-4 rounded-2xl shadow-sm flex flex-col h-[450px]">
-                    <h4 class="font-bold text-blue-600 mb-2">Suporte Online</h4>
-                    <div id="chat-box" class="flex-1 bg-gray-50 rounded-xl p-3 mb-3 text-sm border-inner"></div>
-                    <div class="flex gap-2">
-                        <input id="chat-input" type="text" placeholder="Dúvida?" class="flex-1 p-3 border rounded-xl focus:ring-2 focus:ring-blue-400 outline-none">
-                        <button onclick="enviarMensagem()" class="bg-blue-600 text-white px-4 rounded-xl font-bold">></button>
-                    </div>
-                </div>
-            </div>
-        </main>
-    </div>
-
     <script type="module">
-        // Importe aqui suas bibliotecas do Firebase igual ao código anterior...
-        // Mantenha suas funções de 'logar', 'ouvirPedidosAdmin', etc. 
-        // O importante foi a mudança estrutural das 'DIVS' e 'CLASSES' acima.
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, doc, updateDoc, deleteDoc, where, getDocs, writeBatch, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
         
-        // Dica: Na função de listar pedidos no admin, utilize a classe "btn-group" 
-        // para os botões de Imprimir/Preparar/Cancelar para que eles se ajustem no celular.
+        const firebaseConfig = {
+            apiKey: "AIzaSyBgqjGYaV7rmgLMPB-Y4DcvgVkg82GFt0I",
+            authDomain: "sitepedidos.firebaseapp.com",
+            projectId: "sitepedidos",
+            storageBucket: "sitepedidos.firebasestorage.app",
+            messagingSenderId: "812273915392",
+            appId: "1:812273915392:web:9fc70d67ac717a11ca6ae5"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let carrinho = [];
+        let totalAcumulado = 0;
+        let taxaEntrega = 0;
+        let mensagensAtuais = []; 
+        let configLoja = { cep: '', rua: '', num: '', valorKm: 0 };
+        let motoboysAtivos = [];
+
+        window.cadastrar = () => {
+            const e = document.getElementById('email').value;
+            const s = document.getElementById('senha').value;
+            createUserWithEmailAndPassword(auth, e, s).then(() => alert("Conta criada!")).catch(err => alert("Erro: " + err.message));
+        };
+
+        window.logar = () => {
+            const e = document.getElementById('email').value;
+            const s = document.getElementById('senha').value;
+            signInWithEmailAndPassword(auth, e, s).catch(err => alert("Login inválido!"));
+        };
+
+        window.sair = () => signOut(auth);
+
+        onAuthStateChanged(auth, async (user) => {
+            const chatTools = document.getElementById('admin-chat-tools');
+            if (chatTools) chatTools.classList.add('hidden');
+
+            if (user) {
+                document.getElementById('auth-screen').classList.add('hidden');
+                document.getElementById('user-welcome').innerText = `${user.email}`;
+                
+                const isAdmin = user.email.includes('admin');
+                const isMotoboy = user.email.includes('motoboy');
+
+                if(isAdmin) {
+                    mostrarTela('admin-view');
+                    ouvirMotoboysAdmin();
+                    ouvirPedidosAdmin();
+                    ouvirCardapio(true);
+                    carregarConfigLoja();
+                    if (chatTools) chatTools.classList.remove('hidden');
+                } else if(isMotoboy) {
+                    const docRef = doc(db, "motoboys", user.uid);
+                    const docSnap = await getDoc(docRef);
+                    if(!docSnap.exists()) {
+                        mostrarTela('motoboy-setup');
+                    } else if(docSnap.data().status === "Pendente") {
+                        alert("Seu cadastro ainda está pendente de aprovação pelo Admin.");
+                        signOut(auth);
+                    } else {
+                        mostrarTela('motoboy-view');
+                        const mData = docSnap.data();
+                        if (document.getElementById('status-trabalho-motoboy')) {
+                            document.getElementById('status-trabalho-motoboy').value = mData.statusTrabalho || "Em Trabalho";
+                        }
+                        ouvirEntregasMotoboy(user.email);
+                    }
+                } else {
+                    mostrarTela('cliente-view');
+                    ouvirCardapio(false);
+                    ouvirStatusCliente(user.email);
+                    carregarConfigLoja();
+                }
+                ouvirChat();
+            } else {
+                document.getElementById('auth-screen').classList.remove('hidden');
+                document.getElementById('main-screen').classList.add('hidden');
+                document.getElementById('motoboy-setup').classList.add('hidden');
+            }
+        });
+
+        function mostrarTela(id) {
+            document.getElementById('main-screen').classList.add('hidden');
+            document.getElementById('motoboy-setup').classList.add('hidden');
+            document.getElementById('cliente-view').classList.add('hidden');
+            document.getElementById('admin-view').classList.add('hidden');
+            document.getElementById('motoboy-view').classList.add('hidden');
+            document.getElementById(id).classList.remove('hidden');
+            if(id !== 'motoboy-setup') document.getElementById('main-screen').classList.remove('hidden');
+        }
+
+        window.buscarCEPMotoboy = async () => {
+            const cep = document.getElementById('moto-cep').value.replace(/\D/g, '');
+            if(cep.length !== 8) return;
+            const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+            const data = await res.json();
+            if(!data.erro) document.getElementById('moto-rua').value = `${data.logradouro}, ${data.bairro} - ${data.localidade}`;
+        };
+
+        window.salvarPerfilMotoboy = async () => {
+            const tel = document.getElementById('moto-tel').value;
+            const cep = document.getElementById('moto-cep').value;
+            const rua = document.getElementById('moto-rua').value;
+            const num = document.getElementById('moto-num').value;
+            if(!tel || !cep || !num) return alert("Preencha todos os campos");
+            await setDoc(doc(db, "motoboys", auth.currentUser.uid), {
+                email: auth.currentUser.email,
+                telefone: tel,
+                endereco: `${rua}, Nº ${num}`,
+                cep: cep,
+                status: "Pendente",
+                statusTrabalho: "Em Trabalho",
+                dataCadastro: serverTimestamp()
+            });
+            alert("Perfil enviado! Aguarde aprovação do Admin.");
+            signOut(auth);
+        };
+
+        window.atualizarStatusTrabalho = async (novoStatus) => {
+            const user = auth.currentUser;
+            if (user) {
+                await updateDoc(doc(db, "motoboys", user.uid), { statusTrabalho: novoStatus });
+                alert("O seu status foi atualizado para: " + novoStatus);
+            }
+        };
+
+        function ouvirMotoboysAdmin() {
+            onSnapshot(collection(db, "motoboys"), (snap) => {
+                const listaP = document.getElementById('lista-motoboys-pendentes');
+                const listaA = document.getElementById('lista-motoboys-ativos');
+                if(!listaP || !listaA) return;
+                listaP.innerHTML = ""; listaA.innerHTML = "";
+                motoboysAtivos = [];
+                snap.forEach(d => {
+                    const m = d.data();
+                    const id = d.id;
+                    if(m.status === "Pendente") {
+                        listaP.innerHTML += `<div class="p-3 bg-yellow-50 border border-yellow-200 rounded flex flex-col gap-2"><div class="text-sm"><b>${m.email}</b><br>${m.telefone} | ${m.endereco}</div><div class="flex gap-2"><button onclick="aprovarMotoboy('${id}')" class="flex-1 bg-green-600 text-white px-3 py-2 rounded text-xs font-bold">APROVAR</button><button onclick="rejeitarMotoboy('${id}')" class="flex-1 bg-red-600 text-white px-3 py-2 rounded text-xs font-bold">EXCLUIR</button></div></div>`;
+                    } else {
+                        motoboysAtivos.push(m);
+                        const corStatus = m.statusTrabalho === "Em Trabalho" ? "text-green-600" : "text-gray-400";
+                        listaA.innerHTML += `<div class="p-3 bg-white border rounded text-sm flex flex-col sm:flex-row justify-between sm:items-center gap-2"><span><b>${m.email}</b> - ${m.telefone} <i class="${corStatus} font-bold">(${m.statusTrabalho || 'Ativo'})</i></span><button onclick="rejeitarMotoboy('${id}')" class="text-red-500 font-bold bg-red-50 py-1 px-3 rounded w-full sm:w-auto">Remover</button></div>`;
+                    }
+                });
+                ouvirPedidosAdmin(); 
+            });
+        }
+
+        window.aprovarMotoboy = async (id) => { await updateDoc(doc(db, "motoboys", id), { status: "Aprovado" }); };
+        window.rejeitarMotoboy = async (id) => { if(confirm("Remover motoboy definitivamente?")) await deleteDoc(doc(db, "motoboys", id)); };
+        
+        window.buscarCEPLoja = async () => {
+            const cep = document.getElementById('config-cep-origem').value.replace(/\D/g, '');
+            if(cep.length !== 8) return;
+            const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+            const data = await res.json();
+            if(!data.erro) {
+                document.getElementById('config-rua-origem').value = `${data.logradouro}, ${data.bairro} - ${data.localidade}`;
+            }
+        };
+
+        window.salvarConfigLoja = async () => {
+            const cep = document.getElementById('config-cep-origem').value;
+            const rua = document.getElementById('config-rua-origem').value || '';
+            const num = document.getElementById('config-num-origem').value || '';
+            const valor = parseFloat(document.getElementById('config-valor-km').value);
+            await setDoc(doc(db, "config", "loja"), { cep, rua, num, valorKm: valor });
+            alert("Configurações salvas!");
+        };
+
+        async function carregarConfigLoja() {
+            const d = await getDoc(doc(db, "config", "loja"));
+            if(d.exists()) {
+                configLoja = d.data();
+                if(document.getElementById('config-cep-origem')) {
+                    document.getElementById('config-cep-origem').value = configLoja.cep || '';
+                    if(document.getElementById('config-rua-origem')) document.getElementById('config-rua-origem').value = configLoja.rua || '';
+                    if(document.getElementById('config-num-origem')) document.getElementById('config-num-origem').value = configLoja.num || '';
+                    document.getElementById('config-valor-km').value = configLoja.valorKm || 0;
+                }
+            }
+        }
+
+        async function calcularTaxaEntrega(cepDestino) {
+            if(!configLoja.cep || !configLoja.valorKm) return 0;
+            const numCliente = parseInt(document.getElementById('num').value) || 0;
+            const numLoja = parseInt(configLoja.num) || 0;
+            const cepLojaNum = parseInt(configLoja.cep.replace(/\D/g, '')) || 0;
+            const cepClienteNum = parseInt(cepDestino.replace(/\D/g, '')) || 0;
+            
+            let distLogica = (Math.abs(cepLojaNum - cepClienteNum) % 15) + (Math.abs(numLoja - numCliente) % 5) + 1;
+            return distLogica * configLoja.valorKm;
+        }
+
+        window.recalcularFrete = async () => {
+            const isEntrega = document.getElementById('opcao-entrega').value === "Sim";
+            const cep = document.getElementById('cep').value.replace(/\D/g, '');
+            if(isEntrega && cep.length === 8) {
+                taxaEntrega = await calcularTaxaEntrega(cep);
+                atualizarCarrinhoVisual();
+            }
+        };
+
+        window.tabAdmin = (tab) => {
+            const abas = ['pedidos', 'cardapio', 'motoboys', 'config'];
+            abas.forEach(a => {
+                document.getElementById(`tab-${a}`).classList.add('hidden');
+                document.getElementById(`btn-tab-${a}`).classList.remove('border-b-2', 'border-red-600', 'text-black');
+                document.getElementById(`btn-tab-${a}`).classList.add('text-gray-600');
+            });
+            document.getElementById(`tab-${tab}`).classList.remove('hidden');
+            document.getElementById(`btn-tab-${tab}`).classList.remove('text-gray-600');
+            document.getElementById(`btn-tab-${tab}`).classList.add('border-b-2', 'border-red-600', 'text-black');
+        };
+
+        window.buscarCEP = async () => {
+            const cep = document.getElementById('cep').value.replace(/\D/g, '');
+            if(cep.length !== 8) return;
+            const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+            const data = await res.json();
+            if(!data.erro) {
+                document.getElementById('rua').value = `${data.logradouro}, ${data.bairro}`;
+                await recalcularFrete(); 
+            }
+        };
+
+        window.toggleEndereco = () => {
+            const div = document.getElementById('campos-endereco');
+            const isEntrega = document.getElementById('opcao-entrega').value === "Sim";
+            div.classList.toggle('hidden', !isEntrega);
+            if(!isEntrega) { taxaEntrega = 0; atualizarCarrinhoVisual(); } 
+            else { recalcularFrete(); }
+        };
+
+        window.atribuirMotoboy = async (pedidoId, motoEmail) => {
+            if(!motoEmail) return;
+            await updateDoc(doc(db, "pedidos", pedidoId), { motoboyDesignado: motoEmail, status: "A Caminho" });
+            alert("Pedido designado ao motoboy!");
+        };
+
+        function ouvirEntregasMotoboy(email) {
+            onSnapshot(collection(db, "pedidos"), (snap) => {
+                const lista = document.getElementById('lista-entregas-motoboy');
+                if(!lista) return;
+                lista.innerHTML = "";
+                let temEntrega = false;
+                snap.forEach(d => {
+                    const p = d.data();
+                    if(p.motoboyDesignado === email && p.status === "A Caminho") {
+                        temEntrega = true;
+                        lista.innerHTML += `<div class="p-4 bg-blue-50 border border-blue-200 rounded"> <p class="mb-1"><b>Cliente:</b> ${p.cliente}</p><p class="mb-1"><b>Itens:</b> ${p.item}</p><p class="mb-3"><b>Destino:</b> ${p.entrega}</p><button onclick="mudarStatus('${d.id}', 'Entregue')" class="w-full bg-green-600 text-white p-4 rounded font-bold">MARCAR COMO ENTREGUE</button></div>`;
+                    }
+                });
+                if(!temEntrega) {
+                    lista.innerHTML = "<p class='text-gray-500'>Nenhuma entrega pendente.</p>";
+                }
+            });
+        }
+
+        window.selecionarItem = (nome, preco, id) => {
+            const qtdInput = document.getElementById(`qtd-${id}`);
+            const qtdAdicionada = parseInt(qtdInput.value);
+            const itemExistente = carrinho.find(item => item.nome === nome);
+            if (itemExistente) {
+                itemExistente.qtd += qtdAdicionada;
+                itemExistente.subtotal = itemExistente.qtd * preco;
+            } else {
+                carrinho.push({ nome, qtd: qtdAdicionada, preco: preco, subtotal: preco * qtdAdicionada });
+            }
+            qtdInput.value = "1";
+            atualizarCarrinhoVisual();
+        };
+
+        window.limparCarrinho = () => {
+            carrinho = [];
+            taxaEntrega = 0;
+            atualizarCarrinhoVisual();
+        };
+
+        function atualizarCarrinhoVisual() {
+            const listaDiv = document.getElementById('lista-carrinho');
+            const resumoSub = document.getElementById('resumo-subtotal');
+            const resumoTaxa = document.getElementById('resumo-taxa');
+            const resumoTotal = document.getElementById('resumo-carrinho');
+            if (carrinho.length === 0) {
+                listaDiv.innerHTML = "Seu carrinho está vazio.";
+                resumoSub.innerText = "R$ 0.00";
+                resumoTaxa.innerText = "R$ 0.00";
+                resumoTotal.innerText = "R$ 0.00";
+                totalAcumulado = 0;
+                return;
+            }
+            listaDiv.innerHTML = "";
+            let subtotal = 0;
+            carrinho.forEach(item => {
+                subtotal += item.subtotal;
+                listaDiv.innerHTML += `<div>• <b>${item.qtd}x</b> ${item.nome} (R$ ${item.subtotal.toFixed(2)})</div>`;
+            });
+            totalAcumulado = subtotal + taxaEntrega;
+            resumoSub.innerText = `R$ ${subtotal.toFixed(2)}`;
+            resumoTaxa.innerText = `R$ ${taxaEntrega.toFixed(2)}`;
+            resumoTotal.innerText = `R$ ${totalAcumulado.toFixed(2)}`;
+        }
+
+        window.enviarPedidoCompleto = async () => {
+            if(carrinho.length === 0) return alert("Adicione algo!");
+            const entrega = document.getElementById('opcao-entrega').value;
+            let local = entrega === "Sim" ? `${document.getElementById('rua').value}, Nº ${document.getElementById('num').value}` : "Retirada no Local";
+            if(entrega === "Sim" && (!document.getElementById('rua').value)) return alert("Endereço vazio!");
+            await addDoc(collection(db, "pedidos"), {
+                cliente: auth.currentUser.email,
+                item: carrinho.map(i => `${i.qtd}x ${i.nome}`).join(", "),
+                total: totalAcumulado.toFixed(2),
+                taxa: taxaEntrega.toFixed(2),
+                entrega: local,
+                status: "Pendente",
+                motoboyDesignado: "",
+                data: serverTimestamp()
+            });
+            alert("Pedido enviado!");
+            limparCarrinho();
+        };
+
+        window.mudarStatus = async (id, novoStatus) => {
+            await updateDoc(doc(db, "pedidos", id), { status: novoStatus });
+        };
+
+        // --- FUNÇÃO DE IMPRESSÃO CORRIGIDA PARA MINI IMPRESSORAS ---
+        window.imprimirPedido = (id) => {
+            const card = document.getElementById(`card-pedido-${id}`);
+            if (card) {
+                // Adiciona a classe que o CSS intercepta
+                card.classList.add('imprimir-este');
+                window.print();
+                
+                // Remove a classe logo depois para o celular voltar a tela normal
+                setTimeout(() => {
+                    card.classList.remove('imprimir-este');
+                }, 1000); 
+            }
+        };
+
+        window.cancelarPedidoAdmin = async (id) => {
+            const motivo = prompt("Digite o motivo do cancelamento:");
+            if (motivo === null || motivo.trim() === "") return alert("Motivo obrigatório.");
+            await updateDoc(doc(db, "pedidos", id), { status: "Cancelado", motivoCancelamento: motivo });
+        };
+
+        function ouvirPedidosAdmin() {
+            onSnapshot(collection(db, "pedidos"), (snap) => {
+                const lista = document.getElementById('lista-pedidos');
+                if(!lista) return;
+                lista.innerHTML = "";
+                let docs = [];
+                snap.forEach(d => docs.push({id: d.id, ...d.data()}));
+                docs.sort((a, b) => (b.data?.seconds || 0) - (a.data?.seconds || 0));
+                docs.forEach(p => {
+                    const id = p.id;
+                    const isCancelado = p.status === "Cancelado";
+                    let selectMotoboy = `<select onchange="atribuirMotoboy('${id}', this.value)" class="bg-gray-100 p-2 rounded border w-full mt-2 text-sm font-bold"> <option value="">🛵 DESIGNAR MOTOBOY...</option>`;
+                    motoboysAtivos.forEach(m => {
+                        if (m.statusTrabalho === "Em Trabalho" || p.motoboyDesignado === m.email) {
+                            selectMotoboy += `<option value="${m.email}" ${p.motoboyDesignado === m.email ? 'selected' : ''}> ${m.email.split('@')[0]} (${m.statusTrabalho}) </option>`;
+                        }
+                    });
+                    selectMotoboy += `</select>`;
+                    
+                    /* CLASSES ALTERADAS PARA BOTÕES FICAREM RESPONSIVOS E NÃO CORTAREM NA TELA (flex-wrap e gap-2) */
+                    lista.innerHTML += `
+                    <div id="card-pedido-${id}" class="p-4 bg-white border-l-4 ${isCancelado ? 'border-gray-500 opacity-75' : 'border-red-500'} rounded shadow-md mb-4 w-full"> 
+                        <div class="flex flex-col sm:flex-row justify-between items-start mb-2 gap-2">
+                            <span class="text-base break-words w-full"><b>${p.cliente.split('@')[0]}:</b> ${p.item}</span>
+                            <span class="bg-gray-200 px-3 py-1 rounded font-bold whitespace-nowrap self-start">R$ ${p.total}</span>
+                        </div>
+                        <div class="text-sm text-gray-600 mb-3 border-b pb-2">
+                            <span class="font-bold text-gray-800 block mb-1">Status: ${p.status}</span>
+                            <span class="block">Endereço: ${p.entrega}</span>
+                        </div>
+                        <div class="flex flex-col space-y-3">
+                            <div class="flex flex-wrap gap-2 w-full">
+                                <button onclick="mudarStatus('${id}', 'Preparando'); imprimirPedido('${id}')" class="bg-yellow-500 text-white px-3 py-2 rounded text-xs font-bold flex-1 text-center min-w-[100px]">IMPRIMIR & PREPARAR</button>
+                                <button onclick="mudarStatus('${id}', 'Pronto')" class="bg-blue-500 text-white px-3 py-2 rounded text-xs font-bold flex-1 text-center min-w-[80px]">PRONTO</button>
+                                <button onclick="cancelarPedidoAdmin('${id}')" class="bg-red-600 text-white px-3 py-2 rounded text-xs font-bold flex-1 text-center min-w-[80px]">CANCELAR</button>
+                            </div>
+                            ${!isCancelado ? selectMotoboy : `<div class="bg-red-50 text-red-600 p-2 rounded text-sm font-bold text-center mt-2">Motivo: ${p.motivoCancelamento || ''}</div>`}
+                        </div>
+                    </div>`;
+                });
+            });
+        }
+
+        window.salvarProduto = async () => {
+            const n = document.getElementById('prod-nome').value;
+            const p = parseFloat(document.getElementById('prod-preco').value);
+            if(n && p) {
+                await addDoc(collection(db, "produtos"), { nome: n, preco: p, ativo: true });
+                document.getElementById('prod-nome').value = ""; document.getElementById('prod-preco').value = "";
+            }
+        };
+
+        window.toggleProduto = async (id, statusAtual) => {
+            await updateDoc(doc(db, "produtos", id), { ativo: !statusAtual });
+        };
+
+        window.excluirProduto = async (id) => {
+            if(confirm("Excluir item?")) await deleteDoc(doc(db, "produtos", id));
+        };
+
+        function ouvirCardapio(isAdmin) {
+            onSnapshot(collection(db, "produtos"), (snapshot) => {
+                const listaC = document.getElementById('cardapio-lista');
+                const listaA = document.getElementById('admin-cardapio-lista');
+                if(listaC) listaC.innerHTML = "";
+                if(listaA) listaA.innerHTML = "";
+                snapshot.forEach(docSnap => {
+                    const p = docSnap.data();
+                    const id = docSnap.id;
+                    if(isAdmin && listaA) {
+                        listaA.innerHTML += `<div class="flex flex-col sm:flex-row justify-between sm:items-center p-3 border rounded gap-2 ${p.ativo ? 'bg-white' : 'bg-gray-200 opacity-60'}"> <span class="text-base">${p.nome} - <b>R$ ${p.preco.toFixed(2)}</b></span> <div class="flex gap-2"> <button onclick="toggleProduto('${id}', ${p.ativo})" class="flex-1 sm:flex-none bg-yellow-500 text-white px-4 py-2 rounded text-sm font-bold">${p.ativo ? 'Ocultar' : 'Mostrar'}</button> <button onclick="excluirProduto('${id}')" class="flex-1 sm:flex-none bg-red-500 text-white px-4 py-2 rounded text-sm font-bold">Excluir</button> </div> </div>`;
+                    }
+                    if(p.ativo && listaC) {
+                        listaC.innerHTML += `<div class="p-3 bg-gray-50 border rounded flex justify-between items-center shadow-sm hover:shadow transition"><div><span class="font-bold text-base">${p.nome}</span><br><span class="text-sm text-green-700 font-bold">R$ ${p.preco.toFixed(2)}</span></div><div class="flex items-center gap-2"><input type="number" id="qtd-${id}" value="1" min="1" class="w-16 border p-2 rounded text-center text-lg"><button onclick="selecionarItem('${p.nome}', ${p.preco}, '${id}')" class="bg-red-600 text-white px-5 py-2 rounded text-lg font-bold hover:bg-red-700">+</button></div></div>`;
+                    }
+                });
+            });
+        }
+
+        function ouvirStatusCliente(email) {
+            onSnapshot(collection(db, "pedidos"), (snap) => {
+                const box = document.getElementById('meus-pedidos-status');
+                if(!box) return;
+                box.innerHTML = "";
+                let docs = [];
+                snap.forEach(d => docs.push({id: d.id, ...d.data()}));
+                docs = docs.filter(p => p.cliente === email);
+                docs.sort((a, b) => (b.data?.seconds || 0) - (a.data?.seconds || 0));
+                if (docs.length === 0) { box.innerHTML = "Nenhum pedido em andamento."; return; }
+                docs.forEach(p => {
+                    let classe = p.status === 'Cancelado' ? 'status-cancelado' : p.status === 'Entregue' ? 'status-entregue' : p.status === 'A Caminho' ? 'status-caminho' : 'status-pendente';
+                    box.innerHTML += `<div class="border-b pb-3 mb-3 flex flex-col sm:flex-row justify-between items-start last:border-0 gap-2"> <div class="flex flex-col"><span class="font-medium text-base">${p.item}</span><span class="text-sm text-gray-500 mt-1">Total: R$ ${p.total}</span></div> <span class="${classe} text-sm whitespace-nowrap mt-1 bg-gray-50 px-2 py-1 rounded border">● ${p.status}</span></div>`;
+                });
+            });
+        }
+
+        window.limparPedidosConcluidos = async () => {
+            if(!confirm("Deseja remover os pedidos Entregues e Cancelados da sua lista?")) return;
+            const q = query(collection(db, "pedidos"), where("cliente", "==", auth.currentUser.email));
+            const snap = await getDocs(q);
+            const batch = writeBatch(db);
+            let cont = 0;
+            snap.forEach(d => {
+                const status = d.data().status;
+                if(status === "Entregue" || status === "Cancelado") { batch.delete(d.ref); cont++; }
+            });
+            if(cont > 0) { await batch.commit(); alert(`${cont} pedido(s) removido(s).`); }
+        };
+
+        window.limparEBackupPedidos = async () => {
+            if(!confirm("Isso irá baixar um TXT com os pedidos Entregues/Cancelados e apagá-los. Continuar?")) return;
+            const snap = await getDocs(collection(db, "pedidos"));
+            let conteudo = "";
+            const batch = writeBatch(db);
+            let cont = 0;
+            const agora = new Date();
+            const dataHoraLimpeza = agora.toLocaleString().replace(/[\/: ]/g, '-');
+            snap.forEach(d => {
+                const p = d.data();
+                if(p.status === "Entregue" || p.status === "Cancelado") {
+                    const dataH = p.data ? new Date(p.data.seconds * 1000).toLocaleString() : "N/A";
+                    conteudo += `PEDIDO|${p.cliente}|${p.item}|${p.total}|${p.status}|${p.entrega}|${dataH}|${p.motivoCancelamento || ''}\n`;
+                    batch.delete(d.ref);
+                    cont++;
+                }
+            });
+            if(cont > 0) {
+                const blob = new Blob([conteudo], { type: 'text/plain' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `backup_pedidos_${dataHoraLimpeza}.txt`;
+                link.click();
+                await batch.commit();
+                alert(`${cont} pedidos arquivados.`);
+            } else { alert("Nenhum pedido concluído para limpar."); }
+        };
+
+        window.enviarMensagem = async () => {
+            const txt = document.getElementById('chat-input').value;
+            if(!txt) return;
+            await addDoc(collection(db, "mensagens"), { usuario: auth.currentUser.email, texto: txt, hora: serverTimestamp() });
+            document.getElementById('chat-input').value = '';
+        };
+
+        function ouvirChat() {
+            onSnapshot(query(collection(db, "mensagens"), orderBy("hora")), (snap) => {
+                const box = document.getElementById('chat-box');
+                if(!box) return;
+                box.innerHTML = "";
+                mensagensAtuais = [];
+                snap.forEach(d => {
+                    const m = d.data();
+                    mensagensAtuais.push(m);
+                    const isAd = m.usuario.includes('admin');
+                    box.innerHTML += `<div class="msg ${isAd ? 'msg-admin' : 'msg-cliente'} shadow-sm"> <span class="text-[10px] font-bold text-gray-500 block mb-1">${m.usuario.split('@')[0]}</span> <span class="text-sm">${m.texto}</span></div>`;
+                });
+                box.scrollTop = box.scrollHeight;
+            });
+        }
+
+        window.importarPedidos = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const conteudo = e.target.result;
+                const linhas = conteudo.split('\n');
+                let importados = 0;
+                for (let linha of linhas) {
+                    if (linha.trim() === '' || !linha.startsWith("PEDIDO|")) continue;
+                    try {
+                        let partes = linha.split('|');
+                        await addDoc(collection(db, "pedidos"), {
+                            cliente: partes[1] + " (Importado)", item: partes[2], total: partes[3], status: partes[4], entrega: partes[5], motivoCancelamento: partes[7] || "", data: serverTimestamp()
+                        });
+                        importados++;
+                    } catch (err) { console.error("Erro ao ler linha: ", linha); }
+                }
+                alert(`${importados} pedidos importados com sucesso!`);
+                event.target.value = '';
+            };
+            reader.readAsText(file);
+        };
+
+        window.finalizarChat = async () => {
+            if(mensagensAtuais.length === 0) return alert("Não há mensagens para finalizar.");
+            const motivo = prompt("Digite um motivo/resumo para finalizar o atendimento:");
+            if(!motivo) return;
+            let conteudo = `ATENDIMENTO FINALIZADO\nMotivo: ${motivo}\nData: ${new Date().toLocaleString()}\n---------------------------\n`;
+            mensagensAtuais.forEach(m => { conteudo += `[${m.usuario}] : ${m.texto}\n`; });
+            const blob = new Blob([conteudo], { type: 'text/plain' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `chat_${new Date().getTime()}.txt`;
+            link.click();
+            const snap = await getDocs(collection(db, "mensagens"));
+            const batch = writeBatch(db);
+            snap.forEach(d => batch.delete(d.ref));
+            await batch.commit();
+        };
+
+        window.importarChat = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            let escolha = prompt("Como deseja identificar este histórico?\n- Digite 'admin' para usar seu e-mail\n- Digite um EMAIL específico\n- Deixe em branco para 'Geral'");
+            if (escolha === null) return; 
+
+            let usuarioImportado = "Geral (Backup)";
+            if (escolha.trim().toLowerCase() === 'admin') {
+                usuarioImportado = auth.currentUser.email + " (Backup)";
+            } else if (escolha.trim() !== '') {
+                usuarioImportado = escolha.trim() + " (Backup)";
+            }
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const conteudo = e.target.result;
+                const linhas = conteudo.split('\n');
+                let cont = 0;
+
+                for (let linha of linhas) {
+                    if (linha.includes("ATENDIMENTO FINALIZADO") || linha.includes("---") || linha.trim() === "" || linha.startsWith("Motivo:") || linha.startsWith("Data:")) continue;
+                    let textoFinal = linha;
+                    if (linha.includes("] : ")) {
+                        textoFinal = linha.split("] : ")[1];
+                    }
+                    try {
+                        await addDoc(collection(db, "mensagens"), { 
+                            usuario: usuarioImportado, 
+                            texto: textoFinal, 
+                            hora: serverTimestamp() 
+                        });
+                        cont++;
+                    } catch (err) { console.error("Erro ao importar linha:", err); }
+                }
+                alert(`${cont} mensagens do histórico importadas como "${usuarioImportado}"!`);
+                event.target.value = '';
+            };
+            reader.readAsText(file);
+        };
     </script>
 </body>
 </html>

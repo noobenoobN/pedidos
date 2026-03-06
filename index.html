@@ -8,8 +8,7 @@
 <script src="https://cdn.tailwindcss.com"></script>
 
 <style>
-
-.hidden { display:none; }
+.hidden { display: none; }
 
 #chat-box{
 height:250px;
@@ -41,156 +40,267 @@ border:1px solid #bfdbfe;
 .status-preparando{color:#d97706;font-weight:bold;}
 .status-caminho{color:#2563eb;font-weight:bold;}
 .status-entregue{color:#16a34a;font-weight:bold;}
-
+.status-cancelado{
+color:#4b5563;
+font-weight:bold;
+text-decoration:line-through;
+}
 </style>
 </head>
 
 <body class="bg-gray-100 font-sans">
 
-<div id="auth-screen" class="max-w-md mx-auto mt-10 bg-white p-6 rounded shadow">
+<div id="auth-screen" class="max-w-md mx-auto mt-20 p-6 bg-white rounded-lg shadow-xl">
 
-<h2 class="text-2xl font-bold mb-4 text-center">
-Login
+<h2 class="text-2xl font-bold mb-6 text-center text-red-600">
+Delivery Login
 </h2>
 
-<input id="email" type="email" placeholder="Seu email"
-class="w-full border p-3 rounded mb-3">
+<div class="space-y-4">
+
+<input id="email" type="email" placeholder="Seu e-mail"
+class="w-full border p-3 rounded">
 
 <input id="senha" type="password" placeholder="Sua senha"
 class="w-full border p-3 rounded">
 
 <button onclick="logar()"
-class="w-full bg-red-600 text-white font-bold p-3 rounded mt-4">
+class="w-full bg-red-600 text-white font-bold p-3 rounded">
 Entrar
 </button>
 
 <button onclick="cadastrar()"
-class="w-full bg-gray-200 text-gray-700 p-3 rounded mt-2">
+class="w-full bg-gray-200 text-gray-700 p-3 rounded">
 Criar Nova Conta
 </button>
 
 </div>
+</div>
 
-    <div id="main-screen" class="hidden">
+    <div id="main-screen" class="hidden min-h-screen">
 
-<div class="bg-red-600 text-white p-4 flex justify-between">
-
-<h1 class="font-bold">
-Meu Delivery
-</h1>
-
-<button onclick="sair()">
+<nav class="bg-red-600 text-white p-4 flex justify-between items-center shadow-md">
+<span id="user-welcome">Carregando...</span>
+<button onclick="sair()" class="bg-red-800 px-3 py-1 rounded">
 Sair
 </button>
+</nav>
+
+<div class="max-w-6xl mx-auto p-4 grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+<div class="lg:col-span-2 bg-white p-6 rounded-lg shadow">
+
+<div id="cliente-view" class="hidden">
+
+<h3 class="text-xl font-bold mb-4">Cardápio</h3>
+
+<div id="cardapio-lista"
+class="grid grid-cols-1 gap-3 mb-6">
+</div>
+
+<div class="border-t pt-4 space-y-3">
+
+<h3 class="font-bold text-lg text-red-600 italic">
+Meus Pedidos Ativos
+</h3>
+
+<div id="meus-pedidos-status"
+class="bg-white border rounded p-3 text-sm space-y-2 mb-4">
+Nenhum pedido em andamento.
+</div>
+
+<h3 class="font-bold text-lg">
+Finalizar Novo Pedido
+</h3>
+
+<div class="bg-gray-50 p-3 rounded border text-sm mb-2">
+
+<p class="font-bold mb-1 border-b pb-1">
+Carrinho:
+</p>
+
+<div id="lista-carrinho">
+Seu carrinho está vazio.
+</div>
 
 </div>
 
-<div class="p-4">
+<select id="opcao-entrega" onchange="toggleEndereco()"
+class="w-full border p-2 rounded">
 
-<h2 class="text-xl font-bold mb-3">
-Novo Pedido
-</h2>
+<option value="Sim">
+Preciso de Entrega (Sim)
+</option>
 
-<input id="cliente" placeholder="Nome do cliente"
-class="w-full border p-2 rounded mb-2">
+<option value="Não">
+Vou buscar no local (Não)
+</option>
 
-<input id="telefone" placeholder="Telefone"
-class="w-full border p-2 rounded mb-2">
+</select>
 
-<input id="rua" placeholder="Rua"
-class="w-full border p-2 rounded mb-2">
+<div id="campos-endereco" class="space-y-2">
 
-<div class="grid grid-cols-2 gap-2">
+<input id="cep" type="text" placeholder="CEP"
+onblur="buscarCEP()" class="w-full border p-2 rounded">
 
-<input id="bairro" placeholder="Bairro"
+<input id="rua" type="text" placeholder="Rua / Endereço"
 class="w-full border p-2 rounded">
 
 <input id="num" type="text" placeholder="Número"
-class="w-full border p-2 rounded">
+onblur="recalcularFrete()" class="w-full border p-2 rounded">
 
 </div>
 
 <button onclick="enviarPedidoCompleto()"
-class="w-full bg-green-600 text-white p-3 rounded font-bold mt-4">
+class="w-full bg-green-600 text-white p-3 rounded font-bold">
 Confirmar e Enviar
 </button>
 
 </div>
-
 </div>
+<script type="module">
 
-    <script type="module">
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-
-import {
-getFirestore,
-collection,
-addDoc,
-onSnapshot
-} from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+import { initializeApp }
+from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
 
 import {
 getAuth,
 createUserWithEmailAndPassword,
 signInWithEmailAndPassword,
-signOut,
-onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+onAuthStateChanged,
+signOut
+}
+from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
 
+import {
+getFirestore,
+collection,
+addDoc,
+onSnapshot,
+doc,
+updateDoc,
+deleteDoc,
+serverTimestamp,
+getDoc,
+setDoc
+}
+from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
 const firebaseConfig = {
 
-apiKey:"SUA_API_KEY",
-authDomain:"SEU_DOMINIO",
-projectId:"SEU_PROJETO"
+apiKey:"AIzaSyBgqjGYaV7rmgLMPB-Y4DcvgVkg82GFt0I",
+authDomain:"sitepedidos.firebaseapp.com",
+projectId:"sitepedidos",
+storageBucket:"sitepedidos.firebasestorage.app",
+messagingSenderId:"812273915392",
+appId:"1:812273915392:web:9fc70d67ac717a11ca6ae5"
 
 };
 
 const app = initializeApp(firebaseConfig);
 
-const db = getFirestore(app);
 const auth = getAuth(app);
 
+const db = getFirestore(app);
 
-window.cadastrar = ()=>{
+window.cadastrar = () => {
 
-const email=document.getElementById("email").value;
-const senha=document.getElementById("senha").value;
+const email = document.getElementById('email').value;
+const senha = document.getElementById('senha').value;
 
 createUserWithEmailAndPassword(auth,email,senha)
-.then(()=>alert("Conta criada"))
-.catch(e=>alert(e.message));
+.then(()=>alert("Conta criada!"))
+.catch(err=>alert(err.message));
 
 };
 
+window.logar = () => {
 
-window.logar = ()=>{
-
-const email=document.getElementById("email").value;
-const senha=document.getElementById("senha").value;
+const email = document.getElementById('email').value;
+const senha = document.getElementById('senha').value;
 
 signInWithEmailAndPassword(auth,email,senha)
-.catch(()=>alert("Erro login"));
+.catch(()=>alert("Login inválido"));
 
 };
 
+window.sair = () => signOut(auth);
 
-window.sair = ()=> signOut(auth);
+    onAuthStateChanged(auth,(user)=>{
 
-        function ouvirChat(){
+if(user){
+
+document.getElementById("auth-screen").classList.add("hidden");
+
+document.getElementById("main-screen").classList.remove("hidden");
+
+document.getElementById("user-welcome").innerText =
+"Logado como: " + user.email;
+
+ouvirCardapio();
+
+ouvirStatusCliente(user.email);
+
+ouvirChat();
+
+}else{
+
+document.getElementById("auth-screen").classList.remove("hidden");
+
+document.getElementById("main-screen").classList.add("hidden");
+
+}
+
+});
+
+function ouvirCardapio(){
+
+onSnapshot(collection(db,"produtos"),(snapshot)=>{
+
+const lista = document.getElementById("cardapio-lista");
+
+lista.innerHTML="";
+
+snapshot.forEach(docSnap=>{
+
+const p = docSnap.data();
+
+lista.innerHTML += `
+<div class="p-3 border rounded flex justify-between">
+
+<div>
+<b>${p.nome}</b>
+<br>
+R$ ${p.preco}
+</div>
+
+<button onclick="selecionarItem('${p.nome}',${p.preco})"
+class="bg-red-600 text-white px-3 py-1 rounded">
++
+</button>
+
+</div>
+`;
+
+});
+
+});
+
+}
+
+function ouvirChat(){
 
 onSnapshot(collection(db,"mensagens"),(snap)=>{
 
-const box=document.getElementById("chat-box");
+const box = document.getElementById("chat-box");
 
 box.innerHTML="";
 
 snap.forEach(d=>{
 
-const m=d.data();
+const m = d.data();
 
-box.innerHTML+=`
+box.innerHTML += `
 <div class="msg msg-cliente">
 ${m.usuario}: ${m.texto}
 </div>
@@ -202,96 +312,10 @@ ${m.usuario}: ${m.texto}
 
 }
 
-
-// =============================
-// IMPRESSÃO DE PEDIDO
-// =============================
-
-window.imprimirPedido=function(pedido){
-
-let conteudo=`
-
-PEDIDO DELIVERY
-
-Cliente: ${pedido.cliente}
-Telefone: ${pedido.telefone}
-Endereço: ${pedido.rua}
-
-Itens:
-${pedido.itens}
-
-Total: R$ ${pedido.total}
-
-Status: ${pedido.status}
-
-${new Date().toLocaleString()}
-`;
-
-let janela=window.open("","","width=400,height=600");
-
-janela.document.write("<pre>"+conteudo+"</pre>");
-
-janela.document.close();
-
-janela.print();
-
-salvarPedidoLocal(pedido);
-
-};
-
-
-// =============================
-// SALVAR PEDIDO LOCAL
-// =============================
-
-function salvarPedidoLocal(pedido){
-
-let pedidos=JSON.parse(localStorage.getItem("pedidosSalvos"))||[];
-
-pedidos.push(pedido);
-
-localStorage.setItem("pedidosSalvos",JSON.stringify(pedidos));
-
-}
-
-
-// =============================
-// BAIXAR PEDIDO
-// =============================
-
-window.baixarPedido=function(pedido){
-
-let texto=`
-
-PEDIDO DELIVERY
-
-Cliente: ${pedido.cliente}
-Telefone: ${pedido.telefone}
-Endereço: ${pedido.rua}
-
-Itens:
-${pedido.itens}
-
-Total: R$ ${pedido.total}
-
-Status: ${pedido.status}
-
-${new Date().toLocaleString()}
-`;
-
-let blob=new Blob([texto],{type:"text/plain"});
-
-let link=document.createElement("a");
-
-link.href=URL.createObjectURL(blob);
-
-link.download="pedido.txt";
-
-link.click();
-
-};
-
 </script>
 
 </body>
 </html>
+
+    
+    

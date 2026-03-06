@@ -21,7 +21,7 @@
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* MODO DE IMPRESSÃO - OTIMIZADO PARA MINI IMPRESSORAS (TÉRMICAS) */
+        /* MODO DE IMPRESSÃO - ATUALIZADO PARA LARGURA DINÂMICA */
         @media print {
             @page {
                 margin: 0;
@@ -31,7 +31,7 @@
                 background: white !important; 
                 margin: 0; 
                 padding: 0; 
-                visibility: hidden; /* Esconde o site todo */
+                visibility: hidden; 
             }
             
             .imprimir-este { 
@@ -39,9 +39,8 @@
                 position: absolute; 
                 left: 0; 
                 top: 0; 
-                width: 100% !important; 
-                max-width: 80mm !important; /* Tamanho exato para impressoras térmicas */
-                font-family: 'Courier New', Courier, monospace !important; /* Fonte de cupom */
+                width: var(--print-width, 80mm) !important; /* Usa a variável definida no JS */
+                font-family: 'Courier New', Courier, monospace !important; 
                 font-size: 14px !important;
                 line-height: 1.4 !important;
                 padding: 5mm !important; 
@@ -53,10 +52,9 @@
             
             .imprimir-este * {
                 visibility: visible !important;
-                color: black !important; /* Força tudo a ser preto na impressora */
+                color: black !important;
             }
 
-            /* Remove os botões e selects na hora de imprimir */
             .imprimir-este button, 
             .imprimir-este select { 
                 display: none !important; 
@@ -201,6 +199,29 @@
                             </div>
                             <button onclick="salvarConfigLoja()" class="bg-red-600 text-white p-4 w-full rounded font-bold mt-2">Salvar Configurações</button>
                         </div>
+
+                        <h3 class="text-xl font-bold mb-4 mt-8">Configuração de Impressora</h3>
+                        <div class="space-y-4 bg-blue-50 p-4 border border-blue-200 rounded">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-bold mb-1">Tipo de Impressora / Papel:</label>
+                                    <select id="cfg-tipo-imp" onchange="toggleCustomWidth()" class="w-full border p-3 rounded bg-white">
+                                        <option value="print-mini">Mini Térmica (80mm)</option>
+                                        <option value="print-laser">Normal / Laser (A4)</option>
+                                        <option value="print-custom">Customizada (cm)</option>
+                                    </select>
+                                </div>
+                                <div id="div-largura-custom" class="hidden">
+                                    <label class="block text-sm font-bold mb-1">Largura em CM:</label>
+                                    <input id="cfg-largura-cm" type="number" placeholder="Ex: 10" class="w-full border p-3 rounded">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold mb-1">Vias (Quantidade de folhas):</label>
+                                    <input id="cfg-vias" type="number" value="1" min="1" max="10" class="w-full border p-3 rounded">
+                                </div>
+                            </div>
+                            <button onclick="salvarConfigImpressao()" class="bg-blue-600 text-white p-4 w-full rounded font-bold mt-2 hover:bg-blue-700 transition">Salvar Configuração Impressora</button>
+                        </div>
                     </div>
                 </div>
 
@@ -261,6 +282,9 @@
         let mensagensAtuais = []; 
         let configLoja = { cep: '', rua: '', num: '', valorKm: 0 };
         let motoboysAtivos = [];
+        
+        // --- NOVA VARIÁVEL GLOBAL DE IMPRESSÃO ---
+        let configImpressao = { tipo: 'print-mini', largura: 8, vias: 1 };
 
         window.cadastrar = () => {
             const e = document.getElementById('email').value;
@@ -293,6 +317,7 @@
                     ouvirPedidosAdmin();
                     ouvirCardapio(true);
                     carregarConfigLoja();
+                    carregarConfigImpressao(); // Carrega config de impressora
                     if (chatTools) chatTools.classList.remove('hidden');
                 } else if(isMotoboy) {
                     const docRef = doc(db, "motoboys", user.uid);
@@ -323,6 +348,70 @@
                 document.getElementById('motoboy-setup').classList.add('hidden');
             }
         });
+
+        // --- FUNÇÕES DE CONFIGURAÇÃO DE IMPRESSORA ---
+
+        window.toggleCustomWidth = () => {
+            const tipo = document.getElementById('cfg-tipo-imp').value;
+            document.getElementById('div-largura-custom').classList.toggle('hidden', tipo !== 'print-custom');
+        };
+
+        window.salvarConfigImpressao = async () => {
+            const cfg = {
+                tipo: document.getElementById('cfg-tipo-imp').value,
+                largura: document.getElementById('cfg-largura-cm').value || 10,
+                vias: document.getElementById('cfg-vias').value || 1
+            };
+            await setDoc(doc(db, "config", "impressao"), cfg);
+            configImpressao = cfg;
+            alert("Configuração de impressora salva!");
+        };
+
+        async function carregarConfigImpressao() {
+            const d = await getDoc(doc(db, "config", "impressao"));
+            if(d.exists()) {
+                configImpressao = d.data();
+                if(document.getElementById('cfg-tipo-imp')) {
+                    document.getElementById('cfg-tipo-imp').value = configImpressao.tipo;
+                    document.getElementById('cfg-largura-cm').value = configImpressao.largura;
+                    document.getElementById('cfg-vias').value = configImpressao.vias;
+                    toggleCustomWidth();
+                }
+            }
+        }
+
+        // --- FUNÇÃO DE IMPRESSÃO ATUALIZADA (COM VIAS E TAMANHOS) ---
+        window.imprimirPedido = (id) => {
+            const card = document.getElementById(`card-pedido-${id}`);
+            if (card) {
+                const vias = parseInt(configImpressao.vias) || 1;
+                const originalContent = card.innerHTML;
+
+                // Define a largura no CSS Variable baseada na escolha
+                let widthValue = "80mm";
+                if(configImpressao.tipo === 'print-laser') widthValue = "210mm";
+                if(configImpressao.tipo === 'print-custom') widthValue = configImpressao.largura + "cm";
+                
+                document.documentElement.style.setProperty('--print-width', widthValue);
+
+                // Se houver mais de uma via, clona o conteúdo
+                if (vias > 1) {
+                    let divisor = "<div style='border-top: 1px dashed black; margin: 20px 0; padding-top:10px; text-align:center; font-weight:bold;'>--- PRÓXIMA VIA ---</div>";
+                    for (let i = 1; i < vias; i++) {
+                        card.innerHTML += divisor + originalContent;
+                    }
+                }
+
+                card.classList.add('imprimir-este');
+                window.print();
+                
+                // Restaura o card original após um delay
+                setTimeout(() => { 
+                    card.classList.remove('imprimir-este'); 
+                    card.innerHTML = originalContent;
+                }, 1000); 
+            }
+        };
 
         function mostrarTela(id) {
             document.getElementById('main-screen').classList.add('hidden');
@@ -494,7 +583,6 @@
                     if(p.motoboyDesignado === email && p.status === "A Caminho") {
                         temEntrega = true;
                         
-                        // COR E TEXTO DO PAGAMENTO PARA O MOTOBOY
                         const statusPg = p.statusPagamento || "A Receber";
                         const corPg = statusPg === "Pago" ? "text-green-600" : "text-red-600";
                         
@@ -561,7 +649,6 @@
             resumoTotal.innerText = `R$ ${totalAcumulado.toFixed(2)}`;
         }
 
-        // FUNÇÃO DE ENVIO DO PEDIDO ATUALIZADA (COM FORMA DE PAGAMENTO)
         window.enviarPedidoCompleto = async () => {
             if(carrinho.length === 0) return alert("Adicione algo!");
             
@@ -579,33 +666,23 @@
                 taxa: taxaEntrega.toFixed(2),
                 entrega: local,
                 pagamento: pagamento,
-                statusPagamento: "A Receber", // Inicia sempre como A Receber
+                statusPagamento: "A Receber", 
                 status: "Pendente",
                 motoboyDesignado: "",
                 data: serverTimestamp()
             });
             alert("Pedido enviado com sucesso!");
             limparCarrinho();
-            document.getElementById('forma-pagamento').value = ""; // Reseta o select
+            document.getElementById('forma-pagamento').value = ""; 
         };
 
         window.mudarStatus = async (id, novoStatus) => {
             await updateDoc(doc(db, "pedidos", id), { status: novoStatus });
         };
 
-        // FUNÇÃO DO ADMIN PARA ALTERNAR STATUS DE PAGAMENTO
         window.alternarPagamento = async (id, statusAtual) => {
             const novoStatus = statusAtual === "Pago" ? "A Receber" : "Pago";
             await updateDoc(doc(db, "pedidos", id), { statusPagamento: novoStatus });
-        };
-
-        window.imprimirPedido = (id) => {
-            const card = document.getElementById(`card-pedido-${id}`);
-            if (card) {
-                card.classList.add('imprimir-este');
-                window.print();
-                setTimeout(() => { card.classList.remove('imprimir-este'); }, 1000); 
-            }
         };
 
         window.cancelarPedidoAdmin = async (id) => {
@@ -614,7 +691,6 @@
             await updateDoc(doc(db, "pedidos", id), { status: "Cancelado", motivoCancelamento: motivo });
         };
 
-        // EXIBIÇÃO DO PAINEL ADMIN ATUALIZADA
         function ouvirPedidosAdmin() {
             onSnapshot(collection(db, "pedidos"), (snap) => {
                 const lista = document.getElementById('lista-pedidos');
@@ -635,7 +711,6 @@
                     });
                     selectMotoboy += `</select>`;
                     
-                    // Lógica visual do botão de pagamento
                     const statusPg = p.statusPagamento || "A Receber";
                     const btnPagoCor = statusPg === "Pago" ? "bg-green-600 hover:bg-green-700" : "bg-red-500 hover:bg-red-600";
                     const txtPago = statusPg === "Pago" ? "✅ LANCHE PAGO" : "❌ A RECEBER (Marcar Pago)";
